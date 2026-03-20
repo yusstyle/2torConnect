@@ -1,0 +1,21 @@
+packages:
+  "framer-motion": "For stunning page transitions and micro-interactions"
+  "recharts": "For beautiful admin dashboard statistics"
+  "date-fns": "For formatting session dates and transaction timestamps"
+  "zustand": "For lightweight global auth state management"
+  "clsx": "Utility for constructing className strings conditionally"
+  "tailwind-merge": "Utility for merging tailwind classes without style conflicts"
+
+images:
+  - path: "artifacts/web-app/public/images/hero-bg.png"
+    description: "Deep dark futuristic glowing background with abstract neon cyan and purple light rays and geometric grid lines"
+    aspect_ratio: "16:9"
+  - path: "artifacts/web-app/public/images/logo.png"
+    description: "A modern, sleek, glowing neon logo mark for an app called 3torConnect, dark background, cyan and purple"
+    aspect_ratio: "1:1"
+
+notes:
+  - Auth tokens and user objects are stored in localStorage
+  - Custom customFetch interceptors should use the localStorage token
+  - Wouter is used for routing, relying on standard `~` pathing
+  - Generated Orval mutations require passing the payload inside a `{ data: payload }` object.

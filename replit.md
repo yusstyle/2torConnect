@@ -48,6 +48,33 @@ Every package extends `tsconfig.base.json` which sets `composite: true`. The roo
 - `pnpm run build` — runs `typecheck` first, then recursively runs `build` in all packages that define it
 - `pnpm run typecheck` — runs `tsc --build --emitDeclarationOnly` using project references
 
+## Application: 3torConnect
+
+A tutoring marketplace platform for Nigerian university students.
+
+**Three user roles:**
+- **Students**: Register, find tutors, book sessions, messaging, video library
+- **Tutors**: Register (requires admin approval), manage sessions, availability, earnings, messaging
+- **Admins**: Dashboard stats, user/tutor/student/session/transaction management
+
+**Authentication**: Token-based (base64-encoded payload) stored in localStorage via Zustand store.
+
+**Frontend routes:**
+- `/` — Landing page
+- `/login`, `/register`, `/register/student`, `/register/tutor`
+- `/student/dashboard`, `/student/find-tutor`, `/student/sessions`, `/student/messages`, etc.
+- `/tutor/dashboard`, `/tutor/students`, `/tutor/sessions`, `/tutor/earnings`, `/tutor/availability`, etc.
+- `/admin/dashboard`, `/admin/users`, `/admin/tutors`, `/admin/students`, `/admin/sessions`, `/admin/transactions`, etc.
+
+**Database Schema** (`lib/db/src/schema/`):
+- `users` — all users (students, tutors, admins) with role enum
+- `tutors` — tutor profile linked to user
+- `students` — student profile linked to user
+- `sessions` — booking sessions between tutor and student
+- `transactions` — payment/withdrawal/refund records
+- `messages` — direct messages between users
+- `availability` — tutor weekly availability slots
+
 ## Packages
 
 ### `artifacts/api-server` (`@workspace/api-server`)
