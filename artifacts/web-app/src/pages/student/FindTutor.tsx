@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { useListTutors, useCreateSession } from "@workspace/api-client-react";
+import { useAuthStore } from "@/lib/auth";
 import { Search, Star, BookOpen, User, Calendar, Clock, DollarSign, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 

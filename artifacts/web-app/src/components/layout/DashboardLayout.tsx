@@ -15,7 +15,13 @@ interface NavItem {
   icon: React.ElementType;
 }
 
-export function DashboardLayout({ children }: { children: ReactNode }) {
+interface DashboardLayoutProps {
+  children: ReactNode;
+  role?: string;
+  title?: string;
+}
+
+export function DashboardLayout({ children, title }: DashboardLayoutProps) {
   const { user, logout } = useAuthStore();
   const [location, setLocation] = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -140,6 +146,9 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4 }}
           >
+            {title && (
+              <h1 className="text-2xl md:text-3xl font-bold text-white mb-6">{title}</h1>
+            )}
             {children}
           </motion.div>
         </div>
@@ -147,3 +156,5 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
     </div>
   );
 }
+
+export default DashboardLayout;
