@@ -53,7 +53,7 @@ export default function LoginPage() {
         <div className="glass-panel p-8 sm:p-10 rounded-3xl">
           <div className="text-center mb-10">
             <h1 className="text-3xl font-display font-bold text-white mb-2">Welcome Back</h1>
-            <p className="text-muted-foreground">Sign in to your 3torConnect account</p>
+            <p className="text-muted-foreground">Sign in to your 2torConnect account</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">

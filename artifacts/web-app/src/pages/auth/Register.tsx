@@ -16,7 +16,7 @@ export default function RegisterChoicePage() {
           <ArrowRight className="w-4 h-4 rotate-180" /> Back to Home
         </Link>
         
-        <h1 className="text-4xl md:text-5xl font-display font-bold text-white mb-4">Join 3torConnect</h1>
+        <h1 className="text-4xl md:text-5xl font-display font-bold text-white mb-4">Join 2torConnect</h1>
         <p className="text-muted-foreground text-lg mb-12">How would you like to use the platform?</p>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

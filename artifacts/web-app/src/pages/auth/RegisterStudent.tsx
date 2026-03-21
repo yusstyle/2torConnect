@@ -23,7 +23,7 @@ export default function RegisterStudentPage() {
     mutation: {
       onSuccess: (res) => {
         setAuthData(res.user, res.token);
-        toast({ title: "Account created!", description: "Welcome to 3torConnect." });
+        toast({ title: "Account created!", description: "Welcome to 2torConnect." });
         setLocation("/student/dashboard");
       },
       onError: (err: any) => {

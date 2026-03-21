@@ -20,7 +20,7 @@ export const useAuthStore = create<AuthState>()(
       logout: () => set({ user: null, token: null, isAuthenticated: false }),
     }),
     {
-      name: '3tor-auth',
+      name: '2tor-auth',
     }
   )
 );

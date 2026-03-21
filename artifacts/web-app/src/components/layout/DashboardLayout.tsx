@@ -66,9 +66,9 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
       <div className="md:hidden flex items-center justify-between p-4 border-b border-border bg-card">
         <div className="font-display font-bold text-xl text-white flex items-center gap-2">
           <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-primary to-accent flex items-center justify-center">
-            <span className="text-white text-sm font-bold">3T</span>
+            <span className="text-white text-sm font-bold">2T</span>
           </div>
-          3torConnect
+          2torConnect
         </div>
         <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="text-muted-foreground">
           {mobileMenuOpen ? <X /> : <Menu />}
@@ -86,9 +86,9 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
           >
             <div className="p-6 hidden md:flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-primary to-accent flex items-center justify-center shadow-lg shadow-accent/20">
-                <span className="text-white text-lg font-bold font-display">3T</span>
+                <span className="text-white text-lg font-bold font-display">2T</span>
               </div>
-              <span className="font-display font-bold text-2xl text-white tracking-tight">3tor<span className="text-accent">Connect</span></span>
+              <span className="font-display font-bold text-2xl text-white tracking-tight">2tor<span className="text-accent">Connect</span></span>
             </div>
 
             <div className="px-6 py-4">
