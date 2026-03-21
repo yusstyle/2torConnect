@@ -1,8 +1,9 @@
 import { useAuthStore } from "@/lib/auth";
 import { useListSessions, useUpdateSession } from "@workspace/api-client-react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
+import { useLocation } from "wouter";
 import { format } from "date-fns";
-import { Calendar, Clock, CheckCircle, XCircle, Loader2 } from "lucide-react";
+import { Calendar, Clock, CheckCircle, XCircle, Loader2, Video } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 const statusColors: Record<string, string> = {
@@ -15,6 +16,7 @@ const statusColors: Record<string, string> = {
 export default function TutorSessionsPage() {
   const { user } = useAuthStore();
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
 
   const { data, isLoading, refetch } = useListSessions({ tutorId: user?.id });
 
@@ -26,7 +28,6 @@ export default function TutorSessionsPage() {
   });
 
   const sessions = data?.sessions ?? [];
-
   const action = (id: number, status: "confirmed" | "completed" | "cancelled") =>
     updateMutation.mutate({ id, data: { status } });
 
@@ -43,16 +44,16 @@ export default function TutorSessionsPage() {
           </div>
         ) : (
           sessions.map(session => (
-            <div key={session.id} className="glass-panel rounded-2xl p-6 flex flex-col sm:flex-row sm:items-center gap-4">
-              <div className="flex-1 space-y-2">
-                <div className="flex items-center gap-3">
+            <div key={session.id} className="glass-panel rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center gap-4">
+              <div className="flex-1 space-y-2 min-w-0">
+                <div className="flex items-center gap-3 flex-wrap">
                   <span className={`px-3 py-1 rounded-full text-xs font-semibold ${statusColors[session.status] ?? ""}`}>
                     {session.status}
                   </span>
                   <span className="text-white font-semibold">{session.subject}</span>
                 </div>
                 <p className="text-muted-foreground text-sm">Student: <span className="text-white">{session.studentName}</span></p>
-                <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
                   <span className="flex items-center gap-1">
                     <Calendar className="w-4 h-4" />
                     {format(new Date(session.scheduledAt), "MMM d, yyyy")}
@@ -61,10 +62,13 @@ export default function TutorSessionsPage() {
                     <Clock className="w-4 h-4" />
                     {format(new Date(session.scheduledAt), "h:mm a")} · {session.durationMinutes}min
                   </span>
-                  {session.amount && <span className="text-green-400 font-semibold">₦{Number(session.amount).toLocaleString()}</span>}
+                  {session.amount && (
+                    <span className="text-green-400 font-semibold">₦{Number(session.amount).toLocaleString()}</span>
+                  )}
                 </div>
               </div>
-              <div className="flex gap-2">
+
+              <div className="flex flex-wrap gap-2 shrink-0">
                 {session.status === "pending" && (
                   <>
                     <button onClick={() => action(session.id, "confirmed")} disabled={updateMutation.isPending}
@@ -77,11 +81,27 @@ export default function TutorSessionsPage() {
                     </button>
                   </>
                 )}
+
                 {session.status === "confirmed" && (
-                  <button onClick={() => action(session.id, "completed")} disabled={updateMutation.isPending}
-                    className="flex items-center gap-1 px-3 py-2 rounded-xl bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 transition-colors text-sm font-medium disabled:opacity-50">
-                    <CheckCircle className="w-4 h-4" /> Mark Complete
-                  </button>
+                  <>
+                    <button
+                      onClick={() => setLocation(`/session/${session.id}`)}
+                      className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-primary to-accent text-white font-bold text-sm hover:opacity-90 transition-all shadow-lg shadow-primary/20 animate-pulse-slow"
+                    >
+                      <Video className="w-4 h-4" />
+                      Start Session
+                    </button>
+                    <button onClick={() => action(session.id, "completed")} disabled={updateMutation.isPending}
+                      className="flex items-center gap-1 px-3 py-2 rounded-xl bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 transition-colors text-sm font-medium disabled:opacity-50">
+                      <CheckCircle className="w-4 h-4" /> Mark Complete
+                    </button>
+                  </>
+                )}
+
+                {session.status === "completed" && (
+                  <span className="flex items-center gap-1 text-green-400 text-sm font-medium px-3 py-2">
+                    <CheckCircle className="w-4 h-4" /> Completed
+                  </span>
                 )}
               </div>
             </div>

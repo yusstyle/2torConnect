@@ -20,6 +20,7 @@ import TutorAvailabilityPage from "@/pages/tutor/Availability";
 import TutorMaterialsPage from "@/pages/tutor/Materials";
 
 import MessagesPage from "@/pages/Messages";
+import VideoRoom from "@/pages/session/VideoRoom";
 
 import AdminDashboard from "@/pages/admin/Dashboard";
 import AdminUsersPage from "@/pages/admin/Users";
@@ -62,6 +63,7 @@ function Router() {
       <Route path="/tutor/materials" component={TutorMaterialsPage} />
 
       <Route path="/messages" component={MessagesPage} />
+      <Route path="/session/:id" component={VideoRoom} />
 
       <Route path="/admin/dashboard" component={AdminDashboard} />
       <Route path="/admin/users" component={AdminUsersPage} />
