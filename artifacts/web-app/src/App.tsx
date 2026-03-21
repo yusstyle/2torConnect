@@ -11,11 +11,13 @@ import RegisterTutorPage from "@/pages/auth/RegisterTutor";
 import StudentDashboard from "@/pages/student/Dashboard";
 import FindTutorPage from "@/pages/student/FindTutor";
 import StudentSessionsPage from "@/pages/student/Sessions";
+import StudentMaterialsPage from "@/pages/student/Materials";
 
 import TutorDashboardPage from "@/pages/tutor/Dashboard";
 import TutorSessionsPage from "@/pages/tutor/Sessions";
 import TutorEarningsPage from "@/pages/tutor/Earnings";
 import TutorAvailabilityPage from "@/pages/tutor/Availability";
+import TutorMaterialsPage from "@/pages/tutor/Materials";
 
 import MessagesPage from "@/pages/Messages";
 
@@ -51,11 +53,13 @@ function Router() {
       <Route path="/student/dashboard" component={StudentDashboard} />
       <Route path="/student/find-tutor" component={FindTutorPage} />
       <Route path="/student/sessions" component={StudentSessionsPage} />
+      <Route path="/student/materials" component={StudentMaterialsPage} />
 
       <Route path="/tutor/dashboard" component={TutorDashboardPage} />
       <Route path="/tutor/sessions" component={TutorSessionsPage} />
       <Route path="/tutor/earnings" component={TutorEarningsPage} />
       <Route path="/tutor/availability" component={TutorAvailabilityPage} />
+      <Route path="/tutor/materials" component={TutorMaterialsPage} />
 
       <Route path="/messages" component={MessagesPage} />
 
