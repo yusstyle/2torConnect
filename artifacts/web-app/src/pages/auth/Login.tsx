@@ -23,10 +23,14 @@ export default function LoginPage() {
         setLocation(`/${res.user.role}/dashboard`);
       },
       onError: (err: any) => {
+        const serverMsg =
+          err?.data?.error ||
+          err?.data?.message ||
+          "Invalid credentials. Please check your email, password, and selected role.";
         toast({ 
           variant: "destructive", 
           title: "Login Failed", 
-          description: err.message || "Invalid credentials. Please try again." 
+          description: serverMsg
         });
       }
     }
@@ -58,21 +62,24 @@ export default function LoginPage() {
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-4">
-              <div className="grid grid-cols-3 gap-3 p-1 rounded-xl bg-black/40 border border-white/10">
-                {(["student", "tutor", "admin"] as const).map((r) => (
-                  <button
-                    key={r}
-                    type="button"
-                    onClick={() => setRole(r)}
-                    className={`py-2 px-3 rounded-lg text-sm font-semibold capitalize transition-all ${
-                      role === r 
-                        ? "bg-gradient-to-r from-primary to-accent text-white shadow-lg" 
-                        : "text-muted-foreground hover:text-white"
-                    }`}
-                  >
-                    {r}
-                  </button>
-                ))}
+              <div>
+                <p className="text-xs text-white/50 mb-2 font-medium uppercase tracking-wider">Sign in as</p>
+                <div className="grid grid-cols-3 gap-3 p-1 rounded-xl bg-black/40 border border-white/10">
+                  {(["student", "tutor", "admin"] as const).map((r) => (
+                    <button
+                      key={r}
+                      type="button"
+                      onClick={() => setRole(r)}
+                      className={`py-2 px-3 rounded-lg text-sm font-semibold capitalize transition-all ${
+                        role === r 
+                          ? "bg-gradient-to-r from-primary to-accent text-white shadow-lg" 
+                          : "text-muted-foreground hover:text-white"
+                      }`}
+                    >
+                      {r}
+                    </button>
+                  ))}
+                </div>
               </div>
 
               <div className="space-y-2">
