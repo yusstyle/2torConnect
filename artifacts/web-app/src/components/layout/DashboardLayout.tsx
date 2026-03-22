@@ -4,7 +4,7 @@ import { useAuthStore } from "@/lib/auth";
 import { 
   LogOut, LayoutDashboard, Users, BookOpen, 
   CreditCard, MessageSquare, Calendar,
-  Search, FileText, Menu, X
+  Search, FileText, Menu, X, Video
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useState } from "react";
@@ -41,12 +41,14 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
       { label: "Dashboard", href: "/student/dashboard", icon: LayoutDashboard },
       { label: "Find a Tutor", href: "/student/find-tutor", icon: Search },
       { label: "My Sessions", href: "/student/sessions", icon: BookOpen },
+      { label: "Live Sessions", href: "/student/live", icon: Video },
       { label: "Study Materials", href: "/student/materials", icon: FileText },
       { label: "Messages", href: "/messages", icon: MessageSquare },
     ],
     tutor: [
       { label: "Dashboard", href: "/tutor/dashboard", icon: LayoutDashboard },
       { label: "My Sessions", href: "/tutor/sessions", icon: BookOpen },
+      { label: "Live Sessions", href: "/tutor/live", icon: Video },
       { label: "Materials", href: "/tutor/materials", icon: FileText },
       { label: "Availability", href: "/tutor/availability", icon: Calendar },
       { label: "Earnings", href: "/tutor/earnings", icon: CreditCard },
