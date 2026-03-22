@@ -21,6 +21,7 @@ const UNIVERSITIES = [
   "Ahmadu Bello University", "University of Nigeria Nsukka", "University of Benin",
   "University of Port Harcourt", "Lagos State University", "Covenant University",
   "Babcock University", "Nnamdi Azikiwe University", "Federal University of Technology Akure",
+  "Federal University Dutse (FUD)", "Bayero University Kano (BUK)",
 ];
 
 const steps = ["Personal Info", "Academic Details", "Documents"];
@@ -197,7 +198,7 @@ export default function RegisterTutorPage() {
                       <label className="text-sm font-medium text-white/80">Full Name *</label>
                       <div className="relative">
                         <User className="absolute left-3.5 top-3.5 w-4 h-4 text-muted-foreground" />
-                        <input type="text" value={form.name} onChange={set("name")} className={iconInputClass} placeholder="John Doe" />
+                        <input type="text" value={form.name} onChange={set("name")} className={iconInputClass} placeholder="Yusuf Hussaini" />
                       </div>
                     </div>
                     <div className="space-y-1">

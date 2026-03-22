@@ -75,7 +75,7 @@ export default function RegisterStudentPage() {
                 <label className="text-sm font-medium text-white/80">Full Name</label>
                 <div className="relative">
                   <User className="absolute left-4 top-3.5 w-4 h-4 text-muted-foreground" />
-                  <input type="text" required value={form.name} onChange={set("name")} className={inputClass} placeholder="John Doe" />
+                  <input type="text" required value={form.name} onChange={set("name")} className={inputClass} placeholder="Yusuf Hussaini" />
                 </div>
               </div>
               <div className="space-y-1">

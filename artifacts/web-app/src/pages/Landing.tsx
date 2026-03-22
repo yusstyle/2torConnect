@@ -337,7 +337,7 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto text-center">
           <motion.p {...fadeUp()} className="text-white/40 text-sm mb-8 uppercase tracking-widest">Tutors & Students from Nigeria's top universities</motion.p>
           <motion.div {...fadeUp(0.1)} className="flex flex-wrap justify-center gap-6 text-white/50 text-sm font-medium">
-            {["University of Lagos (UNILAG)", "University of Ibadan (UI)", "Obafemi Awolowo University (OAU)", "ABU Zaria", "University of Nigeria Nsukka (UNN)", "LASU", "UNIABUJA", "Covenant University", "Babcock University", "Lagos Business School"].map(uni => (
+            {["University of Lagos (UNILAG)", "University of Ibadan (UI)", "Obafemi Awolowo University (OAU)", "ABU Zaria", "University of Nigeria Nsukka (UNN)", "LASU", "UNIABUJA", "Covenant University", "Babcock University", "Lagos Business School", "Federal University Dutse (FUD)", "Bayero University Kano (BUK)"].map(uni => (
               <span key={uni} className="px-4 py-2 rounded-full bg-white/5 border border-white/10 hover:border-accent/30 hover:text-white/80 transition-colors">{uni}</span>
             ))}
           </motion.div>
