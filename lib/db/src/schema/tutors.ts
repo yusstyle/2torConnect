@@ -16,6 +16,8 @@ export const tutorsTable = pgTable("tutors", {
   rating: numeric("rating", { precision: 3, scale: 2 }).default("0"),
   totalSessions: integer("total_sessions").default(0),
   isVerified: boolean("is_verified").default(false),
+  cgpa: numeric("cgpa", { precision: 3, scale: 2 }),
+  schoolIdUrl: text("school_id_url"),
   applicationDate: timestamp("application_date").defaultNow().notNull(),
 });
 

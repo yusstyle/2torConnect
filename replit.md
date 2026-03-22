@@ -1,3 +1,28 @@
+# 2torConnect — Tutoring Marketplace
+
+## Project Summary
+Full-stack tutoring marketplace for Nigerian university students. Three roles: **Student**, **Tutor**, **Admin**.
+
+### Completed Features
+- Auth system (register/login/logout) for all three roles; base64 JWT-style token; Zustand store
+- Student: find tutors, book sessions, chat with tutors, view/join video sessions, browse materials
+- Tutor: multi-step application form (3 steps: personal info → academic details → documents); school ID card upload via multer; CGPA field; manage sessions; earnings; availability; upload materials; video teach
+- Admin: manage users, sessions, transactions; approve/reject tutor applications
+- Video sessions: Jitsi Meet (`meet.jit.si`), room `2torconnect-session-{id}`; no API key required
+- Chat/messaging: auto-polling (3s messages, 5s conversations list)
+- Study materials: upload + browse
+
+### Key Tech
+- School ID uploads: multer → `uploads/school-ids/`; served at `/uploads/school-ids/`
+- DB: tutors table has `cgpa` (numeric 3,2) + `school_id_url` (text) columns
+- Tutor registration endpoint: `POST /api/auth/register/tutor` accepts FormData (not JSON)
+- Currency: Nigerian Naira (₦)
+
+### Admin Credentials
+`admin@2torconnect.com` / `admin@2tor2024`
+
+---
+
 # Workspace
 
 ## Overview

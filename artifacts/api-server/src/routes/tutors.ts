@@ -24,6 +24,8 @@ function buildTutorProfile(tutor: any, user: any) {
     rating: tutor.rating,
     totalSessions: tutor.totalSessions,
     isVerified: tutor.isVerified,
+    cgpa: tutor.cgpa,
+    schoolIdUrl: tutor.schoolIdUrl,
     applicationDate: tutor.applicationDate,
   };
 }
