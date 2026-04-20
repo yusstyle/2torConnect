@@ -4,19 +4,25 @@
 Full-stack tutoring marketplace for Nigerian university students. Three roles: **Student**, **Tutor**, **Admin**.
 
 ### Completed Features
-- Auth system (register/login/logout) for all three roles; base64 JWT-style token; Zustand store
+- Auth system (register/login/logout) for all four roles (student/tutor/investor/admin); base64 JWT-style token; Zustand store
+- **Profile pictures**: `avatarUrl` column on usersTable; `POST /api/auth/avatar` upload endpoint; shows real avatar in sidebar, compose box, and post cards; `/profile` page with photo upload + name/phone edit
 - Student: find tutors, book sessions, chat with tutors, view/join video sessions, browse materials
 - Tutor: multi-step application form (3 steps: personal info → academic details → documents); school ID card upload via multer; CGPA field; manage sessions; earnings; availability; upload materials; video teach
+- Investor: browse 15+ Nigerian universities, find students to fund, register with ID upload
 - Admin: manage users, sessions, transactions; approve/reject tutor applications
-- Video sessions: Jitsi Meet (`meet.jit.si`), room `2torconnect-session-{id}`; no API key required
+- **Video sessions**: Jitsi Meet (`meet.jit.si`), room `2torconnect-session-{id}`; no API key required; sandbox attribute removed so camera/mic works in iframe
 - Chat/messaging: auto-polling (3s messages, 5s conversations list)
 - Study materials: upload + browse
+- **2torSocialise**: tweets, posts, reels, videos; like/comment/follow; media upload with post; author avatars from profile
 
 ### Key Tech
-- School ID uploads: multer → `uploads/school-ids/`; served at `/uploads/school-ids/`
-- DB: tutors table has `cgpa` (numeric 3,2) + `school_id_url` (text) columns
+- Uploads served at both `/uploads/` AND `/api/uploads/` (Replit proxy routes `/api/*` to API server); avatars at `/api/uploads/avatars/`, social at `/api/uploads/social/`
+- School ID uploads: multer → `uploads/school-ids/`
+- DB: tutors table has `cgpa` (numeric 3,2) + `school_id_url` (text); usersTable has `avatar_url` (text)
 - Tutor registration endpoint: `POST /api/auth/register/tutor` accepts FormData (not JSON)
+- Investor registration: `POST /api/auth/register/investor` accepts FormData with `idCard` file
 - Currency: Nigerian Naira (₦)
+- All user serialization uses `serializeUser()` helper in auth.ts (includes avatarUrl)
 
 ### Admin Credentials
 `admin@2torconnect.com` / `admin@2tor2024`

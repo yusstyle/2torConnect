@@ -14,7 +14,7 @@ type PostType = "tweet" | "post" | "reel" | "video";
 interface Post {
   id: number; userId: number; content: string | null; mediaUrl: string | null;
   mediaType: string | null; type: PostType; likeCount: number; commentCount: number;
-  createdAt: string; authorName: string; authorRole: string; liked: boolean;
+  createdAt: string; authorName: string; authorRole: string; authorAvatarUrl?: string | null; liked: boolean;
 }
 
 interface Comment {
@@ -46,8 +46,10 @@ function PostCard({ post, currentUserId, onLike, onDelete, onComment }: {
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
       className="glass-panel rounded-2xl p-5 hover:border-white/20 transition-all">
       <div className="flex items-start gap-3 mb-3">
-        <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-primary to-accent flex items-center justify-center text-white font-bold shrink-0">
-          {post.authorName.charAt(0).toUpperCase()}
+        <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-primary to-accent flex items-center justify-center text-white font-bold shrink-0 overflow-hidden">
+          {post.authorAvatarUrl
+            ? <img src={post.authorAvatarUrl} alt={post.authorName} className="w-full h-full object-cover" />
+            : <span>{post.authorName.charAt(0).toUpperCase()}</span>}
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
@@ -267,8 +269,10 @@ export default function SocialisePage() {
         {/* Compose */}
         <div className="glass-panel rounded-3xl p-5">
           <div className="flex items-start gap-3 mb-3">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-primary to-accent flex items-center justify-center text-white font-bold shrink-0">
-              {user?.name?.charAt(0).toUpperCase()}
+            <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-primary to-accent flex items-center justify-center text-white font-bold shrink-0 overflow-hidden">
+              {user?.avatarUrl
+                ? <img src={user.avatarUrl} alt="me" className="w-full h-full object-cover" />
+                : <span>{user?.name?.charAt(0).toUpperCase()}</span>}
             </div>
             <textarea
               value={content} onChange={e => setContent(e.target.value)}

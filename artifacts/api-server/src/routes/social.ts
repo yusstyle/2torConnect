@@ -29,7 +29,7 @@ function authMiddleware(req: any, res: any, next: any) {
 }
 
 async function enrichPost(post: any, currentUserId?: number) {
-  const [user] = await db.select({ name: usersTable.name, role: usersTable.role })
+  const [user] = await db.select({ name: usersTable.name, role: usersTable.role, avatarUrl: usersTable.avatarUrl })
     .from(usersTable).where(eq(usersTable.id, post.userId)).limit(1);
   let liked = false;
   if (currentUserId) {
@@ -37,7 +37,7 @@ async function enrichPost(post: any, currentUserId?: number) {
       .where(and(eq(socialLikesTable.postId, post.id), eq(socialLikesTable.userId, currentUserId))).limit(1);
     liked = !!like;
   }
-  return { ...post, authorName: user?.name ?? "Unknown", authorRole: user?.role ?? "student", liked };
+  return { ...post, authorName: user?.name ?? "Unknown", authorRole: user?.role ?? "student", authorAvatarUrl: user?.avatarUrl ?? null, liked };
 }
 
 router.get("/feed", authMiddleware, async (req: any, res) => {
@@ -149,7 +149,7 @@ router.post("/upload", authMiddleware, (req: any, res) => {
   uploadSocialMedia(req, res, (err) => {
     if (err) { res.status(400).json({ error: "Upload failed", message: err.message }); return; }
     if (!req.file) { res.status(400).json({ error: "No file provided" }); return; }
-    res.json({ url: `/uploads/social/${req.file.filename}` });
+    res.json({ url: `/api/uploads/social/${req.file.filename}` });
   });
 });
 

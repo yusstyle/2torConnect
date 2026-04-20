@@ -23,6 +23,7 @@ import TutorMaterialsPage from "@/pages/tutor/Materials";
 import InvestorDashboard from "@/pages/investor/Dashboard";
 import InvestorStudentsPage from "@/pages/investor/Students";
 import InvestorUniversitiesPage from "@/pages/investor/Universities";
+import ProfilePage from "@/pages/Profile";
 
 import MessagesPage from "@/pages/Messages";
 import VideoRoom from "@/pages/session/VideoRoom";
@@ -77,6 +78,7 @@ function Router() {
       <Route path="/investor/universities" component={InvestorUniversitiesPage} />
       <Route path="/investor/live" component={() => <LiveSessionsPage role="student" />} />
 
+      <Route path="/profile" component={ProfilePage} />
       <Route path="/socialise" component={SocialisePage} />
 
       <Route path="/messages" component={MessagesPage} />

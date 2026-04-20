@@ -73,6 +73,7 @@ export interface UserProfile {
   role: UserProfileRole;
   phone?: string | null;
   status: string;
+  avatarUrl?: string | null;
   createdAt: string;
   lastLogin?: string | null;
 }

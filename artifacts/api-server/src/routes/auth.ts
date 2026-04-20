@@ -14,10 +14,50 @@ import { investorsTable } from "@workspace/db";
 
 const router: IRouter = Router();
 
+function serializeUser(u: any) {
+  return { id: u.id, name: u.name, email: u.email, role: u.role, phone: u.phone, status: u.status, avatarUrl: u.avatarUrl ?? null, createdAt: u.createdAt, lastLogin: u.lastLogin };
+}
+
 const uploadDir = path.join(process.cwd(), "uploads", "school-ids");
 if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
 const investorUploadDir = path.join(process.cwd(), "uploads", "investor-ids");
 if (!fs.existsSync(investorUploadDir)) fs.mkdirSync(investorUploadDir, { recursive: true });
+const avatarUploadDir = path.join(process.cwd(), "uploads", "avatars");
+if (!fs.existsSync(avatarUploadDir)) fs.mkdirSync(avatarUploadDir, { recursive: true });
+
+const avatarStorage = multer.diskStorage({
+  destination: (_req, _file, cb) => cb(null, avatarUploadDir),
+  filename: (req: any, file, cb) => {
+    const ext = path.extname(file.originalname);
+    cb(null, `avatar-${(req as any).authUser?.id ?? "unknown"}-${Date.now()}${ext}`);
+  },
+});
+const uploadAvatar = multer({ storage: avatarStorage, limits: { fileSize: 5 * 1024 * 1024 } }).single("avatar");
+
+function authMiddleware(req: any, res: any, next: any) {
+  const authHeader = req.headers.authorization;
+  if (!authHeader?.startsWith("Bearer ")) { res.status(401).json({ error: "Unauthorized" }); return; }
+  try {
+    const payload = JSON.parse(Buffer.from(authHeader.slice(7), "base64").toString("utf8"));
+    req.authUser = payload;
+    next();
+  } catch { res.status(401).json({ error: "Invalid token" }); }
+}
+
+router.post("/avatar", authMiddleware, (req: any, res) => {
+  uploadAvatar(req, res, async (err) => {
+    if (err) { res.status(400).json({ error: "Upload failed", message: err.message }); return; }
+    if (!req.file) { res.status(400).json({ error: "No file provided" }); return; }
+    try {
+      const avatarUrl = `/api/uploads/avatars/${req.file.filename}`;
+      const [user] = await db.update(usersTable).set({ avatarUrl }).where(eq(usersTable.id, req.authUser.id)).returning();
+      if (!user) { res.status(404).json({ error: "User not found" }); return; }
+      res.json({ avatarUrl, user: serializeUser(user) });
+    } catch (e) {
+      res.status(500).json({ error: "Failed to save avatar" });
+    }
+  });
+});
 
 const schoolIdStorage = multer.diskStorage({
   destination: (_req, _file, cb) => cb(null, uploadDir),
@@ -79,7 +119,7 @@ router.post("/register/student", async (req, res) => {
     });
     const token = Buffer.from(JSON.stringify({ id: user.id, role: user.role })).toString("base64");
     res.status(201).json({
-      user: { id: user.id, name: user.name, email: user.email, role: user.role, phone: user.phone, status: user.status, createdAt: user.createdAt, lastLogin: user.lastLogin },
+      user: serializeUser(user),
       token,
     });
   } catch (err) {
@@ -150,7 +190,7 @@ router.post("/register/tutor", (req, res) => {
 
       const token = Buffer.from(JSON.stringify({ id: user.id, role: user.role })).toString("base64");
       res.status(201).json({
-        user: { id: user.id, name: user.name, email: user.email, role: user.role, phone: user.phone, status: user.status, createdAt: user.createdAt, lastLogin: user.lastLogin },
+        user: serializeUser(user),
         token,
       });
     } catch (err) {
@@ -194,7 +234,7 @@ router.post("/register/investor", (req, res) => {
 
       const token = Buffer.from(JSON.stringify({ id: user.id, role: user.role })).toString("base64");
       res.status(201).json({
-        user: { id: user.id, name: user.name, email: user.email, role: user.role, phone: user.phone, status: user.status, createdAt: user.createdAt, lastLogin: user.lastLogin },
+        user: serializeUser(user),
         token,
       });
     } catch (err) {
@@ -229,7 +269,7 @@ router.post("/login", async (req, res) => {
     await db.update(usersTable).set({ lastLogin: new Date() }).where(eq(usersTable.id, user.id));
     const token = Buffer.from(JSON.stringify({ id: user.id, role: user.role })).toString("base64");
     res.json({
-      user: { id: user.id, name: user.name, email: user.email, role: user.role, phone: user.phone, status: user.status, createdAt: user.createdAt, lastLogin: user.lastLogin },
+      user: serializeUser(user),
       token,
     });
   } catch (err) {
@@ -255,7 +295,7 @@ router.get("/me", async (req, res) => {
       res.status(401).json({ error: "Unauthorized" });
       return;
     }
-    res.json({ id: user.id, name: user.name, email: user.email, role: user.role, phone: user.phone, status: user.status, createdAt: user.createdAt, lastLogin: user.lastLogin });
+    res.json(serializeUser(user));
   } catch {
     res.status(401).json({ error: "Unauthorized" });
   }

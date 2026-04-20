@@ -5,7 +5,7 @@ import { Logo } from "@/components/Logo";
 import {
   LogOut, LayoutDashboard, Users, BookOpen,
   CreditCard, MessageSquare, Calendar,
-  Search, FileText, Menu, X, Video, Building2, Globe, GraduationCap
+  Search, FileText, Menu, X, Video, Globe, GraduationCap, UserCircle
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useState } from "react";
@@ -50,6 +50,7 @@ export function DashboardLayout({ children, role: roleProp, title }: DashboardLa
       { label: "Study Materials", href: "/student/materials", icon: FileText },
       { label: "Messages", href: "/messages", icon: MessageSquare },
       { label: "2torSocialise", href: "/socialise", icon: Globe },
+      { label: "My Profile", href: "/profile", icon: UserCircle },
     ],
     tutor: [
       { label: "Dashboard", href: "/tutor/dashboard", icon: LayoutDashboard },
@@ -60,6 +61,7 @@ export function DashboardLayout({ children, role: roleProp, title }: DashboardLa
       { label: "Earnings", href: "/tutor/earnings", icon: CreditCard },
       { label: "Messages", href: "/messages", icon: MessageSquare },
       { label: "2torSocialise", href: "/socialise", icon: Globe },
+      { label: "My Profile", href: "/profile", icon: UserCircle },
     ],
     investor: [
       { label: "Dashboard", href: "/investor/dashboard", icon: LayoutDashboard },
@@ -70,6 +72,7 @@ export function DashboardLayout({ children, role: roleProp, title }: DashboardLa
       { label: "Transactions", href: "/investor/transactions", icon: CreditCard },
       { label: "Messages", href: "/messages", icon: MessageSquare },
       { label: "2torSocialise", href: "/socialise", icon: Globe },
+      { label: "My Profile", href: "/profile", icon: UserCircle },
     ],
     admin: [
       { label: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard },
@@ -77,6 +80,7 @@ export function DashboardLayout({ children, role: roleProp, title }: DashboardLa
       { label: "Sessions", href: "/admin/sessions", icon: BookOpen },
       { label: "Transactions", href: "/admin/transactions", icon: CreditCard },
       { label: "2torSocialise", href: "/socialise", icon: Globe },
+      { label: "My Profile", href: "/profile", icon: UserCircle },
     ],
   };
 
@@ -111,15 +115,19 @@ export function DashboardLayout({ children, role: roleProp, title }: DashboardLa
             </div>
 
             <div className="px-6 py-4 flex-1 overflow-y-auto">
-              <div className="flex items-center gap-3 mb-6 p-3 rounded-2xl bg-white/5 border border-white/10">
-                <div className={`w-10 h-10 rounded-full bg-gradient-to-tr ${roleGradient[user.role] ?? "from-primary to-accent"} flex items-center justify-center font-bold text-white`}>
-                  {user.name.charAt(0)}
+              <Link href="/profile" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 mb-6 p-3 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all group">
+                <div className={`w-10 h-10 rounded-full bg-gradient-to-tr ${roleGradient[user.role] ?? "from-primary to-accent"} flex items-center justify-center font-bold text-white shrink-0 overflow-hidden`}>
+                  {user.avatarUrl
+                    ? <img src={user.avatarUrl} alt="avatar" className="w-full h-full object-cover" />
+                    : <span>{user.name.split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase()}</span>
+                  }
                 </div>
-                <div>
-                  <p className="text-sm font-bold text-white truncate w-32">{user.name}</p>
+                <div className="min-w-0">
+                  <p className="text-sm font-bold text-white truncate">{user.name}</p>
                   <p className={`text-xs capitalize font-medium ${user.role === "investor" ? "text-yellow-400" : user.role === "admin" ? "text-red-400" : "text-accent"}`}>{user.role}</p>
                 </div>
-              </div>
+                <UserCircle className="w-4 h-4 text-muted-foreground group-hover:text-white ml-auto shrink-0 transition-colors" />
+              </Link>
 
               <nav className="space-y-1">
                 {currentNav.map((item) => {

@@ -31,9 +31,8 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 app.use("/api", router);
-app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
-app.use("/uploads/school-ids", express.static(path.join(process.cwd(), "uploads", "school-ids")));
-app.use("/uploads/investor-ids", express.static(path.join(process.cwd(), "uploads", "investor-ids")));
-app.use("/uploads/social", express.static(path.join(process.cwd(), "uploads", "social")));
+const uploadDir = path.join(process.cwd(), "uploads");
+app.use("/uploads", express.static(uploadDir));
+app.use("/api/uploads", express.static(uploadDir));
 
 export default app;

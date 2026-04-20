@@ -48,7 +48,7 @@ router.get("/:id", async (req, res) => {
       res.status(404).json({ error: "User not found" });
       return;
     }
-    res.json({ id: user.id, name: user.name, email: user.email, role: user.role, phone: user.phone, status: user.status, createdAt: user.createdAt, lastLogin: user.lastLogin });
+    res.json({ id: user.id, name: user.name, email: user.email, role: user.role, phone: user.phone, status: user.status, avatarUrl: user.avatarUrl ?? null, createdAt: user.createdAt, lastLogin: user.lastLogin });
   } catch (err) {
     req.log.error({ err }, "get user error");
     res.status(500).json({ error: "Failed to get user" });
@@ -62,13 +62,13 @@ router.patch("/:id", async (req, res) => {
     const updateData: any = {};
     if (body.status) updateData.status = body.status;
     if (body.name) updateData.name = body.name;
-    if (body.phone) updateData.phone = body.phone;
+    if ("phone" in body) updateData.phone = body.phone ?? null;
     const [user] = await db.update(usersTable).set(updateData).where(eq(usersTable.id, id)).returning();
     if (!user) {
       res.status(404).json({ error: "User not found" });
       return;
     }
-    res.json({ id: user.id, name: user.name, email: user.email, role: user.role, phone: user.phone, status: user.status, createdAt: user.createdAt, lastLogin: user.lastLogin });
+    res.json({ id: user.id, name: user.name, email: user.email, role: user.role, phone: user.phone, status: user.status, avatarUrl: user.avatarUrl ?? null, createdAt: user.createdAt, lastLogin: user.lastLogin });
   } catch (err) {
     req.log.error({ err }, "update user error");
     res.status(500).json({ error: "Failed to update user" });

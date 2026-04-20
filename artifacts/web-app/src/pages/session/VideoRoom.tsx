@@ -22,7 +22,7 @@ export default function VideoRoom({ params }: VideoRoomProps) {
   const sessionId = params.id;
   const roomName = `2torconnect-session-${sessionId}`;
   const jitsiUrl = `https://meet.jit.si/${roomName}`;
-  const jitsiIframeUrl = `https://meet.jit.si/${roomName}#config.prejoinPageEnabled=false&config.startWithAudioMuted=false&config.startWithVideoMuted=false&config.toolbarButtons=["microphone","camera","desktop","fullscreen","hangup","chat","settings","raisehand","tileview"]&interfaceConfig.SHOW_JITSI_WATERMARK=false&interfaceConfig.MOBILE_APP_PROMO=false`;
+  const jitsiIframeUrl = `https://meet.jit.si/${roomName}#config.prejoinPageEnabled=false&config.startWithAudioMuted=false&config.startWithVideoMuted=false&interfaceConfig.SHOW_JITSI_WATERMARK=false&interfaceConfig.MOBILE_APP_PROMO=false&interfaceConfig.TOOLBAR_ALWAYS_VISIBLE=true`;
 
   useEffect(() => {
     const timer = setInterval(() => setSessionTime(t => t + 1), 1000);
@@ -116,7 +116,6 @@ export default function VideoRoom({ params }: VideoRoomProps) {
           title="2torConnect Video Session"
           onLoad={() => setIframeLoaded(true)}
           onError={() => { setIframeError(true); setIframeLoaded(true); }}
-          sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-modals allow-downloads allow-pointer-lock allow-top-navigation"
         />
       </div>
 
