@@ -2,7 +2,7 @@ import { pgTable, text, serial, timestamp, pgEnum, boolean, integer } from "driz
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
-export const roleEnum = pgEnum("role", ["student", "tutor", "admin"]);
+export const roleEnum = pgEnum("role", ["student", "tutor", "admin", "investor"]);
 export const statusEnum = pgEnum("status", ["pending", "active", "suspended", "rejected"]);
 export const accountPlanEnum = pgEnum("account_plan", ["free", "basic", "premium"]);
 

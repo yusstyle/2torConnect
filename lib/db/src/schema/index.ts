@@ -6,3 +6,5 @@ export * from "./transactions";
 export * from "./messages";
 export * from "./availability";
 export * from "./materials";
+export * from "./investors";
+export * from "./social";

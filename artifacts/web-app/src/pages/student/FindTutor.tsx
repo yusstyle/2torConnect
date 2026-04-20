@@ -101,7 +101,7 @@ export default function FindTutorPage() {
                     <span className="hidden sm:inline">Chat</span>
                   </button>
                   <button
-                    onClick={() => setSelectedTutor(tutor.id)}
+                    onClick={() => setSelectedTutor(tutor.userId)}
                     className="px-4 py-2 bg-white/10 hover:bg-accent hover:text-background text-white rounded-xl text-sm font-bold transition-all flex items-center gap-2"
                   >
                     <BookOpen className="w-4 h-4" />

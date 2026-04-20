@@ -8,6 +8,7 @@ import transactionsRouter from "./transactions";
 import messagesRouter from "./messages";
 import adminRouter from "./admin";
 import materialsRouter from "./materials";
+import socialRouter from "./social";
 
 const router: IRouter = Router();
 
@@ -20,5 +21,6 @@ router.use("/transactions", transactionsRouter);
 router.use("/messages", messagesRouter);
 router.use("/admin", adminRouter);
 router.use("/materials", materialsRouter);
+router.use("/social", socialRouter);
 
 export default router;

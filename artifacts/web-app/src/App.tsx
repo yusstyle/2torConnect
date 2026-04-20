@@ -7,6 +7,7 @@ import LoginPage from "@/pages/auth/Login";
 import RegisterChoicePage from "@/pages/auth/Register";
 import RegisterStudentPage from "@/pages/auth/RegisterStudent";
 import RegisterTutorPage from "@/pages/auth/RegisterTutor";
+import RegisterInvestorPage from "@/pages/auth/RegisterInvestor";
 
 import StudentDashboard from "@/pages/student/Dashboard";
 import FindTutorPage from "@/pages/student/FindTutor";
@@ -19,9 +20,12 @@ import TutorEarningsPage from "@/pages/tutor/Earnings";
 import TutorAvailabilityPage from "@/pages/tutor/Availability";
 import TutorMaterialsPage from "@/pages/tutor/Materials";
 
+import InvestorDashboard from "@/pages/investor/Dashboard";
+
 import MessagesPage from "@/pages/Messages";
 import VideoRoom from "@/pages/session/VideoRoom";
 import LiveSessionsPage from "@/pages/live/LiveSessions";
+import SocialisePage from "@/pages/social/Socialise";
 
 import AdminDashboard from "@/pages/admin/Dashboard";
 import AdminUsersPage from "@/pages/admin/Users";
@@ -51,20 +55,25 @@ function Router() {
       <Route path="/register" component={RegisterChoicePage} />
       <Route path="/register/student" component={RegisterStudentPage} />
       <Route path="/register/tutor" component={RegisterTutorPage} />
+      <Route path="/register/investor" component={RegisterInvestorPage} />
 
       <Route path="/student/dashboard" component={StudentDashboard} />
       <Route path="/student/find-tutor" component={FindTutorPage} />
       <Route path="/student/sessions" component={StudentSessionsPage} />
       <Route path="/student/materials" component={StudentMaterialsPage} />
+      <Route path="/student/live" component={() => <LiveSessionsPage role="student" />} />
 
       <Route path="/tutor/dashboard" component={TutorDashboardPage} />
       <Route path="/tutor/sessions" component={TutorSessionsPage} />
       <Route path="/tutor/earnings" component={TutorEarningsPage} />
       <Route path="/tutor/availability" component={TutorAvailabilityPage} />
       <Route path="/tutor/materials" component={TutorMaterialsPage} />
-
-      <Route path="/student/live" component={() => <LiveSessionsPage role="student" />} />
       <Route path="/tutor/live" component={() => <LiveSessionsPage role="tutor" />} />
+
+      <Route path="/investor/dashboard" component={InvestorDashboard} />
+      <Route path="/investor/live" component={() => <LiveSessionsPage role="student" />} />
+
+      <Route path="/socialise" component={SocialisePage} />
 
       <Route path="/messages" component={MessagesPage} />
       <Route path="/session/:id" component={VideoRoom} />
