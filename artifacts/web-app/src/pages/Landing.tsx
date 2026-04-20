@@ -1,5 +1,6 @@
 import { Link } from "wouter";
 import { motion } from "framer-motion";
+import { Logo } from "@/components/Logo";
 import {
   BookOpen, Users, Star, ArrowRight, ShieldCheck, Zap, CheckCircle,
   TrendingUp, Clock, MessageSquare, Award, Target, GraduationCap,
@@ -20,14 +21,7 @@ export default function LandingPage() {
       {/* ── Navbar ── */}
       <nav className="sticky top-0 z-50 border-b border-white/5 backdrop-blur-xl bg-background/80">
         <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-lg shadow-accent/30">
-              <span className="text-white font-extrabold text-lg font-display">2T</span>
-            </div>
-            <span className="font-display font-bold text-2xl text-white tracking-tight">
-              2tor<span className="text-accent">Connect</span>
-            </span>
-          </div>
+          <Logo size={42} />
           <div className="hidden md:flex items-center gap-8 text-sm font-medium text-muted-foreground">
             <a href="#how-it-works" className="hover:text-white transition-colors">How it Works</a>
             <a href="#for-students" className="hover:text-white transition-colors">For Students</a>

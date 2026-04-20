@@ -1,10 +1,11 @@
 import { ReactNode } from "react";
 import { Link, useLocation } from "wouter";
 import { useAuthStore } from "@/lib/auth";
+import { Logo } from "@/components/Logo";
 import {
   LogOut, LayoutDashboard, Users, BookOpen,
   CreditCard, MessageSquare, Calendar,
-  Search, FileText, Menu, X, Video, Building2, Globe
+  Search, FileText, Menu, X, Video, Building2, Globe, GraduationCap
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useState } from "react";
@@ -62,7 +63,8 @@ export function DashboardLayout({ children, role: roleProp, title }: DashboardLa
     ],
     investor: [
       { label: "Dashboard", href: "/investor/dashboard", icon: LayoutDashboard },
-      { label: "Browse Students", href: "/investor/students", icon: Users },
+      { label: "Browse Universities", href: "/investor/universities", icon: GraduationCap },
+      { label: "Find Students", href: "/investor/students", icon: Users },
       { label: "Browse Tutors", href: "/investor/tutors", icon: BookOpen },
       { label: "Live Sessions", href: "/investor/live", icon: Video },
       { label: "Transactions", href: "/investor/transactions", icon: CreditCard },
@@ -91,12 +93,7 @@ export function DashboardLayout({ children, role: roleProp, title }: DashboardLa
     <div className="min-h-screen bg-background flex flex-col md:flex-row">
       {/* Mobile Header */}
       <div className="md:hidden flex items-center justify-between p-4 border-b border-border bg-card">
-        <div className="font-display font-bold text-xl text-white flex items-center gap-2">
-          <div className={`w-8 h-8 rounded-full bg-gradient-to-tr ${roleGradient[user.role] ?? "from-primary to-accent"} flex items-center justify-center`}>
-            <span className="text-white text-sm font-bold">2T</span>
-          </div>
-          2torConnect
-        </div>
+        <Logo size={36} />
         <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="text-muted-foreground">
           {mobileMenuOpen ? <X /> : <Menu />}
         </button>
@@ -109,11 +106,8 @@ export function DashboardLayout({ children, role: roleProp, title }: DashboardLa
             initial={{ x: -300 }} animate={{ x: 0 }} exit={{ x: -300 }}
             className="fixed md:static inset-y-0 left-0 z-50 w-64 glass-panel border-r border-y-0 border-l-0 flex flex-col"
           >
-            <div className="p-6 hidden md:flex items-center gap-3">
-              <div className={`w-10 h-10 rounded-xl bg-gradient-to-tr ${roleGradient[user.role] ?? "from-primary to-accent"} flex items-center justify-center shadow-lg`}>
-                <span className="text-white text-lg font-bold font-display">2T</span>
-              </div>
-              <span className="font-display font-bold text-2xl text-white tracking-tight">2tor<span className="text-accent">Connect</span></span>
+            <div className="p-6 hidden md:flex items-center">
+              <Logo size={44} />
             </div>
 
             <div className="px-6 py-4 flex-1 overflow-y-auto">
