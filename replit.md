@@ -8,7 +8,7 @@ Full-stack tutoring marketplace for Nigerian university students. Three roles: *
 - **Profile pictures**: `avatarUrl` column on usersTable; `POST /api/auth/avatar` upload endpoint; shows real avatar in sidebar, compose box, and post cards; `/profile` page with photo upload + name/phone edit
 - Student: find tutors, book sessions, chat with tutors, view/join video sessions, browse materials
 - Tutor: multi-step application form (3 steps: personal info → academic details → documents); school ID card upload via multer; CGPA field; manage sessions; earnings; availability; upload materials; video teach
-- Investor: browse 15+ Nigerian universities, find students to fund, register with ID upload
+- Investor: browse real registered universities (with student/tutor counts), sponsor students AND tutors with video calls + funding/tools, register with ID upload. New `/api/universities` endpoint merges real DB universities with rich metadata. Investor can video-call any user via `/session/sponsor-{investorId}-{targetId}-{ts}` rooms.
 - Admin: manage users, sessions, transactions; approve/reject tutor applications
 - **Video sessions**: Jitsi Meet (`meet.jit.si`), room `2torconnect-session-{id}`; no API key required; sandbox attribute removed so camera/mic works in iframe
 - Chat/messaging: auto-polling (3s messages, 5s conversations list)

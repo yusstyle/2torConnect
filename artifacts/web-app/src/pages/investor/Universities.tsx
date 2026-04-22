@@ -1,43 +1,44 @@
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { Link } from "wouter";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
+import { useAuthStore } from "@/lib/auth";
 import { motion } from "framer-motion";
-import { GraduationCap, Search, MapPin, Users, BookOpen, Globe, ExternalLink } from "lucide-react";
+import { GraduationCap, Search, MapPin, Users, BookOpen, ExternalLink, CheckCircle2, Sparkles } from "lucide-react";
 
-const UNIVERSITIES = [
-  { name: "University of Lagos", acronym: "UNILAG", state: "Lagos", type: "Federal", students: "60,000+", programs: 132, established: 1962, website: "https://unilag.edu.ng", color: "from-blue-500 to-cyan-400" },
-  { name: "University of Ibadan", acronym: "UI", state: "Oyo", type: "Federal", students: "22,000+", programs: 98, established: 1948, website: "https://ui.edu.ng", color: "from-purple-500 to-indigo-400" },
-  { name: "Obafemi Awolowo University", acronym: "OAU", state: "Osun", type: "Federal", students: "40,000+", programs: 118, established: 1961, website: "https://oauife.edu.ng", color: "from-green-500 to-emerald-400" },
-  { name: "University of Nigeria", acronym: "UNN", state: "Enugu", type: "Federal", students: "37,000+", programs: 112, established: 1960, website: "https://unn.edu.ng", color: "from-red-500 to-orange-400" },
-  { name: "Ahmadu Bello University", acronym: "ABU", state: "Kaduna", type: "Federal", students: "75,000+", programs: 145, established: 1962, website: "https://abu.edu.ng", color: "from-yellow-500 to-amber-400" },
-  { name: "University of Benin", acronym: "UNIBEN", state: "Edo", type: "Federal", students: "48,000+", programs: 120, established: 1970, website: "https://uniben.edu.ng", color: "from-teal-500 to-cyan-400" },
-  { name: "FUTA", acronym: "FUTA", state: "Ondo", type: "Federal", students: "15,000+", programs: 72, established: 1981, website: "https://futa.edu.ng", color: "from-pink-500 to-rose-400" },
-  { name: "Covenant University", acronym: "CU", state: "Ogun", type: "Private", students: "12,000+", programs: 68, established: 2002, website: "https://covenantuniversity.edu.ng", color: "from-violet-500 to-purple-400" },
-  { name: "Babcock University", acronym: "BU", state: "Ogun", type: "Private", students: "8,000+", programs: 55, established: 1999, website: "https://babcock.edu.ng", color: "from-sky-500 to-blue-400" },
-  { name: "Lagos State University", acronym: "LASU", state: "Lagos", type: "State", students: "35,000+", programs: 100, established: 1983, website: "https://lasu.edu.ng", color: "from-lime-500 to-green-400" },
-  { name: "Pan-Atlantic University", acronym: "PAU", state: "Lagos", type: "Private", students: "2,000+", programs: 24, established: 2002, website: "https://pau.edu.ng", color: "from-orange-500 to-yellow-400" },
-  { name: "University of Port Harcourt", acronym: "UNIPORT", state: "Rivers", type: "Federal", students: "50,000+", programs: 130, established: 1975, website: "https://uniport.edu.ng", color: "from-cyan-500 to-sky-400" },
-  { name: "Nnamdi Azikiwe University", acronym: "UNIZIK", state: "Anambra", type: "Federal", students: "30,000+", programs: 110, established: 1991, website: "https://unizik.edu.ng", color: "from-indigo-500 to-blue-400" },
-  { name: "University of Abuja", acronym: "UNIABUJA", state: "FCT", type: "Federal", students: "20,000+", programs: 90, established: 1988, website: "https://uniabuja.edu.ng", color: "from-emerald-500 to-teal-400" },
-  { name: "LAUTECH", acronym: "LAUTECH", state: "Oyo", type: "State", students: "18,000+", programs: 75, established: 1990, website: "https://lautech.edu.ng", color: "from-fuchsia-500 to-pink-400" },
-];
+const BASE = import.meta.env.BASE_URL?.replace(/\/$/, "") ?? "";
 
-const STATES = ["All States", ...Array.from(new Set(UNIVERSITIES.map(u => u.state))).sort()];
-const TYPES = ["All Types", "Federal", "State", "Private"];
+interface University {
+  name: string; acronym: string; state: string; type: string;
+  established: number | null; website: string | null; color: string;
+  studentsCount: number; tutorsCount: number; active: boolean;
+}
 
 export default function InvestorUniversities() {
+  const { token } = useAuthStore();
   const [search, setSearch] = useState("");
-  const [state, setState] = useState("All States");
-  const [type, setType] = useState("All Types");
+  const [filter, setFilter] = useState<"active" | "featured" | "all">("active");
 
-  const filtered = UNIVERSITIES.filter(u => {
-    const matchSearch = !search || u.name.toLowerCase().includes(search.toLowerCase()) || u.acronym.toLowerCase().includes(search.toLowerCase());
-    const matchState = state === "All States" || u.state === state;
-    const matchType = type === "All Types" || u.type === type;
-    return matchSearch && matchState && matchType;
+  const { data, isLoading } = useQuery({
+    queryKey: ["universities"],
+    queryFn: async () => {
+      const res = await fetch(`${BASE}/api/universities`, { headers: { Authorization: `Bearer ${token}` } });
+      if (!res.ok) throw new Error("Failed");
+      return res.json() as Promise<{ active: University[]; featured: University[] }>;
+    },
+    staleTime: 60_000,
   });
 
+  const list: University[] = filter === "active" ? (data?.active ?? [])
+    : filter === "featured" ? (data?.featured ?? [])
+    : [...(data?.active ?? []), ...(data?.featured ?? [])];
+
+  const filtered = list.filter(u =>
+    !search || u.name.toLowerCase().includes(search.toLowerCase()) || u.acronym.toLowerCase().includes(search.toLowerCase())
+  );
+
   return (
-    <DashboardLayout role="investor" title="Browse Nigerian Universities">
+    <DashboardLayout role="investor" title="Browse Universities">
       <div className="space-y-6">
 
         <div className="relative overflow-hidden rounded-3xl p-6 bg-gradient-to-br from-yellow-500/20 via-yellow-500/5 to-orange-500/10 border border-yellow-500/20">
@@ -46,9 +47,23 @@ export default function InvestorUniversities() {
             <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-yellow-500 to-orange-400 flex items-center justify-center shadow-lg">
               <GraduationCap className="w-7 h-7 text-white" />
             </div>
-            <div>
-              <h2 className="text-white font-bold text-xl">Nigerian Universities</h2>
-              <p className="text-white/60 text-sm">Explore universities and find students and tutors to support across Nigeria.</p>
+            <div className="flex-1">
+              <h2 className="text-white font-bold text-xl">Universities on 2torConnect</h2>
+              <p className="text-white/60 text-sm">Real universities where students and tutors are registered. Sponsor learners and educators directly.</p>
+            </div>
+          </div>
+          <div className="relative mt-5 grid grid-cols-3 gap-3">
+            <div className="rounded-2xl bg-black/20 p-3 text-center">
+              <p className="text-2xl font-bold text-yellow-400">{data?.active?.length ?? 0}</p>
+              <p className="text-xs text-white/60 mt-0.5">Active</p>
+            </div>
+            <div className="rounded-2xl bg-black/20 p-3 text-center">
+              <p className="text-2xl font-bold text-white">{(data?.active ?? []).reduce((s, u) => s + u.studentsCount, 0)}</p>
+              <p className="text-xs text-white/60 mt-0.5">Students</p>
+            </div>
+            <div className="rounded-2xl bg-black/20 p-3 text-center">
+              <p className="text-2xl font-bold text-white">{(data?.active ?? []).reduce((s, u) => s + u.tutorsCount, 0)}</p>
+              <p className="text-xs text-white/60 mt-0.5">Tutors</p>
             </div>
           </div>
         </div>
@@ -58,80 +73,107 @@ export default function InvestorUniversities() {
             <div className="flex-1 relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <input
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-                placeholder="Search universities by name or acronym…"
+                value={search} onChange={e => setSearch(e.target.value)}
+                placeholder="Search by name or acronym…"
                 className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder:text-muted-foreground text-sm focus:outline-none focus:border-yellow-500/50"
               />
             </div>
           </div>
-          <div className="flex gap-3 flex-wrap">
-            <select value={state} onChange={e => setState(e.target.value)}
-              className="flex-1 min-w-[160px] px-3 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white text-sm focus:outline-none focus:border-yellow-500/50">
-              {STATES.map(s => <option key={s} value={s} className="bg-background">{s}</option>)}
-            </select>
-            <select value={type} onChange={e => setType(e.target.value)}
-              className="flex-1 min-w-[140px] px-3 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white text-sm focus:outline-none focus:border-yellow-500/50">
-              {TYPES.map(t => <option key={t} value={t} className="bg-background">{t}</option>)}
-            </select>
+          <div className="flex gap-2 flex-wrap">
+            {[
+              { key: "active", label: "With Members", count: data?.active?.length ?? 0 },
+              { key: "featured", label: "Other Top Unis", count: data?.featured?.length ?? 0 },
+              { key: "all", label: "All", count: (data?.active?.length ?? 0) + (data?.featured?.length ?? 0) },
+            ].map(t => (
+              <button key={t.key} onClick={() => setFilter(t.key as any)}
+                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${filter === t.key ? "bg-yellow-500 text-black" : "bg-white/5 text-muted-foreground hover:text-white hover:bg-white/10"}`}>
+                {t.label} <span className="opacity-60">· {t.count}</span>
+              </button>
+            ))}
           </div>
         </div>
 
-        <p className="text-muted-foreground text-sm">{filtered.length} universit{filtered.length !== 1 ? "ies" : "y"} found</p>
+        {isLoading ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="glass-panel rounded-2xl h-56 animate-pulse bg-white/5" />
+            ))}
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="glass-panel rounded-3xl p-12 text-center">
+            <GraduationCap className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
+            <p className="text-white font-bold mb-1">No universities found</p>
+            <p className="text-muted-foreground text-sm">Try a different search or filter</p>
+          </div>
+        ) : (
+          <>
+            <p className="text-muted-foreground text-sm">{filtered.length} universit{filtered.length !== 1 ? "ies" : "y"}</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {filtered.map((uni, i) => (
+                <motion.div key={uni.name + i}
+                  initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.03 }}
+                  className={`glass-panel rounded-2xl overflow-hidden hover:border-yellow-500/30 transition-all group ${uni.active ? "ring-1 ring-yellow-500/20" : ""}`}>
+                  <div className={`h-2 bg-gradient-to-r ${uni.color}`} />
+                  <div className="p-5">
+                    <div className="flex items-start gap-3 mb-4">
+                      <div className={`w-12 h-12 rounded-xl bg-gradient-to-tr ${uni.color} flex items-center justify-center font-bold text-white text-xs shrink-0 shadow-lg`}>
+                        {uni.acronym.slice(0, 4)}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start gap-1.5">
+                          <p className="text-white font-bold text-sm leading-tight flex-1">{uni.name}</p>
+                          {uni.active && <CheckCircle2 className="w-4 h-4 text-green-400 shrink-0 mt-0.5" />}
+                        </div>
+                        <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                          <MapPin className="w-3 h-3 text-muted-foreground shrink-0" />
+                          <span className="text-muted-foreground text-xs">{uni.state}</span>
+                          <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${uni.type === "Private" ? "bg-purple-500/20 text-purple-400" : uni.type === "State" ? "bg-blue-500/20 text-blue-400" : uni.type === "Federal" ? "bg-green-500/20 text-green-400" : "bg-white/10 text-white/60"}`}>
+                            {uni.type}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filtered.map((uni, i) => (
-            <motion.div key={uni.acronym}
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.04 }}
-              className="glass-panel rounded-2xl overflow-hidden hover:border-yellow-500/30 transition-all group"
-            >
-              <div className={`h-2 bg-gradient-to-r ${uni.color}`} />
-              <div className="p-5">
-                <div className="flex items-start gap-3 mb-4">
-                  <div className={`w-12 h-12 rounded-xl bg-gradient-to-tr ${uni.color} flex items-center justify-center font-bold text-white text-sm shrink-0 shadow-lg`}>
-                    {uni.acronym.slice(0, 3)}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-white font-bold text-sm leading-tight">{uni.name}</p>
-                    <div className="flex items-center gap-1.5 mt-1">
-                      <MapPin className="w-3 h-3 text-muted-foreground shrink-0" />
-                      <span className="text-muted-foreground text-xs">{uni.state}</span>
-                      <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ml-1 ${uni.type === "Private" ? "bg-purple-500/20 text-purple-400" : uni.type === "State" ? "bg-blue-500/20 text-blue-400" : "bg-green-500/20 text-green-400"}`}>
-                        {uni.type}
-                      </span>
+                    <div className="grid grid-cols-3 gap-2 mb-4">
+                      <div className="text-center p-2 rounded-xl bg-white/5">
+                        <p className={`text-white font-bold text-sm ${uni.studentsCount > 0 ? "text-accent" : ""}`}>{uni.studentsCount}</p>
+                        <p className="text-muted-foreground text-[10px]">Students</p>
+                      </div>
+                      <div className="text-center p-2 rounded-xl bg-white/5">
+                        <p className={`text-white font-bold text-sm ${uni.tutorsCount > 0 ? "text-primary" : ""}`}>{uni.tutorsCount}</p>
+                        <p className="text-muted-foreground text-[10px]">Tutors</p>
+                      </div>
+                      <div className="text-center p-2 rounded-xl bg-white/5">
+                        <p className="text-white font-bold text-sm">{uni.established ?? "—"}</p>
+                        <p className="text-muted-foreground text-[10px]">Est.</p>
+                      </div>
+                    </div>
+
+                    <div className="flex gap-2">
+                      {uni.active ? (
+                        <Link href={`/investor/students?university=${encodeURIComponent(uni.name)}`}
+                          className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl bg-gradient-to-r from-yellow-500 to-orange-400 text-white text-xs font-bold hover:opacity-90 transition-all">
+                          <Users className="w-3.5 h-3.5" /> View Members
+                        </Link>
+                      ) : (
+                        <button disabled
+                          className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl bg-white/5 text-muted-foreground text-xs font-medium cursor-not-allowed">
+                          <Sparkles className="w-3.5 h-3.5" /> Awaiting members
+                        </button>
+                      )}
+                      {uni.website && (
+                        <a href={uni.website} target="_blank" rel="noreferrer"
+                          className="px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-muted-foreground hover:text-white transition-all">
+                          <ExternalLink className="w-3.5 h-3.5" />
+                        </a>
+                      )}
                     </div>
                   </div>
-                </div>
-
-                <div className="grid grid-cols-3 gap-2 mb-4">
-                  {[
-                    { label: "Students", value: uni.students, icon: Users },
-                    { label: "Programs", value: uni.programs, icon: BookOpen },
-                    { label: "Est.", value: uni.established, icon: GraduationCap },
-                  ].map(stat => (
-                    <div key={stat.label} className="text-center p-2 rounded-xl bg-white/5">
-                      <p className="text-white font-bold text-sm">{stat.value}</p>
-                      <p className="text-muted-foreground text-[10px]">{stat.label}</p>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="flex gap-2">
-                  <a href="/investor/students"
-                    className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl bg-gradient-to-r from-yellow-500 to-orange-400 text-white text-xs font-bold hover:opacity-90 transition-all">
-                    <Users className="w-3.5 h-3.5" /> Find Students
-                  </a>
-                  <a href={uni.website} target="_blank" rel="noreferrer"
-                    className="px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-muted-foreground hover:text-white transition-all">
-                    <ExternalLink className="w-3.5 h-3.5" />
-                  </a>
-                </div>
-              </div>
-            </motion.div>
-          ))}
-        </div>
+                </motion.div>
+              ))}
+            </div>
+          </>
+        )}
       </div>
     </DashboardLayout>
   );

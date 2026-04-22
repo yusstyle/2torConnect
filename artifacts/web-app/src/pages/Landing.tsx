@@ -4,7 +4,7 @@ import { Logo } from "@/components/Logo";
 import {
   BookOpen, Users, Star, ArrowRight, ShieldCheck, Zap, CheckCircle,
   TrendingUp, Clock, MessageSquare, Award, Target, GraduationCap,
-  Banknote, Calendar, ChevronRight
+  Banknote, Calendar, ChevronRight, HandCoins, Video, Globe2, Heart
 } from "lucide-react";
 
 const fadeUp = (delay = 0) => ({
@@ -26,6 +26,7 @@ export default function LandingPage() {
             <a href="#how-it-works" className="hover:text-white transition-colors">How it Works</a>
             <a href="#for-students" className="hover:text-white transition-colors">For Students</a>
             <a href="#for-tutors" className="hover:text-white transition-colors">For Tutors</a>
+            <a href="#for-investors" className="hover:text-white transition-colors">For Investors</a>
             <a href="#features" className="hover:text-white transition-colors">Features</a>
           </div>
           <div className="flex items-center gap-3">
@@ -291,6 +292,91 @@ export default function LandingPage() {
             </Link>
 
             <p className="text-white/40 text-sm mt-4">Applications reviewed within 24–48 hours</p>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* ── For Investors ── */}
+      <section id="for-investors" className="py-24 px-6 relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-yellow-500/10 via-background to-orange-500/5" />
+        <div className="absolute top-1/2 left-1/3 w-96 h-96 bg-yellow-500/10 rounded-full blur-3xl" />
+        <div className="relative z-10 max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+          <motion.div {...fadeUp()}>
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-yellow-500/10 border border-yellow-500/30 mb-6">
+              <Heart className="w-3.5 h-3.5 text-yellow-400" />
+              <span className="text-xs font-semibold text-yellow-400 tracking-wider uppercase">For Investors & Sponsors</span>
+            </div>
+            <h2 className="text-4xl md:text-5xl font-display font-bold text-white mb-6 leading-tight">
+              Sponsor a student. <span className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-orange-400">Equip a tutor.</span> Change a future.
+            </h2>
+            <p className="text-white/70 text-lg leading-relaxed mb-8">
+              Connect directly with verified students and tutors through video calls, fund their education, and provide tutors with the tools they need to teach. 100% transparent, real impact, real people.
+            </p>
+
+            <div className="space-y-4 mb-10">
+              {[
+                { icon: Video, title: "Talk face-to-face", desc: "Start a secure video call with any student or tutor before sponsoring. Know exactly who you're supporting." },
+                { icon: HandCoins, title: "Fund students directly", desc: "Cover tuition, books, or session fees for promising students at universities across the network." },
+                { icon: BookOpen, title: "Equip tutors with tools", desc: "Sponsor tablets, premium teaching software, course access, and stipends for educators." },
+                { icon: Globe2, title: "Real, verified impact", desc: "Every recipient is identity-verified. Track who you've helped and the difference you've made." },
+              ].map(item => (
+                <div key={item.title} className="flex gap-4">
+                  <div className="w-10 h-10 rounded-xl bg-yellow-500/15 flex items-center justify-center flex-shrink-0">
+                    <item.icon className="w-5 h-5 text-yellow-400" />
+                  </div>
+                  <div>
+                    <p className="text-white font-semibold">{item.title}</p>
+                    <p className="text-white/60 text-sm">{item.desc}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <Link href="/register/investor"
+              className="inline-flex items-center gap-3 px-7 py-4 rounded-2xl bg-gradient-to-r from-yellow-500 to-orange-400 text-white font-bold hover:opacity-90 hover:shadow-xl hover:shadow-yellow-500/40 transition-all">
+              Become a Sponsor <ArrowRight className="w-5 h-5" />
+            </Link>
+          </motion.div>
+
+          <motion.div {...fadeUp(0.2)} className="space-y-4">
+            <div className="glass-panel rounded-3xl p-6 border-yellow-500/20 bg-gradient-to-br from-yellow-500/5 to-transparent">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-yellow-500 to-orange-400 flex items-center justify-center">
+                  <Users className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <p className="text-white font-bold">Browse Real Students</p>
+                  <p className="text-white/50 text-xs">Filter by university and connect</p>
+                </div>
+              </div>
+              <p className="text-white/70 text-sm">See verified students from universities on the platform — view their profile, message them, jump on a video call, then sponsor.</p>
+            </div>
+
+            <div className="glass-panel rounded-3xl p-6 border-purple-500/20 bg-gradient-to-br from-purple-500/5 to-transparent">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-primary to-purple-500 flex items-center justify-center">
+                  <BookOpen className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <p className="text-white font-bold">Empower Tutors</p>
+                  <p className="text-white/50 text-xs">Provide tools, devices, and stipends</p>
+                </div>
+              </div>
+              <p className="text-white/70 text-sm">Help educators teach better — sponsor tablets, premium subscriptions, internet data, or monthly stipends so they can focus on changing lives.</p>
+            </div>
+
+            <div className="grid grid-cols-3 gap-3">
+              {[
+                { v: "100%", l: "ID Verified" },
+                { v: "Live", l: "Video Calls" },
+                { v: "Direct", l: "Connection" },
+              ].map(s => (
+                <div key={s.l} className="glass-panel rounded-2xl p-4 text-center">
+                  <p className="text-yellow-400 font-bold text-lg">{s.v}</p>
+                  <p className="text-white/50 text-[10px] uppercase tracking-wider mt-0.5">{s.l}</p>
+                </div>
+              ))}
+            </div>
           </motion.div>
         </div>
       </section>

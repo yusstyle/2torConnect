@@ -266,7 +266,8 @@ export default function SocialisePage() {
           <p className="text-muted-foreground text-sm mt-1">Connect, share, and inspire the 2torConnect community</p>
         </div>
 
-        {/* Compose */}
+        {/* Compose - hidden for admins (moderators don't post) */}
+        {user?.role !== "admin" && (
         <div className="glass-panel rounded-3xl p-5">
           <div className="flex items-start gap-3 mb-3">
             <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-primary to-accent flex items-center justify-center text-white font-bold shrink-0 overflow-hidden">
@@ -311,6 +312,7 @@ export default function SocialisePage() {
             </button>
           </div>
         </div>
+        )}
 
         {/* Filter tabs */}
         <div className="flex gap-2 overflow-x-auto pb-1">

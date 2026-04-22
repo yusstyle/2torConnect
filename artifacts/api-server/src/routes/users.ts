@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { db } from "@workspace/db";
-import { usersTable } from "@workspace/db";
+import { usersTable, studentsTable, tutorsTable } from "@workspace/db";
 import { eq, ilike, or, count, and } from "drizzle-orm";
 import { UpdateUserBody } from "@workspace/api-zod";
 
@@ -28,8 +28,29 @@ router.get("/", async (req, res) => {
     const users = await db.select().from(usersTable).where(where).limit(limit).offset(offset).orderBy(usersTable.createdAt);
     const [{ value: total }] = await db.select({ value: count() }).from(usersTable).where(where);
 
+    const userIds = users.map(u => u.id);
+    const studentMap = new Map<number, any>();
+    const tutorMap = new Map<number, any>();
+    if (userIds.length > 0) {
+      const sRows = await db.select().from(studentsTable);
+      for (const s of sRows) if (userIds.includes(s.userId)) studentMap.set(s.userId, s);
+      const tRows = await db.select().from(tutorsTable);
+      for (const t of tRows) if (userIds.includes(t.userId)) tutorMap.set(t.userId, t);
+    }
+
     res.json({
-      users: users.map(u => ({ id: u.id, name: u.name, email: u.email, role: u.role, phone: u.phone, status: u.status, createdAt: u.createdAt, lastLogin: u.lastLogin })),
+      users: users.map(u => {
+        const s = studentMap.get(u.id);
+        const t = tutorMap.get(u.id);
+        return {
+          id: u.id, name: u.name, email: u.email, role: u.role, phone: u.phone, status: u.status,
+          avatarUrl: u.avatarUrl ?? null, createdAt: u.createdAt, lastLogin: u.lastLogin,
+          university: s?.university ?? t?.university ?? null,
+          level: s?.admissionType ?? t?.level ?? null,
+          subjects: t?.subjects ?? null,
+          aboutYou: t?.aboutYou ?? null,
+        };
+      }),
       total: Number(total),
       page,
       limit,

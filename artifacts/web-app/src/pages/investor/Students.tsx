@@ -1,29 +1,13 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useLocation } from "wouter";
 import { motion } from "framer-motion";
-import { Search, Users, GraduationCap, MessageSquare, Filter, BookOpen, CheckCircle, Clock } from "lucide-react";
+import { Search, Users, GraduationCap, MessageSquare, BookOpen, CheckCircle, Clock, Video, HandCoins } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { useAuthStore } from "@/lib/auth";
+import { useToast } from "@/hooks/use-toast";
 
 const BASE = import.meta.env.BASE_URL?.replace(/\/$/, "") ?? "";
-
-const UNIVERSITIES = [
-  "All Universities", "University of Lagos", "University of Ibadan",
-  "Obafemi Awolowo University", "University of Nigeria Nsukka", "ABU Zaria",
-  "University of Benin", "FUTA", "Covenant University", "Babcock University",
-  "Pan-Atlantic University", "Lagos State University", "Delta State University",
-];
-
-const SUBJECTS = [
-  "All Subjects", "Mathematics", "Physics", "Chemistry", "Biology",
-  "Engineering", "Computer Science", "Economics", "Law", "Medicine",
-  "Accounting", "Mass Communication", "Architecture",
-];
-
-const SUBJECTS_SAMPLE = ["Mathematics", "Physics", "Computer Science", "Economics", "Biology", "Chemistry", "Law", "Medicine"];
-const getRandomSubject = (id: number) => SUBJECTS_SAMPLE[id % SUBJECTS_SAMPLE.length];
-const getRandomUniversity = (id: number) => UNIVERSITIES.slice(1)[id % (UNIVERSITIES.length - 1)];
-const getRandomYear = (id: number) => ["100L", "200L", "300L", "400L", "500L"][id % 5];
 
 const STATUS_COLORS: Record<string, string> = {
   active: "text-green-400 bg-green-400/10",
@@ -31,30 +15,56 @@ const STATUS_COLORS: Record<string, string> = {
   suspended: "text-red-400 bg-red-400/10",
 };
 
+interface RealUser {
+  id: number; name: string; email: string; status: string; role: string;
+  avatarUrl?: string | null; university?: string | null; level?: string | null; subjects?: string[] | null;
+}
+
 export default function InvestorStudents() {
-  const { token } = useAuthStore();
+  const { token, user } = useAuthStore();
+  const { toast } = useToast();
+  const [, setLocation] = useLocation();
   const [search, setSearch] = useState("");
-  const [university, setUniversity] = useState("All Universities");
-  const [subject, setSubject] = useState("All Subjects");
+  const [universityFilter, setUniversityFilter] = useState("All Universities");
+
+  useEffect(() => {
+    const sp = new URLSearchParams(window.location.search);
+    const u = sp.get("university");
+    if (u) setUniversityFilter(u);
+  }, []);
 
   const { data, isLoading } = useQuery({
     queryKey: ["investor-students", search],
     queryFn: async () => {
-      const params = new URLSearchParams({ role: "student", limit: "50" });
+      const params = new URLSearchParams({ role: "student", limit: "50", status: "active" });
       if (search) params.set("search", search);
-      const res = await fetch(`${BASE}/api/users?${params}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await fetch(`${BASE}/api/users?${params}`, { headers: { Authorization: `Bearer ${token}` } });
       if (!res.ok) throw new Error("Failed to load students");
-      return res.json() as Promise<{ users: Array<{ id: number; name: string; email: string; status: string; createdAt: string }> }>;
+      return res.json() as Promise<{ users: RealUser[] }>;
     },
     staleTime: 30_000,
   });
 
   const students = data?.users ?? [];
+  const universities = ["All Universities", ...Array.from(new Set(students.map(s => s.university).filter(Boolean) as string[]))];
+  const filtered = students.filter(s => universityFilter === "All Universities" || s.university === universityFilter);
+
+  const startSponsorCall = (target: RealUser) => {
+    if (!user) return;
+    const room = `sponsor-${user.id}-${target.id}-${Date.now()}`;
+    toast({ title: `Connecting with ${target.name}…`, description: "Opening video room" });
+    setLocation(`/session/${room}`);
+  };
+
+  const sponsor = (target: RealUser) => {
+    toast({
+      title: `Ready to sponsor ${target.name}?`,
+      description: "Payment integration coming soon — for now, start a video call to discuss directly.",
+    });
+  };
 
   return (
-    <DashboardLayout role="investor" title="Find Students to Help">
+    <DashboardLayout role="investor" title="Find Students to Sponsor">
       <div className="space-y-6">
 
         <div className="relative overflow-hidden rounded-3xl p-6 bg-gradient-to-br from-accent/20 via-accent/5 to-primary/10 border border-accent/20">
@@ -64,71 +74,50 @@ export default function InvestorStudents() {
               <Users className="w-7 h-7 text-white" />
             </div>
             <div>
-              <h2 className="text-white font-bold text-xl">Browse Students</h2>
-              <p className="text-white/60 text-sm">Find talented students across Nigerian universities to fund and support.</p>
+              <h2 className="text-white font-bold text-xl">Real Students. Real Impact.</h2>
+              <p className="text-white/60 text-sm">Connect via video call, mentor, and fund students directly.</p>
             </div>
           </div>
         </div>
 
         <div className="glass-panel rounded-2xl p-5 space-y-4">
-          <div className="flex items-center gap-3">
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <input
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-                placeholder="Search by name or email…"
-                className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder:text-muted-foreground text-sm focus:outline-none focus:border-accent/50"
-              />
-            </div>
-            <Filter className="w-4 h-4 text-muted-foreground shrink-0" />
+          <div className="flex-1 relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <input value={search} onChange={e => setSearch(e.target.value)}
+              placeholder="Search by name or email…"
+              className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder:text-muted-foreground text-sm focus:outline-none focus:border-accent/50" />
           </div>
-          <div className="flex gap-3 flex-wrap">
-            <select value={university} onChange={e => setUniversity(e.target.value)}
-              className="flex-1 min-w-[200px] px-3 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white text-sm focus:outline-none focus:border-accent/50">
-              {UNIVERSITIES.map(u => <option key={u} value={u} className="bg-background">{u}</option>)}
-            </select>
-            <select value={subject} onChange={e => setSubject(e.target.value)}
-              className="flex-1 min-w-[180px] px-3 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white text-sm focus:outline-none focus:border-accent/50">
-              {SUBJECTS.map(s => <option key={s} value={s} className="bg-background">{s}</option>)}
-            </select>
-          </div>
+          <select value={universityFilter} onChange={e => setUniversityFilter(e.target.value)}
+            className="w-full px-3 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white text-sm focus:outline-none focus:border-accent/50">
+            {universities.map(u => <option key={u} value={u} className="bg-background">{u}</option>)}
+          </select>
         </div>
 
         {isLoading ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} className="glass-panel rounded-2xl p-5 animate-pulse">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-12 h-12 rounded-full bg-white/10" />
-                  <div className="flex-1 space-y-2">
-                    <div className="h-4 bg-white/10 rounded w-3/4" />
-                    <div className="h-3 bg-white/10 rounded w-1/2" />
-                  </div>
-                </div>
-              </div>
+              <div key={i} className="glass-panel rounded-2xl h-60 animate-pulse bg-white/5" />
             ))}
           </div>
-        ) : students.length === 0 ? (
-          <div className="glass-panel rounded-2xl p-12 text-center">
-            <Users className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-            <p className="text-white font-bold text-lg mb-2">No students found</p>
-            <p className="text-muted-foreground text-sm">Try adjusting your search or check back later</p>
+        ) : filtered.length === 0 ? (
+          <div className="glass-panel rounded-3xl p-12 text-center">
+            <Users className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
+            <p className="text-white font-bold mb-1">No students yet</p>
+            <p className="text-muted-foreground text-sm">{universityFilter !== "All Universities" ? `No registered students at ${universityFilter} yet` : "No students match your search"}</p>
           </div>
         ) : (
           <>
-            <p className="text-muted-foreground text-sm">{students.length} student{students.length !== 1 ? "s" : ""} found</p>
+            <p className="text-muted-foreground text-sm">{filtered.length} student{filtered.length !== 1 ? "s" : ""}</p>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {students.map((student, i) => (
+              {filtered.map((student, i) => (
                 <motion.div key={student.id}
-                  initial={{ opacity: 0, y: 12 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.04 }}
-                  className="glass-panel rounded-2xl p-5 hover:border-accent/30 transition-all"
-                >
+                  initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}
+                  className="glass-panel rounded-2xl p-5 hover:border-accent/30 transition-all">
                   <div className="flex items-start gap-3 mb-4">
-                    <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-accent to-primary flex items-center justify-center font-bold text-white text-lg shrink-0">
-                      {student.name.charAt(0).toUpperCase()}
+                    <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-accent to-primary flex items-center justify-center font-bold text-white text-lg shrink-0 overflow-hidden">
+                      {student.avatarUrl
+                        ? <img src={student.avatarUrl} alt={student.name} className="w-full h-full object-cover" />
+                        : <span>{student.name.charAt(0).toUpperCase()}</span>}
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-white font-bold truncate">{student.name}</p>
@@ -140,24 +129,32 @@ export default function InvestorStudents() {
                     </div>
                   </div>
 
-                  <div className="space-y-2 mb-4">
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <GraduationCap className="w-3.5 h-3.5 text-accent shrink-0" />
-                      <span className="truncate">{getRandomUniversity(student.id)} · {getRandomYear(student.id)}</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <BookOpen className="w-3.5 h-3.5 text-primary shrink-0" />
-                      <span>{getRandomSubject(student.id)}</span>
-                    </div>
+                  <div className="space-y-2 mb-4 min-h-[44px]">
+                    {student.university ? (
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <GraduationCap className="w-3.5 h-3.5 text-accent shrink-0" />
+                        <span className="truncate">{student.university}{student.level ? ` · ${student.level}` : ""}</span>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground/50 italic">
+                        <GraduationCap className="w-3.5 h-3.5 shrink-0" />
+                        <span>University not specified</span>
+                      </div>
+                    )}
                   </div>
 
-                  <div className="flex gap-2">
-                    <a href="/messages"
-                      className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-muted-foreground hover:text-white text-xs font-medium transition-all">
-                      <MessageSquare className="w-3.5 h-3.5" /> Message
-                    </a>
-                    <button className="flex-1 py-2 rounded-xl bg-gradient-to-r from-yellow-500 to-orange-400 text-white text-xs font-bold hover:opacity-90 transition-all">
-                      Fund Student
+                  <div className="grid grid-cols-3 gap-2">
+                    <button onClick={() => startSponsorCall(student)} title="Start video call"
+                      className="flex items-center justify-center gap-1.5 py-2 rounded-xl bg-primary/15 text-primary hover:bg-primary/25 text-xs font-bold transition-all">
+                      <Video className="w-3.5 h-3.5" /> Call
+                    </button>
+                    <button onClick={() => setLocation("/messages")}
+                      className="flex items-center justify-center gap-1.5 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-muted-foreground hover:text-white text-xs font-medium transition-all">
+                      <MessageSquare className="w-3.5 h-3.5" /> Chat
+                    </button>
+                    <button onClick={() => sponsor(student)} title="Sponsor this student"
+                      className="flex items-center justify-center gap-1.5 py-2 rounded-xl bg-gradient-to-r from-yellow-500 to-orange-400 text-white text-xs font-bold hover:opacity-90 transition-all">
+                      <HandCoins className="w-3.5 h-3.5" /> Fund
                     </button>
                   </div>
                 </motion.div>
