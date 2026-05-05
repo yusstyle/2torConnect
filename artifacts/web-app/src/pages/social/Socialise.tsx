@@ -261,7 +261,7 @@ export default function SocialisePage() {
         {/* Header */}
         <div className="text-center py-4">
           <h1 className="text-3xl font-bold text-white font-display">
-            2tor<span className="text-accent">Socialise</span>
+            Connect<span className="text-accent">Feed</span>
           </h1>
           <p className="text-muted-foreground text-sm mt-1">Connect, share, and inspire the 2torConnect community</p>
         </div>

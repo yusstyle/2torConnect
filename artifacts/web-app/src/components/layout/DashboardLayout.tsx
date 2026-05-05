@@ -49,7 +49,7 @@ export function DashboardLayout({ children, role: roleProp, title }: DashboardLa
       { label: "Live Sessions", href: "/student/live", icon: Video },
       { label: "Study Materials", href: "/student/materials", icon: FileText },
       { label: "Messages", href: "/messages", icon: MessageSquare },
-      { label: "2torSocialise", href: "/socialise", icon: Globe },
+      { label: "ConnectFeed", href: "/socialise", icon: Globe },
       { label: "My Profile", href: "/profile", icon: UserCircle },
     ],
     tutor: [
@@ -60,7 +60,7 @@ export function DashboardLayout({ children, role: roleProp, title }: DashboardLa
       { label: "Availability", href: "/tutor/availability", icon: Calendar },
       { label: "Earnings", href: "/tutor/earnings", icon: CreditCard },
       { label: "Messages", href: "/messages", icon: MessageSquare },
-      { label: "2torSocialise", href: "/socialise", icon: Globe },
+      { label: "ConnectFeed", href: "/socialise", icon: Globe },
       { label: "My Profile", href: "/profile", icon: UserCircle },
     ],
     investor: [
@@ -71,7 +71,7 @@ export function DashboardLayout({ children, role: roleProp, title }: DashboardLa
       { label: "Live Sessions", href: "/investor/live", icon: Video },
       { label: "Transactions", href: "/investor/transactions", icon: CreditCard },
       { label: "Messages", href: "/messages", icon: MessageSquare },
-      { label: "2torSocialise", href: "/socialise", icon: Globe },
+      { label: "ConnectFeed", href: "/socialise", icon: Globe },
       { label: "My Profile", href: "/profile", icon: UserCircle },
     ],
     admin: [
@@ -79,7 +79,7 @@ export function DashboardLayout({ children, role: roleProp, title }: DashboardLa
       { label: "Users", href: "/admin/users", icon: Users },
       { label: "Sessions", href: "/admin/sessions", icon: BookOpen },
       { label: "Transactions", href: "/admin/transactions", icon: CreditCard },
-      { label: "2torSocialise", href: "/socialise", icon: Globe },
+      { label: "ConnectFeed", href: "/socialise", icon: Globe },
       { label: "My Profile", href: "/profile", icon: UserCircle },
     ],
   };
