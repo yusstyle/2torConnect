@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
 import { motion } from "framer-motion";
-import { Mail, Lock, User, Phone, University, ArrowRight, Loader2 } from "lucide-react";
+import { Mail, Lock, User, Phone, ArrowRight, Loader2 } from "lucide-react";
+import { UniversityCombobox } from "@/components/UniversityCombobox";
 import { useRegisterStudent } from "@workspace/api-client-react";
 import { useAuthStore } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
@@ -97,10 +98,11 @@ export default function RegisterStudentPage() {
 
             <div className="space-y-1">
               <label className="text-sm font-medium text-white/80">University</label>
-              <div className="relative">
-                <University className="absolute left-4 top-3.5 w-4 h-4 text-muted-foreground" />
-                <input type="text" value={form.university} onChange={set("university")} className={inputClass} placeholder="University of Lagos" />
-              </div>
+              <UniversityCombobox
+                value={form.university}
+                onChange={val => setForm(f => ({ ...f, university: val }))}
+                placeholder="Search or type your university…"
+              />
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

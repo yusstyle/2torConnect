@@ -4,7 +4,8 @@ import { Link } from "wouter";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { useAuthStore } from "@/lib/auth";
 import { motion } from "framer-motion";
-import { GraduationCap, Search, MapPin, Users, BookOpen, ExternalLink, CheckCircle2, Sparkles, Globe } from "lucide-react";
+import { GraduationCap, Search, MapPin, Users, ExternalLink, CheckCircle2, Sparkles, Globe } from "lucide-react";
+import { ALL_UNIVERSITIES } from "@/components/UniversityCombobox";
 
 const BASE = import.meta.env.BASE_URL?.replace(/\/$/, "") ?? "";
 
@@ -30,9 +31,30 @@ export default function InvestorUniversities() {
     staleTime: 60_000,
   });
 
+  // Supplement with ALL_UNIVERSITIES — any known university not yet in DB or KNOWN_UNIS
+  const supplemental: University[] = useMemo(() => {
+    const existing = new Set([
+      ...(data?.active ?? []).map(u => u.name.toLowerCase()),
+      ...(data?.featured ?? []).map(u => u.name.toLowerCase()),
+    ]);
+    const COLOR_POOL = [
+      "from-blue-500 to-cyan-400", "from-purple-500 to-indigo-400", "from-green-500 to-emerald-400",
+      "from-red-500 to-orange-400", "from-yellow-500 to-amber-400", "from-teal-500 to-cyan-400",
+    ];
+    return ALL_UNIVERSITIES
+      .filter(name => !existing.has(name.toLowerCase()))
+      .map((name, i) => ({
+        name, acronym: name.split(" ").filter(w => !["of","the","and","a","an"].includes(w.toLowerCase())).map(w => w[0]).join("").slice(0, 5).toUpperCase(),
+        location: "—", country: "Unknown", type: "University",
+        established: null, website: null,
+        color: COLOR_POOL[i % COLOR_POOL.length],
+        studentsCount: 0, tutorsCount: 0, active: false,
+      }));
+  }, [data?.active?.length, data?.featured?.length]);
+
   const allList: University[] = filter === "active" ? (data?.active ?? [])
-    : filter === "featured" ? (data?.featured ?? [])
-    : [...(data?.active ?? []), ...(data?.featured ?? [])];
+    : filter === "featured" ? [...(data?.featured ?? []), ...supplemental]
+    : [...(data?.active ?? []), ...(data?.featured ?? []), ...supplemental];
 
   const countries = useMemo(() => {
     const set = new Set(allList.map(u => u.country).filter(Boolean));

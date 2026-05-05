@@ -6,6 +6,7 @@ import {
   Plus, X, GraduationCap, Upload, FileCheck, AlertCircle,
   ChevronRight, ChevronLeft, Video
 } from "lucide-react";
+import { UniversityCombobox } from "@/components/UniversityCombobox";
 import { useAuthStore } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
 
@@ -16,42 +17,6 @@ const SUBJECTS = [
   "Organic Chemistry", "Inorganic Chemistry", "Calculus", "Mechanics",
 ];
 
-const UNIVERSITIES = [
-  // Nigeria
-  "University of Lagos", "University of Ibadan", "Obafemi Awolowo University",
-  "Ahmadu Bello University", "University of Nigeria Nsukka", "University of Benin",
-  "University of Port Harcourt", "Lagos State University", "Covenant University",
-  "Babcock University", "Nnamdi Azikiwe University", "Federal University of Technology Akure",
-  "Federal University Dutse", "Bayero University Kano", "University of Abuja",
-  "Ladoke Akintola University of Technology",
-  // USA
-  "Harvard University", "MIT", "Stanford University", "Yale University",
-  "Princeton University", "Columbia University", "University of Chicago",
-  "UC Berkeley", "University of Michigan", "Johns Hopkins University",
-  "New York University", "University of Texas at Austin", "University of Washington",
-  // UK
-  "University of Oxford", "University of Cambridge", "Imperial College London",
-  "University College London", "London School of Economics", "University of Edinburgh",
-  "University of Manchester", "King's College London",
-  // Canada
-  "University of Toronto", "McGill University", "University of British Columbia",
-  "University of Waterloo",
-  // Australia
-  "Australian National University", "University of Melbourne", "University of Sydney",
-  // Europe
-  "ETH Zurich", "Technical University of Munich", "Sorbonne University",
-  "Delft University of Technology",
-  // Africa
-  "University of Cape Town", "University of the Witwatersrand", "University of Ghana",
-  "Kwame Nkrumah University of Science and Technology", "University of Nairobi",
-  "Makerere University", "University of Dar es Salaam", "Addis Ababa University",
-  // Asia
-  "National University of Singapore", "Peking University", "Tsinghua University",
-  "University of Tokyo", "IIT Bombay", "IIT Delhi", "University of Delhi",
-  // Middle East
-  "American University of Beirut", "King Abdulaziz University",
-  "Other",
-].sort();
 
 const steps = ["Personal Info", "Academic Details", "Documents"];
 
@@ -272,8 +237,12 @@ export default function RegisterTutorPage() {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-1">
                       <label className="text-sm font-medium text-white/80">University *</label>
-                      <input type="text" list="uni-list" value={form.university} onChange={set("university")} className={inputClass} placeholder="University of Lagos" />
-                      <datalist id="uni-list">{UNIVERSITIES.map(u => <option key={u} value={u} />)}</datalist>
+                      <UniversityCombobox
+                        value={form.university}
+                        onChange={val => setForm(f => ({ ...f, university: val }))}
+                        required
+                        placeholder="Search or type your university…"
+                      />
                     </div>
                     <div className="space-y-1">
                       <label className="text-sm font-medium text-white/80">Level *</label>
