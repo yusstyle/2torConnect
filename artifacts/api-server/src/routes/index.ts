@@ -10,10 +10,12 @@ import adminRouter from "./admin";
 import materialsRouter from "./materials";
 import socialRouter from "./social";
 import universitiesRouter from "./universities";
+import statsRouter from "./stats";
 
 const router: IRouter = Router();
 
 router.use(healthRouter);
+router.use("/stats", statsRouter);
 router.use("/auth", authRouter);
 router.use("/users", usersRouter);
 router.use("/tutors", tutorsRouter);

@@ -1,5 +1,6 @@
 import { Link } from "wouter";
 import { motion } from "framer-motion";
+import { useEffect, useState } from "react";
 import { Logo } from "@/components/Logo";
 import {
   BookOpen, Users, Star, ArrowRight, ShieldCheck, Zap, CheckCircle,
@@ -14,7 +15,61 @@ const fadeUp = (delay = 0) => ({
   transition: { duration: 0.6, delay },
 });
 
+interface PlatformStats {
+  students: number;
+  verifiedTutors: number;
+  universities: number;
+  totalEarnings: number;
+}
+
+function formatEarnings(amount: number): string {
+  if (amount >= 1_000_000) return `₦${(amount / 1_000_000).toFixed(1)}M+`;
+  if (amount >= 1_000) return `₦${(amount / 1_000).toFixed(0)}K+`;
+  return `₦${amount}`;
+}
+
+function formatCount(n: number): string {
+  if (n === 0) return "0";
+  return `${n.toLocaleString()}+`;
+}
+
 export default function LandingPage() {
+  const [stats, setStats] = useState<PlatformStats | null>(null);
+
+  useEffect(() => {
+    fetch(`${import.meta.env.BASE_URL}api/stats`)
+      .then(r => r.json())
+      .then(setStats)
+      .catch(() => {});
+  }, []);
+
+  const heroStats = [
+    {
+      value: stats ? formatCount(stats.students) : "…",
+      label: "Students Enrolled",
+      icon: Users,
+      color: "text-accent",
+    },
+    {
+      value: stats ? formatCount(stats.verifiedTutors) : "…",
+      label: "Verified Tutors",
+      icon: GraduationCap,
+      color: "text-primary",
+    },
+    {
+      value: stats ? formatCount(stats.universities) : "…",
+      label: "Nigerian Universities",
+      icon: Award,
+      color: "text-yellow-400",
+    },
+    {
+      value: stats ? formatEarnings(stats.totalEarnings) : "…",
+      label: "Earned by Tutors",
+      icon: Banknote,
+      color: "text-green-400",
+    },
+  ];
+
   return (
     <div className="min-h-screen bg-background text-white overflow-x-hidden">
 
@@ -105,12 +160,7 @@ export default function LandingPage() {
             transition={{ duration: 0.8, delay: 0.2 }}
             className="hidden lg:grid grid-cols-2 gap-4"
           >
-            {[
-              { value: "10,000+", label: "Students Enrolled", icon: Users, color: "text-accent" },
-              { value: "500+", label: "Verified Tutors", icon: GraduationCap, color: "text-primary" },
-              { value: "50+", label: "Nigerian Universities", icon: Award, color: "text-yellow-400" },
-              { value: "₦50M+", label: "Earned by Tutors", icon: Banknote, color: "text-green-400" },
-            ].map((stat) => (
+            {heroStats.map((stat) => (
               <div key={stat.label} className="glass-panel rounded-3xl p-6 flex flex-col gap-3 hover:border-accent/30 transition-colors">
                 <div className={`w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center ${stat.color}`}>
                   <stat.icon className="w-5 h-5" />
@@ -126,14 +176,9 @@ export default function LandingPage() {
       {/* ── Stats bar (mobile) ── */}
       <section className="lg:hidden bg-white/3 border-y border-white/5 py-8 px-6">
         <div className="max-w-7xl mx-auto grid grid-cols-2 gap-6 text-center">
-          {[
-            { value: "10,000+", label: "Students" },
-            { value: "500+", label: "Tutors" },
-            { value: "50+", label: "Universities" },
-            { value: "₦50M+", label: "Tutor Earnings" },
-          ].map(s => (
+          {heroStats.map(s => (
             <div key={s.label}>
-              <div className="text-2xl font-bold text-accent">{s.value}</div>
+              <div className={`text-2xl font-bold ${s.color}`}>{s.value}</div>
               <div className="text-sm text-white/50">{s.label}</div>
             </div>
           ))}
