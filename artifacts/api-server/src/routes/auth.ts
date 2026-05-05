@@ -247,31 +247,23 @@ router.post("/register/investor", (req, res) => {
 
 router.post("/login", async (req, res) => {
   try {
-    const { email, password, role } = req.body;
-    if (!email || !password || !role) {
-      res.status(400).json({ error: "Email, password and role are required" }); return;
+    const { email, password } = req.body;
+    if (!email || !password) {
+      res.status(400).json({ error: "Email and password are required" }); return;
     }
-    const body = { email, password, role };
-    const [user] = await db.select().from(usersTable).where(eq(usersTable.email, body.email)).limit(1);
+    const [user] = await db.select().from(usersTable).where(eq(usersTable.email, email.trim().toLowerCase())).limit(1);
     if (!user) {
-      res.status(401).json({ error: "Invalid credentials" });
+      res.status(401).json({ error: "Invalid email or password" });
       return;
     }
-    if (user.role !== body.role) {
-      res.status(401).json({ error: `This account is not a ${body.role} account` });
-      return;
-    }
-    const valid = await bcrypt.compare(body.password, user.passwordHash);
+    const valid = await bcrypt.compare(password, user.passwordHash);
     if (!valid) {
-      res.status(401).json({ error: "Invalid credentials" });
+      res.status(401).json({ error: "Invalid email or password" });
       return;
     }
     await db.update(usersTable).set({ lastLogin: new Date() }).where(eq(usersTable.id, user.id));
     const token = Buffer.from(JSON.stringify({ id: user.id, role: user.role })).toString("base64");
-    res.json({
-      user: serializeUser(user),
-      token,
-    });
+    res.json({ user: serializeUser(user), token });
   } catch (err) {
     req.log.error({ err }, "login error");
     res.status(401).json({ error: "Login failed", message: String(err) });
