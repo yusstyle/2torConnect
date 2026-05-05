@@ -1,4 +1,4 @@
-import { ReactNode } from "react";
+import { ReactNode, useEffect, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { useAuthStore } from "@/lib/auth";
 import { Logo } from "@/components/Logo";
@@ -8,7 +8,6 @@ import {
   Search, FileText, Menu, X, Video, Globe, GraduationCap, UserCircle
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useState } from "react";
 
 interface NavItem {
   label: string;
@@ -23,7 +22,7 @@ interface DashboardLayoutProps {
   title?: string;
 }
 
-function SocialiseBadge() {
+function ConnectFeedBadge() {
   return (
     <span className="ml-auto text-[10px] px-1.5 py-0.5 rounded-full bg-gradient-to-r from-primary to-accent text-white font-bold leading-none">
       NEW
@@ -31,10 +30,21 @@ function SocialiseBadge() {
   );
 }
 
+function useIsMobile() {
+  const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
+  useEffect(() => {
+    const handler = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener("resize", handler);
+    return () => window.removeEventListener("resize", handler);
+  }, []);
+  return isMobile;
+}
+
 export function DashboardLayout({ children, role: roleProp, title }: DashboardLayoutProps) {
   const { user, logout } = useAuthStore();
   const [location, setLocation] = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const isMobile = useIsMobile();
 
   if (!user) { setLocation("/login"); return null; }
 
@@ -93,29 +103,66 @@ export function DashboardLayout({ children, role: roleProp, title }: DashboardLa
     admin: "from-red-500 to-pink-500",
   };
 
+  const sidebarVisible = !isMobile || mobileMenuOpen;
+
   return (
     <div className="min-h-screen bg-background flex flex-col md:flex-row">
       {/* Mobile Header */}
-      <div className="md:hidden flex items-center justify-between p-4 border-b border-border bg-card">
-        <Logo size={36} />
-        <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="text-muted-foreground">
-          {mobileMenuOpen ? <X /> : <Menu />}
-        </button>
+      <div className="md:hidden flex items-center justify-between px-4 py-3 border-b border-border bg-card/80 backdrop-blur-sm sticky top-0 z-40">
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            className="p-2 rounded-xl text-muted-foreground hover:bg-white/10 hover:text-white transition-all"
+          >
+            <Menu className="w-5 h-5" />
+          </button>
+          <Logo size={32} />
+        </div>
+        <Link href="/profile" className={`w-9 h-9 rounded-full bg-gradient-to-tr ${roleGradient[user.role] ?? "from-primary to-accent"} flex items-center justify-center font-bold text-white text-sm shrink-0 overflow-hidden border-2 border-white/20`}>
+          {user.avatarUrl
+            ? <img src={user.avatarUrl} alt="avatar" className="w-full h-full object-cover" />
+            : <span>{user.name.split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase()}</span>
+          }
+        </Link>
       </div>
+
+      {/* Backdrop overlay for mobile */}
+      <AnimatePresence>
+        {isMobile && mobileMenuOpen && (
+          <motion.div
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm md:hidden"
+            onClick={() => setMobileMenuOpen(false)}
+          />
+        )}
+      </AnimatePresence>
 
       {/* Sidebar */}
       <AnimatePresence>
-        {(mobileMenuOpen || window.innerWidth >= 768) && (
+        {sidebarVisible && (
           <motion.aside
-            initial={{ x: -300 }} animate={{ x: 0 }} exit={{ x: -300 }}
-            className="fixed md:static inset-y-0 left-0 z-50 w-64 glass-panel border-r border-y-0 border-l-0 flex flex-col"
+            key="sidebar"
+            initial={isMobile ? { x: -280 } : false}
+            animate={{ x: 0 }}
+            exit={isMobile ? { x: -280 } : undefined}
+            transition={{ type: "spring", stiffness: 300, damping: 30 }}
+            className="fixed md:static inset-y-0 left-0 z-50 w-72 md:w-64 glass-panel border-r border-y-0 border-l-0 flex flex-col"
           >
-            <div className="p-6 hidden md:flex items-center">
+            <div className="p-5 hidden md:flex items-center border-b border-white/5">
               <Logo size={44} />
             </div>
 
-            <div className="px-6 py-4 flex-1 overflow-y-auto">
-              <Link href="/profile" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 mb-6 p-3 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all group">
+            {/* Mobile sidebar header */}
+            <div className="md:hidden flex items-center justify-between px-5 py-4 border-b border-white/5">
+              <Logo size={36} />
+              <button onClick={() => setMobileMenuOpen(false)} className="p-1.5 rounded-xl text-muted-foreground hover:bg-white/10 hover:text-white transition-all">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="px-4 py-4 flex-1 overflow-y-auto">
+              <Link href="/profile" onClick={() => setMobileMenuOpen(false)}
+                className="flex items-center gap-3 mb-5 p-3 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all group">
                 <div className={`w-10 h-10 rounded-full bg-gradient-to-tr ${roleGradient[user.role] ?? "from-primary to-accent"} flex items-center justify-center font-bold text-white shrink-0 overflow-hidden`}>
                   {user.avatarUrl
                     ? <img src={user.avatarUrl} alt="avatar" className="w-full h-full object-cover" />
@@ -129,30 +176,30 @@ export function DashboardLayout({ children, role: roleProp, title }: DashboardLa
                 <UserCircle className="w-4 h-4 text-muted-foreground group-hover:text-white ml-auto shrink-0 transition-colors" />
               </Link>
 
-              <nav className="space-y-1">
+              <nav className="space-y-0.5">
                 {currentNav.map((item) => {
                   const isActive = location === item.href || location.startsWith(item.href + "/");
-                  const isSocialise = item.href === "/socialise";
+                  const isFeed = item.href === "/socialise";
                   return (
                     <Link key={item.href} href={item.href} onClick={() => setMobileMenuOpen(false)}
-                      className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group ${
+                      className={`flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 group ${
                         isActive
                           ? "bg-primary/20 text-primary border border-primary/30 shadow-lg shadow-primary/10"
                           : "text-muted-foreground hover:bg-white/5 hover:text-white"
-                      } ${isSocialise ? "mt-2 border-t border-white/5 pt-4" : ""}`}
+                      } ${isFeed ? "mt-2 border-t border-white/5 pt-4" : ""}`}
                     >
-                      <item.icon className={`w-5 h-5 shrink-0 ${isActive ? "text-accent" : isSocialise ? "text-accent/70 group-hover:text-accent" : "group-hover:text-accent transition-colors"}`} />
+                      <item.icon className={`w-5 h-5 shrink-0 ${isActive ? "text-accent" : isFeed ? "text-accent/70 group-hover:text-accent" : "group-hover:text-accent transition-colors"}`} />
                       <span className="font-medium text-sm">{item.label}</span>
-                      {isSocialise && !isActive && <SocialiseBadge />}
+                      {isFeed && !isActive && <ConnectFeedBadge />}
                     </Link>
                   );
                 })}
               </nav>
             </div>
 
-            <div className="p-6 border-t border-white/5">
+            <div className="p-4 border-t border-white/5">
               <button onClick={handleLogout}
-                className="flex items-center gap-3 px-4 py-3 w-full rounded-xl text-muted-foreground hover:bg-destructive/20 hover:text-destructive hover:border hover:border-destructive/30 transition-all duration-200">
+                className="flex items-center gap-3 px-3 py-3 w-full rounded-xl text-muted-foreground hover:bg-destructive/20 hover:text-destructive hover:border hover:border-destructive/30 transition-all duration-200">
                 <LogOut className="w-5 h-5" />
                 <span className="font-medium text-sm">Logout</span>
               </button>
@@ -162,11 +209,11 @@ export function DashboardLayout({ children, role: roleProp, title }: DashboardLa
       </AnimatePresence>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-y-auto relative">
+      <main className="flex-1 overflow-y-auto relative min-w-0">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-primary/10 via-background to-background -z-10" />
-        <div className="p-6 md:p-10 max-w-7xl mx-auto">
+        <div className="p-4 md:p-8 lg:p-10 max-w-7xl mx-auto">
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
-            {title && <h1 className="text-2xl md:text-3xl font-bold text-white mb-6">{title}</h1>}
+            {title && <h1 className="text-xl md:text-2xl lg:text-3xl font-bold text-white mb-5">{title}</h1>}
             {children}
           </motion.div>
         </div>

@@ -84,12 +84,13 @@ export default function LandingPage() {
             <a href="#for-investors" className="hover:text-white transition-colors">For Investors</a>
             <a href="#features" className="hover:text-white transition-colors">Features</a>
           </div>
-          <div className="flex items-center gap-3">
-            <Link href="/login" className="px-4 py-2 text-sm font-semibold text-white/80 hover:text-white transition-colors">
+          <div className="flex items-center gap-2">
+            <Link href="/login" className="px-3 py-2 text-sm font-semibold text-white/80 hover:text-white transition-colors whitespace-nowrap">
               Sign In
             </Link>
-            <Link href="/register" className="px-5 py-2.5 rounded-xl text-sm font-bold bg-gradient-to-r from-primary to-accent text-white hover:opacity-90 hover:shadow-lg hover:shadow-accent/30 transition-all duration-300">
-              Get Started Free
+            <Link href="/register" className="px-4 py-2.5 rounded-xl text-sm font-bold bg-gradient-to-r from-primary to-accent text-white hover:opacity-90 hover:shadow-lg hover:shadow-accent/30 transition-all duration-300 whitespace-nowrap">
+              <span className="hidden sm:inline">Get Started Free</span>
+              <span className="sm:hidden">Join Free</span>
             </Link>
           </div>
         </div>
