@@ -9,10 +9,16 @@ import { useAuthStore } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
 
 const COUNTRIES = [
-  "Nigeria", "Ghana", "Kenya", "South Africa", "United Kingdom",
-  "United States", "Canada", "Germany", "France", "UAE", "Saudi Arabia",
-  "China", "India", "Australia", "Brazil", "Other"
-];
+  "Nigeria", "Ghana", "Kenya", "South Africa", "Egypt", "Ethiopia", "Tanzania",
+  "Uganda", "Rwanda", "Senegal", "Côte d'Ivoire", "Cameroon", "Zimbabwe",
+  "United Kingdom", "United States", "Canada", "Germany", "France", "Netherlands",
+  "Switzerland", "Sweden", "Norway", "Denmark", "Spain", "Italy", "Portugal",
+  "UAE", "Saudi Arabia", "Qatar", "Kuwait", "Bahrain",
+  "China", "India", "Singapore", "Japan", "South Korea", "Indonesia", "Malaysia",
+  "Australia", "New Zealand",
+  "Brazil", "Argentina", "Mexico", "Colombia",
+  "Other",
+].sort();
 
 const steps = ["Personal Info", "Business Details", "Verification"];
 
@@ -111,7 +117,7 @@ export default function RegisterInvestorPage() {
               </div>
               <div>
                 <h1 className="text-2xl font-bold text-white">Join as an Investor</h1>
-                <p className="text-muted-foreground text-sm">Fund students & tutors across Nigeria</p>
+                <p className="text-muted-foreground text-sm">Fund students & tutors worldwide</p>
               </div>
             </div>
 

@@ -58,7 +58,7 @@ export default function LandingPage() {
     },
     {
       value: stats ? formatCount(stats.universities) : "…",
-      label: "Nigerian Universities",
+      label: "Universities Worldwide",
       icon: Award,
       color: "text-yellow-400",
     },
@@ -117,7 +117,7 @@ export default function LandingPage() {
           >
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-accent/10 border border-accent/30 mb-8">
               <span className="flex w-2 h-2 rounded-full bg-accent animate-pulse" />
-              <span className="text-xs font-semibold text-accent tracking-wider uppercase">Nigeria's #1 Peer Tutoring Platform</span>
+              <span className="text-xs font-semibold text-accent tracking-wider uppercase">The Global Peer Tutoring Platform</span>
             </div>
 
             <h1 className="text-5xl md:text-6xl font-display font-extrabold leading-tight mb-6">
@@ -129,7 +129,7 @@ export default function LandingPage() {
             </h1>
 
             <p className="text-lg text-white/70 leading-relaxed mb-8 max-w-xl">
-              2torConnect links Nigerian university students with top-performing peers who've aced the same courses. Get personalized, one-on-one academic support — or become a tutor and earn on your own schedule.
+              2torConnect links university students worldwide with top-performing peers who've aced the same courses. Get personalized, one-on-one academic support — or become a tutor and earn on your own schedule.
             </p>
 
             <div className="flex flex-wrap gap-4 mb-10">
@@ -432,8 +432,8 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto">
           <motion.div {...fadeUp()} className="text-center mb-16">
             <p className="text-accent text-sm font-semibold tracking-widest uppercase mb-3">Why 2torConnect</p>
-            <h2 className="text-4xl md:text-5xl font-display font-bold text-white">Built for Nigerian students, by Nigerian students</h2>
-            <p className="text-white/60 mt-4 max-w-2xl mx-auto">We understand the unique challenges of Nigerian university education — from ASUU strikes to limited textbooks to complex exam formats. 2torConnect is designed around your reality.</p>
+            <h2 className="text-4xl md:text-5xl font-display font-bold text-white">Built for students everywhere, by students who've been there</h2>
+            <p className="text-white/60 mt-4 max-w-2xl mx-auto">We understand the real challenges of university life — wherever you study. 2torConnect is designed around your academic reality, connecting you with peers who've mastered the exact courses you're taking.</p>
           </motion.div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -461,9 +461,9 @@ export default function LandingPage() {
       {/* ── Universities ── */}
       <section className="py-16 px-6 bg-white/2 border-y border-white/5">
         <div className="max-w-7xl mx-auto text-center">
-          <motion.p {...fadeUp()} className="text-white/40 text-sm mb-8 uppercase tracking-widest">Tutors & Students from Nigeria's top universities</motion.p>
+          <motion.p {...fadeUp()} className="text-white/40 text-sm mb-8 uppercase tracking-widest">Tutors & Students from top universities worldwide</motion.p>
           <motion.div {...fadeUp(0.1)} className="flex flex-wrap justify-center gap-6 text-white/50 text-sm font-medium">
-            {["University of Lagos (UNILAG)", "University of Ibadan (UI)", "Obafemi Awolowo University (OAU)", "ABU Zaria", "University of Nigeria Nsukka (UNN)", "LASU", "UNIABUJA", "Covenant University", "Babcock University", "Lagos Business School", "Federal University Dutse (FUD)", "Bayero University Kano (BUK)"].map(uni => (
+            {["Harvard University", "University of Oxford", "MIT", "University of Lagos (UNILAG)", "Stanford University", "ETH Zurich", "University of Cape Town", "NUS Singapore", "University of Toronto", "Obafemi Awolowo University", "IIT Bombay", "University of Melbourne", "UC Berkeley", "University of Ghana"].map(uni => (
               <span key={uni} className="px-4 py-2 rounded-full bg-white/5 border border-white/10 hover:border-accent/30 hover:text-white/80 transition-colors">{uni}</span>
             ))}
           </motion.div>
@@ -481,7 +481,7 @@ export default function LandingPage() {
             {[
               { q: "How are tutors verified?", a: "Every tutor application is reviewed by our team. We verify their identity, university enrollment, and academic records before approving their profile. Only tutors who meet our academic standards are listed." },
               { q: "How much does it cost?", a: "Students pay the session fee set by the tutor (typically ₦1,000–₦5,000 per hour). There are no monthly subscriptions or hidden fees. You only pay when you book a session." },
-              { q: "How do tutors get paid?", a: "Earnings are credited to your 2torConnect wallet after each completed session. You can withdraw to your Nigerian bank account at any time." },
+              { q: "How do tutors get paid?", a: "Earnings are credited to your 2torConnect wallet after each completed session. You can withdraw to your local bank account or preferred payout method at any time." },
               { q: "What subjects are available?", a: "We cover all university subjects — Sciences, Arts, Engineering, Medicine, Law, Social Sciences, Business, and more. If you need a subject not listed, contact us and we'll try to find a match." },
               { q: "Can I cancel a booked session?", a: "Yes. Sessions can be cancelled up to 2 hours before the scheduled time for a full refund. Late cancellations may incur a small fee to compensate the tutor for their time." },
             ].map((faq, i) => (
@@ -544,7 +544,7 @@ export default function LandingPage() {
                 <span className="font-display font-bold text-xl text-white">2tor<span className="text-accent">Connect</span></span>
               </div>
               <p className="text-white/50 text-sm leading-relaxed max-w-xs">
-                Nigeria's premier peer tutoring marketplace, connecting students with top-performing university peers for personalized academic support.
+                The global peer tutoring marketplace, connecting university students worldwide with top-performing peers for personalized academic support.
               </p>
             </div>
             <div>
@@ -566,7 +566,7 @@ export default function LandingPage() {
           </div>
           <div className="border-t border-white/5 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
             <p className="text-white/30 text-sm">© 2026 2torConnect. All rights reserved.</p>
-            <p className="text-white/30 text-sm">Made with ❤️ for Nigerian students</p>
+            <p className="text-white/30 text-sm">Made with ❤️ for students everywhere</p>
           </div>
         </div>
       </footer>

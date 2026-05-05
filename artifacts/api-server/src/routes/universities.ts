@@ -1,30 +1,106 @@
 import { Router, type IRouter } from "express";
 import { db } from "@workspace/db";
-import { studentsTable, tutorsTable, usersTable } from "@workspace/db";
-import { eq, sql } from "drizzle-orm";
+import { studentsTable, tutorsTable } from "@workspace/db";
+import { sql } from "drizzle-orm";
 
 const router: IRouter = Router();
 
-const KNOWN_UNIS: Record<string, { name: string; acronym: string; state: string; type: string; established: number; website: string; color: string }> = {
-  "university of lagos": { name: "University of Lagos", acronym: "UNILAG", state: "Lagos", type: "Federal", established: 1962, website: "https://unilag.edu.ng", color: "from-blue-500 to-cyan-400" },
-  "unilag": { name: "University of Lagos", acronym: "UNILAG", state: "Lagos", type: "Federal", established: 1962, website: "https://unilag.edu.ng", color: "from-blue-500 to-cyan-400" },
-  "university of ibadan": { name: "University of Ibadan", acronym: "UI", state: "Oyo", type: "Federal", established: 1948, website: "https://ui.edu.ng", color: "from-purple-500 to-indigo-400" },
-  "obafemi awolowo university": { name: "Obafemi Awolowo University", acronym: "OAU", state: "Osun", type: "Federal", established: 1961, website: "https://oauife.edu.ng", color: "from-green-500 to-emerald-400" },
-  "university of nigeria": { name: "University of Nigeria, Nsukka", acronym: "UNN", state: "Enugu", type: "Federal", established: 1960, website: "https://unn.edu.ng", color: "from-red-500 to-orange-400" },
-  "university of nigeria nsukka": { name: "University of Nigeria, Nsukka", acronym: "UNN", state: "Enugu", type: "Federal", established: 1960, website: "https://unn.edu.ng", color: "from-red-500 to-orange-400" },
-  "ahmadu bello university": { name: "Ahmadu Bello University", acronym: "ABU", state: "Kaduna", type: "Federal", established: 1962, website: "https://abu.edu.ng", color: "from-yellow-500 to-amber-400" },
-  "abu zaria": { name: "Ahmadu Bello University", acronym: "ABU", state: "Kaduna", type: "Federal", established: 1962, website: "https://abu.edu.ng", color: "from-yellow-500 to-amber-400" },
-  "university of benin": { name: "University of Benin", acronym: "UNIBEN", state: "Edo", type: "Federal", established: 1970, website: "https://uniben.edu.ng", color: "from-teal-500 to-cyan-400" },
-  "futa": { name: "Federal University of Technology Akure", acronym: "FUTA", state: "Ondo", type: "Federal", established: 1981, website: "https://futa.edu.ng", color: "from-pink-500 to-rose-400" },
-  "federal university dutse": { name: "Federal University Dutse", acronym: "FUD", state: "Jigawa", type: "Federal", established: 2011, website: "https://fud.edu.ng", color: "from-emerald-500 to-green-400" },
-  "covenant university": { name: "Covenant University", acronym: "CU", state: "Ogun", type: "Private", established: 2002, website: "https://covenantuniversity.edu.ng", color: "from-violet-500 to-purple-400" },
-  "babcock university": { name: "Babcock University", acronym: "BU", state: "Ogun", type: "Private", established: 1999, website: "https://babcock.edu.ng", color: "from-sky-500 to-blue-400" },
-  "lagos state university": { name: "Lagos State University", acronym: "LASU", state: "Lagos", type: "State", established: 1983, website: "https://lasu.edu.ng", color: "from-lime-500 to-green-400" },
-  "pan-atlantic university": { name: "Pan-Atlantic University", acronym: "PAU", state: "Lagos", type: "Private", established: 2002, website: "https://pau.edu.ng", color: "from-orange-500 to-yellow-400" },
-  "university of port harcourt": { name: "University of Port Harcourt", acronym: "UNIPORT", state: "Rivers", type: "Federal", established: 1975, website: "https://uniport.edu.ng", color: "from-cyan-500 to-sky-400" },
-  "nnamdi azikiwe university": { name: "Nnamdi Azikiwe University", acronym: "UNIZIK", state: "Anambra", type: "Federal", established: 1991, website: "https://unizik.edu.ng", color: "from-indigo-500 to-blue-400" },
-  "university of abuja": { name: "University of Abuja", acronym: "UNIABUJA", state: "FCT", type: "Federal", established: 1988, website: "https://uniabuja.edu.ng", color: "from-emerald-500 to-teal-400" },
-  "lautech": { name: "Ladoke Akintola University of Technology", acronym: "LAUTECH", state: "Oyo", type: "State", established: 1990, website: "https://lautech.edu.ng", color: "from-fuchsia-500 to-pink-400" },
+interface UniMeta {
+  name: string; acronym: string; location: string; country: string;
+  type: string; established: number; website: string; color: string;
+}
+
+const KNOWN_UNIS: Record<string, UniMeta> = {
+  // ── Nigeria ──
+  "university of lagos": { name: "University of Lagos", acronym: "UNILAG", location: "Lagos", country: "Nigeria", type: "Federal", established: 1962, website: "https://unilag.edu.ng", color: "from-blue-500 to-cyan-400" },
+  "unilag": { name: "University of Lagos", acronym: "UNILAG", location: "Lagos", country: "Nigeria", type: "Federal", established: 1962, website: "https://unilag.edu.ng", color: "from-blue-500 to-cyan-400" },
+  "university of ibadan": { name: "University of Ibadan", acronym: "UI", location: "Ibadan", country: "Nigeria", type: "Federal", established: 1948, website: "https://ui.edu.ng", color: "from-purple-500 to-indigo-400" },
+  "obafemi awolowo university": { name: "Obafemi Awolowo University", acronym: "OAU", location: "Ile-Ife", country: "Nigeria", type: "Federal", established: 1961, website: "https://oauife.edu.ng", color: "from-green-500 to-emerald-400" },
+  "university of nigeria": { name: "University of Nigeria, Nsukka", acronym: "UNN", location: "Nsukka", country: "Nigeria", type: "Federal", established: 1960, website: "https://unn.edu.ng", color: "from-red-500 to-orange-400" },
+  "university of nigeria nsukka": { name: "University of Nigeria, Nsukka", acronym: "UNN", location: "Nsukka", country: "Nigeria", type: "Federal", established: 1960, website: "https://unn.edu.ng", color: "from-red-500 to-orange-400" },
+  "ahmadu bello university": { name: "Ahmadu Bello University", acronym: "ABU", location: "Zaria", country: "Nigeria", type: "Federal", established: 1962, website: "https://abu.edu.ng", color: "from-yellow-500 to-amber-400" },
+  "abu zaria": { name: "Ahmadu Bello University", acronym: "ABU", location: "Zaria", country: "Nigeria", type: "Federal", established: 1962, website: "https://abu.edu.ng", color: "from-yellow-500 to-amber-400" },
+  "university of benin": { name: "University of Benin", acronym: "UNIBEN", location: "Benin City", country: "Nigeria", type: "Federal", established: 1970, website: "https://uniben.edu.ng", color: "from-teal-500 to-cyan-400" },
+  "federal university of technology akure": { name: "Federal University of Technology Akure", acronym: "FUTA", location: "Akure", country: "Nigeria", type: "Federal", established: 1981, website: "https://futa.edu.ng", color: "from-pink-500 to-rose-400" },
+  "futa": { name: "Federal University of Technology Akure", acronym: "FUTA", location: "Akure", country: "Nigeria", type: "Federal", established: 1981, website: "https://futa.edu.ng", color: "from-pink-500 to-rose-400" },
+  "covenant university": { name: "Covenant University", acronym: "CU", location: "Ota, Ogun", country: "Nigeria", type: "Private", established: 2002, website: "https://covenantuniversity.edu.ng", color: "from-violet-500 to-purple-400" },
+  "babcock university": { name: "Babcock University", acronym: "BU", location: "Ilishan-Remo", country: "Nigeria", type: "Private", established: 1999, website: "https://babcock.edu.ng", color: "from-sky-500 to-blue-400" },
+  "lagos state university": { name: "Lagos State University", acronym: "LASU", location: "Ojo, Lagos", country: "Nigeria", type: "State", established: 1983, website: "https://lasu.edu.ng", color: "from-lime-500 to-green-400" },
+  "university of port harcourt": { name: "University of Port Harcourt", acronym: "UNIPORT", location: "Port Harcourt", country: "Nigeria", type: "Federal", established: 1975, website: "https://uniport.edu.ng", color: "from-cyan-500 to-sky-400" },
+  "nnamdi azikiwe university": { name: "Nnamdi Azikiwe University", acronym: "UNIZIK", location: "Awka", country: "Nigeria", type: "Federal", established: 1991, website: "https://unizik.edu.ng", color: "from-indigo-500 to-blue-400" },
+  "university of abuja": { name: "University of Abuja", acronym: "UNIABUJA", location: "Abuja", country: "Nigeria", type: "Federal", established: 1988, website: "https://uniabuja.edu.ng", color: "from-emerald-500 to-teal-400" },
+  "lautech": { name: "Ladoke Akintola University of Technology", acronym: "LAUTECH", location: "Ogbomoso", country: "Nigeria", type: "State", established: 1990, website: "https://lautech.edu.ng", color: "from-fuchsia-500 to-pink-400" },
+  "bayero university kano": { name: "Bayero University Kano", acronym: "BUK", location: "Kano", country: "Nigeria", type: "Federal", established: 1975, website: "https://buk.edu.ng", color: "from-orange-500 to-red-400" },
+  "federal university dutse": { name: "Federal University Dutse", acronym: "FUD", location: "Dutse", country: "Nigeria", type: "Federal", established: 2011, website: "https://fud.edu.ng", color: "from-emerald-500 to-green-400" },
+
+  // ── USA ──
+  "harvard university": { name: "Harvard University", acronym: "Harvard", location: "Cambridge, MA", country: "USA", type: "Private", established: 1636, website: "https://harvard.edu", color: "from-red-600 to-red-400" },
+  "massachusetts institute of technology": { name: "Massachusetts Institute of Technology", acronym: "MIT", location: "Cambridge, MA", country: "USA", type: "Private", established: 1861, website: "https://mit.edu", color: "from-gray-600 to-red-500" },
+  "mit": { name: "Massachusetts Institute of Technology", acronym: "MIT", location: "Cambridge, MA", country: "USA", type: "Private", established: 1861, website: "https://mit.edu", color: "from-gray-600 to-red-500" },
+  "stanford university": { name: "Stanford University", acronym: "Stanford", location: "Stanford, CA", country: "USA", type: "Private", established: 1885, website: "https://stanford.edu", color: "from-red-500 to-orange-400" },
+  "yale university": { name: "Yale University", acronym: "Yale", location: "New Haven, CT", country: "USA", type: "Private", established: 1701, website: "https://yale.edu", color: "from-blue-700 to-blue-500" },
+  "princeton university": { name: "Princeton University", acronym: "Princeton", location: "Princeton, NJ", country: "USA", type: "Private", established: 1746, website: "https://princeton.edu", color: "from-orange-500 to-yellow-400" },
+  "columbia university": { name: "Columbia University", acronym: "Columbia", location: "New York, NY", country: "USA", type: "Private", established: 1754, website: "https://columbia.edu", color: "from-blue-600 to-cyan-400" },
+  "university of chicago": { name: "University of Chicago", acronym: "UChicago", location: "Chicago, IL", country: "USA", type: "Private", established: 1890, website: "https://uchicago.edu", color: "from-red-700 to-red-500" },
+  "university of california berkeley": { name: "UC Berkeley", acronym: "UC Berkeley", location: "Berkeley, CA", country: "USA", type: "Public", established: 1868, website: "https://berkeley.edu", color: "from-blue-600 to-yellow-500" },
+  "university of michigan": { name: "University of Michigan", acronym: "UMich", location: "Ann Arbor, MI", country: "USA", type: "Public", established: 1817, website: "https://umich.edu", color: "from-blue-700 to-yellow-400" },
+  "johns hopkins university": { name: "Johns Hopkins University", acronym: "JHU", location: "Baltimore, MD", country: "USA", type: "Private", established: 1876, website: "https://jhu.edu", color: "from-blue-600 to-sky-400" },
+  "new york university": { name: "New York University", acronym: "NYU", location: "New York, NY", country: "USA", type: "Private", established: 1831, website: "https://nyu.edu", color: "from-violet-600 to-purple-400" },
+  "university of texas austin": { name: "University of Texas at Austin", acronym: "UT Austin", location: "Austin, TX", country: "USA", type: "Public", established: 1883, website: "https://utexas.edu", color: "from-orange-600 to-yellow-400" },
+  "university of washington": { name: "University of Washington", acronym: "UW", location: "Seattle, WA", country: "USA", type: "Public", established: 1861, website: "https://washington.edu", color: "from-purple-600 to-purple-400" },
+
+  // ── UK ──
+  "university of oxford": { name: "University of Oxford", acronym: "Oxford", location: "Oxford", country: "UK", type: "Public", established: 1096, website: "https://ox.ac.uk", color: "from-blue-700 to-indigo-500" },
+  "oxford": { name: "University of Oxford", acronym: "Oxford", location: "Oxford", country: "UK", type: "Public", established: 1096, website: "https://ox.ac.uk", color: "from-blue-700 to-indigo-500" },
+  "university of cambridge": { name: "University of Cambridge", acronym: "Cambridge", location: "Cambridge", country: "UK", type: "Public", established: 1209, website: "https://cam.ac.uk", color: "from-cyan-600 to-blue-400" },
+  "cambridge": { name: "University of Cambridge", acronym: "Cambridge", location: "Cambridge", country: "UK", type: "Public", established: 1209, website: "https://cam.ac.uk", color: "from-cyan-600 to-blue-400" },
+  "imperial college london": { name: "Imperial College London", acronym: "Imperial", location: "London", country: "UK", type: "Public", established: 1907, website: "https://imperial.ac.uk", color: "from-blue-600 to-sky-400" },
+  "ucl": { name: "University College London", acronym: "UCL", location: "London", country: "UK", type: "Public", established: 1826, website: "https://ucl.ac.uk", color: "from-purple-600 to-indigo-400" },
+  "london school of economics": { name: "London School of Economics", acronym: "LSE", location: "London", country: "UK", type: "Public", established: 1895, website: "https://lse.ac.uk", color: "from-red-600 to-rose-400" },
+  "university of edinburgh": { name: "University of Edinburgh", acronym: "Edinburgh", location: "Edinburgh", country: "UK", type: "Public", established: 1583, website: "https://ed.ac.uk", color: "from-blue-700 to-blue-500" },
+  "university of manchester": { name: "University of Manchester", acronym: "UoM", location: "Manchester", country: "UK", type: "Public", established: 1824, website: "https://manchester.ac.uk", color: "from-yellow-500 to-amber-400" },
+  "king's college london": { name: "King's College London", acronym: "KCL", location: "London", country: "UK", type: "Public", established: 1829, website: "https://kcl.ac.uk", color: "from-red-600 to-red-400" },
+
+  // ── Canada ──
+  "university of toronto": { name: "University of Toronto", acronym: "UofT", location: "Toronto", country: "Canada", type: "Public", established: 1827, website: "https://utoronto.ca", color: "from-blue-700 to-blue-500" },
+  "mcgill university": { name: "McGill University", acronym: "McGill", location: "Montreal", country: "Canada", type: "Public", established: 1821, website: "https://mcgill.ca", color: "from-red-600 to-red-400" },
+  "university of british columbia": { name: "University of British Columbia", acronym: "UBC", location: "Vancouver", country: "Canada", type: "Public", established: 1908, website: "https://ubc.ca", color: "from-blue-600 to-teal-400" },
+  "university of waterloo": { name: "University of Waterloo", acronym: "UWaterloo", location: "Waterloo", country: "Canada", type: "Public", established: 1957, website: "https://uwaterloo.ca", color: "from-yellow-500 to-amber-400" },
+
+  // ── Australia ──
+  "australian national university": { name: "Australian National University", acronym: "ANU", location: "Canberra", country: "Australia", type: "Public", established: 1946, website: "https://anu.edu.au", color: "from-yellow-500 to-orange-400" },
+  "university of melbourne": { name: "University of Melbourne", acronym: "UniMelb", location: "Melbourne", country: "Australia", type: "Public", established: 1853, website: "https://unimelb.edu.au", color: "from-blue-700 to-blue-500" },
+  "university of sydney": { name: "University of Sydney", acronym: "USYD", location: "Sydney", country: "Australia", type: "Public", established: 1850, website: "https://sydney.edu.au", color: "from-red-600 to-orange-400" },
+
+  // ── Europe ──
+  "eth zurich": { name: "ETH Zurich", acronym: "ETH", location: "Zurich", country: "Switzerland", type: "Public", established: 1855, website: "https://ethz.ch", color: "from-blue-600 to-cyan-400" },
+  "technical university of munich": { name: "Technical University of Munich", acronym: "TUM", location: "Munich", country: "Germany", type: "Public", established: 1868, website: "https://tum.de", color: "from-blue-700 to-blue-500" },
+  "sorbonne university": { name: "Sorbonne University", acronym: "Sorbonne", location: "Paris", country: "France", type: "Public", established: 1257, website: "https://sorbonne-universite.fr", color: "from-blue-600 to-indigo-400" },
+  "delft university of technology": { name: "Delft University of Technology", acronym: "TU Delft", location: "Delft", country: "Netherlands", type: "Public", established: 1842, website: "https://tudelft.nl", color: "from-sky-600 to-blue-400" },
+
+  // ── Africa ──
+  "university of cape town": { name: "University of Cape Town", acronym: "UCT", location: "Cape Town", country: "South Africa", type: "Public", established: 1829, website: "https://uct.ac.za", color: "from-blue-700 to-indigo-500" },
+  "university of the witwatersrand": { name: "University of the Witwatersrand", acronym: "Wits", location: "Johannesburg", country: "South Africa", type: "Public", established: 1896, website: "https://wits.ac.za", color: "from-blue-600 to-sky-400" },
+  "university of ghana": { name: "University of Ghana", acronym: "UG", location: "Accra", country: "Ghana", type: "Public", established: 1948, website: "https://ug.edu.gh", color: "from-green-600 to-yellow-400" },
+  "kwame nkrumah university": { name: "Kwame Nkrumah University of Science and Technology", acronym: "KNUST", location: "Kumasi", country: "Ghana", type: "Public", established: 1952, website: "https://knust.edu.gh", color: "from-green-600 to-emerald-400" },
+  "university of nairobi": { name: "University of Nairobi", acronym: "UoN", location: "Nairobi", country: "Kenya", type: "Public", established: 1956, website: "https://uonbi.ac.ke", color: "from-red-600 to-green-500" },
+  "makerere university": { name: "Makerere University", acronym: "Makerere", location: "Kampala", country: "Uganda", type: "Public", established: 1922, website: "https://mak.ac.ug", color: "from-yellow-500 to-amber-400" },
+  "university of dar es salaam": { name: "University of Dar es Salaam", acronym: "UDSM", location: "Dar es Salaam", country: "Tanzania", type: "Public", established: 1961, website: "https://udsm.ac.tz", color: "from-green-600 to-teal-400" },
+  "addis ababa university": { name: "Addis Ababa University", acronym: "AAU", location: "Addis Ababa", country: "Ethiopia", type: "Public", established: 1950, website: "https://aau.edu.et", color: "from-green-600 to-yellow-400" },
+
+  // ── Asia ──
+  "national university of singapore": { name: "National University of Singapore", acronym: "NUS", location: "Singapore", country: "Singapore", type: "Public", established: 1905, website: "https://nus.edu.sg", color: "from-blue-700 to-indigo-500" },
+  "nus": { name: "National University of Singapore", acronym: "NUS", location: "Singapore", country: "Singapore", type: "Public", established: 1905, website: "https://nus.edu.sg", color: "from-blue-700 to-indigo-500" },
+  "peking university": { name: "Peking University", acronym: "PKU", location: "Beijing", country: "China", type: "Public", established: 1898, website: "https://pku.edu.cn", color: "from-red-600 to-red-400" },
+  "tsinghua university": { name: "Tsinghua University", acronym: "Tsinghua", location: "Beijing", country: "China", type: "Public", established: 1911, website: "https://tsinghua.edu.cn", color: "from-purple-600 to-violet-400" },
+  "university of tokyo": { name: "University of Tokyo", acronym: "UTokyo", location: "Tokyo", country: "Japan", type: "Public", established: 1877, website: "https://u-tokyo.ac.jp", color: "from-blue-700 to-blue-500" },
+  "indian institute of technology bombay": { name: "IIT Bombay", acronym: "IITB", location: "Mumbai", country: "India", type: "Public", established: 1958, website: "https://iitb.ac.in", color: "from-blue-600 to-sky-400" },
+  "indian institute of technology delhi": { name: "IIT Delhi", acronym: "IITD", location: "New Delhi", country: "India", type: "Public", established: 1961, website: "https://iitd.ac.in", color: "from-orange-500 to-yellow-400" },
+  "university of delhi": { name: "University of Delhi", acronym: "DU", location: "New Delhi", country: "India", type: "Public", established: 1922, website: "https://du.ac.in", color: "from-blue-600 to-indigo-400" },
+
+  // ── Middle East ──
+  "american university of beirut": { name: "American University of Beirut", acronym: "AUB", location: "Beirut", country: "Lebanon", type: "Private", established: 1866, website: "https://aub.edu.lb", color: "from-red-600 to-red-400" },
+  "king abdulaziz university": { name: "King Abdulaziz University", acronym: "KAU", location: "Jeddah", country: "Saudi Arabia", type: "Public", established: 1967, website: "https://kau.edu.sa", color: "from-green-600 to-teal-400" },
 };
 
 const COLOR_POOL = [
@@ -72,7 +148,8 @@ router.get("/", async (_req, res) => {
       return {
         name,
         acronym: meta?.acronym ?? makeAcronym(name),
-        state: meta?.state ?? "Nigeria",
+        location: meta?.location ?? "Unknown",
+        country: meta?.country ?? "Unknown",
         type: meta?.type ?? "University",
         established: meta?.established ?? null,
         website: meta?.website ?? null,
