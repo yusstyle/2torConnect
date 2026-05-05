@@ -14,6 +14,8 @@ export const sessionsTable = pgTable("sessions", {
   durationMinutes: integer("duration_minutes").notNull().default(60),
   status: sessionStatusEnum("status").notNull().default("pending"),
   amount: numeric("amount", { precision: 10, scale: 2 }),
+  isPaid: integer("is_paid").notNull().default(0),
+  liveUrl: text("live_url"),
   notes: text("notes"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
