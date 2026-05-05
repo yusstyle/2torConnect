@@ -5,16 +5,17 @@ import { useToast } from "@/hooks/use-toast";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Heart, MessageCircle, Share2, Image, Video, Loader2,
-  Send, X, Feather, Film, Radio, MoreHorizontal, Trash2
+  Send, X, Feather, Film, Radio, MoreHorizontal, Trash2, UserPlus, UserCheck, Users
 } from "lucide-react";
-import { format, formatDistanceToNow } from "date-fns";
+import { formatDistanceToNow } from "date-fns";
 
 type PostType = "tweet" | "post" | "reel" | "video";
 
 interface Post {
   id: number; userId: number; content: string | null; mediaUrl: string | null;
   mediaType: string | null; type: PostType; likeCount: number; commentCount: number;
-  createdAt: string; authorName: string; authorRole: string; authorAvatarUrl?: string | null; liked: boolean;
+  createdAt: string; authorName: string; authorRole: string; authorAvatarUrl?: string | null;
+  liked: boolean; isFollowing: boolean; authorFollowerCount: number;
 }
 
 interface Comment {
@@ -35,9 +36,12 @@ const ROLE_COLORS: Record<string, string> = {
   admin: "bg-red-500/20 text-red-400",
 };
 
-function PostCard({ post, currentUserId, onLike, onDelete, onComment }: {
+function PostCard({ post, currentUserId, onLike, onDelete, onComment, onFollow }: {
   post: Post; currentUserId: number;
-  onLike: (id: number) => void; onDelete: (id: number) => void; onComment: (id: number) => void;
+  onLike: (id: number) => void;
+  onDelete: (id: number) => void;
+  onComment: (id: number) => void;
+  onFollow: (userId: number) => void;
 }) {
   const [showMenu, setShowMenu] = useState(false);
   const isOwn = post.userId === currentUserId;
@@ -60,22 +64,44 @@ function PostCard({ post, currentUserId, onLike, onDelete, onComment }: {
               <span className="text-xs px-2 py-0.5 rounded-full bg-white/10 text-white/60 font-medium capitalize">{post.type}</span>
             )}
           </div>
-        </div>
-        {isOwn && (
-          <div className="relative">
-            <button onClick={() => setShowMenu(s => !s)} className="p-1 rounded-lg hover:bg-white/10 text-muted-foreground hover:text-white transition-all">
-              <MoreHorizontal className="w-4 h-4" />
-            </button>
-            {showMenu && (
-              <div className="absolute right-0 top-7 z-20 glass-panel rounded-xl p-1 min-w-[120px] shadow-xl border border-white/10">
-                <button onClick={() => { onDelete(post.id); setShowMenu(false); }}
-                  className="flex items-center gap-2 px-3 py-2 rounded-lg text-red-400 hover:bg-red-500/10 w-full text-sm font-medium transition-colors">
-                  <Trash2 className="w-4 h-4" /> Delete
-                </button>
-              </div>
-            )}
+          <div className="flex items-center gap-1 mt-0.5">
+            <Users className="w-3 h-3 text-muted-foreground" />
+            <span className="text-xs text-muted-foreground">
+              {post.authorFollowerCount} {post.authorFollowerCount === 1 ? "follower" : "followers"}
+            </span>
           </div>
-        )}
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
+          {!isOwn && (
+            <button
+              onClick={() => onFollow(post.userId)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all border ${
+                post.isFollowing
+                  ? "border-white/20 bg-white/5 text-white/70 hover:border-red-400/50 hover:text-red-400 hover:bg-red-400/10"
+                  : "border-accent/50 bg-accent/10 text-accent hover:bg-accent/20"
+              }`}
+            >
+              {post.isFollowing
+                ? <><UserCheck className="w-3 h-3" /> Following</>
+                : <><UserPlus className="w-3 h-3" /> Follow</>}
+            </button>
+          )}
+          {isOwn && (
+            <div className="relative">
+              <button onClick={() => setShowMenu(s => !s)} className="p-1 rounded-lg hover:bg-white/10 text-muted-foreground hover:text-white transition-all">
+                <MoreHorizontal className="w-4 h-4" />
+              </button>
+              {showMenu && (
+                <div className="absolute right-0 top-7 z-20 glass-panel rounded-xl p-1 min-w-[120px] shadow-xl border border-white/10">
+                  <button onClick={() => { onDelete(post.id); setShowMenu(false); }}
+                    className="flex items-center gap-2 px-3 py-2 rounded-lg text-red-400 hover:bg-red-500/10 w-full text-sm font-medium transition-colors">
+                    <Trash2 className="w-4 h-4" /> Delete
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
       {post.content && <p className="text-white/90 text-sm leading-relaxed mb-3 whitespace-pre-wrap">{post.content}</p>}
@@ -107,7 +133,6 @@ function PostCard({ post, currentUserId, onLike, onDelete, onComment }: {
 }
 
 function CommentDrawer({ postId, onClose }: { postId: number; onClose: () => void }) {
-  const { user } = useAuthStore();
   const [comments, setComments] = useState<Comment[]>([]);
   const [text, setText] = useState("");
   const [loading, setLoading] = useState(true);
@@ -187,6 +212,7 @@ export default function SocialisePage() {
   const fileRef = useRef<HTMLInputElement>(null);
   const [mediaFile, setMediaFile] = useState<File | null>(null);
   const [mediaPreview, setMediaPreview] = useState<string | null>(null);
+  const [myStats, setMyStats] = useState({ followers: 0, following: 0 });
 
   const BASE = import.meta.env.BASE_URL?.replace(/\/$/, "") ?? "";
   const token = useAuthStore.getState().token;
@@ -202,7 +228,17 @@ export default function SocialisePage() {
     } finally { setLoading(false); }
   }, []);
 
+  const fetchMyStats = useCallback(async () => {
+    if (!user?.id) return;
+    try {
+      const res = await fetch(`${BASE}/api/social/users/${user.id}/stats`, { headers });
+      const data = await res.json();
+      setMyStats({ followers: data.followers ?? 0, following: data.following ?? 0 });
+    } catch {}
+  }, [user?.id]);
+
   useEffect(() => { fetchFeed(activeFilter === "all" ? undefined : activeFilter); }, [activeFilter]);
+  useEffect(() => { fetchMyStats(); }, [fetchMyStats]);
 
   const handleMediaChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -221,14 +257,12 @@ export default function SocialisePage() {
     try {
       let mediaUrl: string | null = null;
       let mediaType: string | null = null;
-
       if (mediaFile) {
         const fd = new FormData();
         fd.append("file", mediaFile);
         const uploadRes = await fetch(`${BASE}/api/social/upload`, { method: "POST", headers: { Authorization: `Bearer ${token}` }, body: fd });
         if (uploadRes.ok) { const d = await uploadRes.json(); mediaUrl = d.url; mediaType = mediaFile.type; }
       }
-
       const res = await fetch(`${BASE}/api/social/posts`, {
         method: "POST", headers: { ...headers, "Content-Type": "application/json" },
         body: JSON.stringify({ content: content.trim() || null, mediaUrl, mediaType, type: postType }),
@@ -255,6 +289,22 @@ export default function SocialisePage() {
     toast({ title: "Post deleted" });
   };
 
+  const handleFollow = async (userId: number) => {
+    const res = await fetch(`${BASE}/api/social/follow/${userId}`, { method: "POST", headers });
+    const data = await res.json();
+    setPosts(prev => prev.map(p =>
+      p.userId === userId
+        ? { ...p, isFollowing: data.following, authorFollowerCount: data.followerCount }
+        : p
+    ));
+    if (data.following) {
+      setMyStats(s => ({ ...s, following: s.following + 1 }));
+      toast({ title: `You're now following this person` });
+    } else {
+      setMyStats(s => ({ ...s, following: Math.max(0, s.following - 1) }));
+    }
+  };
+
   return (
     <DashboardLayout role={user?.role as any} title="">
       <div className="max-w-2xl mx-auto space-y-5">
@@ -264,54 +314,65 @@ export default function SocialisePage() {
             Connect<span className="text-accent">Feed</span>
           </h1>
           <p className="text-muted-foreground text-sm mt-1">Connect, share, and inspire the 2torConnect community</p>
+          <div className="flex items-center justify-center gap-6 mt-3">
+            <div className="text-center">
+              <p className="text-white font-bold text-lg">{myStats.followers}</p>
+              <p className="text-muted-foreground text-xs">Followers</p>
+            </div>
+            <div className="w-px h-8 bg-white/10" />
+            <div className="text-center">
+              <p className="text-white font-bold text-lg">{myStats.following}</p>
+              <p className="text-muted-foreground text-xs">Following</p>
+            </div>
+          </div>
         </div>
 
-        {/* Compose - hidden for admins (moderators don't post) */}
+        {/* Compose - hidden for admins */}
         {user?.role !== "admin" && (
-        <div className="glass-panel rounded-3xl p-5">
-          <div className="flex items-start gap-3 mb-3">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-primary to-accent flex items-center justify-center text-white font-bold shrink-0 overflow-hidden">
-              {user?.avatarUrl
-                ? <img src={user.avatarUrl} alt="me" className="w-full h-full object-cover" />
-                : <span>{user?.name?.charAt(0).toUpperCase()}</span>}
+          <div className="glass-panel rounded-3xl p-5">
+            <div className="flex items-start gap-3 mb-3">
+              <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-primary to-accent flex items-center justify-center text-white font-bold shrink-0 overflow-hidden">
+                {user?.avatarUrl
+                  ? <img src={user.avatarUrl} alt="me" className="w-full h-full object-cover" />
+                  : <span>{user?.name?.charAt(0).toUpperCase()}</span>}
+              </div>
+              <textarea
+                value={content} onChange={e => setContent(e.target.value)}
+                className="flex-1 bg-transparent text-white placeholder:text-white/30 resize-none focus:outline-none text-sm leading-relaxed min-h-[80px]"
+                placeholder={postType === "tweet" ? "What's on your mind?" : postType === "reel" ? "Add a caption for your reel..." : "Share something with the community..."}
+              />
             </div>
-            <textarea
-              value={content} onChange={e => setContent(e.target.value)}
-              className="flex-1 bg-transparent text-white placeholder:text-white/30 resize-none focus:outline-none text-sm leading-relaxed min-h-[80px]"
-              placeholder={postType === "tweet" ? "What's on your mind?" : postType === "reel" ? "Add a caption for your reel..." : "Share something with the community..."}
-            />
-          </div>
 
-          {mediaPreview && (
-            <div className="relative rounded-xl overflow-hidden mb-3 bg-black/40">
-              {mediaFile?.type.startsWith("video") ? <video src={mediaPreview} controls className="w-full max-h-64 object-contain" /> : <img src={mediaPreview} alt="preview" className="w-full max-h-64 object-cover" />}
-              <button onClick={() => { setMediaFile(null); setMediaPreview(null); if (fileRef.current) fileRef.current.value = ""; }}
-                className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/60 flex items-center justify-center text-white hover:bg-black/80">
-                <X className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          )}
-
-          <div className="flex items-center justify-between pt-3 border-t border-white/10">
-            <div className="flex items-center gap-1">
-              {POST_TYPES.map(pt => (
-                <button key={pt.type} onClick={() => setPostType(pt.type)}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${postType === pt.type ? "bg-white/10 text-white" : "text-muted-foreground hover:text-white"}`}>
-                  <pt.icon className={`w-3.5 h-3.5 ${pt.color}`} />
-                  <span className="hidden sm:inline">{pt.label}</span>
+            {mediaPreview && (
+              <div className="relative rounded-xl overflow-hidden mb-3 bg-black/40">
+                {mediaFile?.type.startsWith("video") ? <video src={mediaPreview} controls className="w-full max-h-64 object-contain" /> : <img src={mediaPreview} alt="preview" className="w-full max-h-64 object-cover" />}
+                <button onClick={() => { setMediaFile(null); setMediaPreview(null); if (fileRef.current) fileRef.current.value = ""; }}
+                  className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/60 flex items-center justify-center text-white hover:bg-black/80">
+                  <X className="w-3.5 h-3.5" />
                 </button>
-              ))}
-              <input ref={fileRef} type="file" accept="image/*,video/*" onChange={handleMediaChange} className="hidden" />
-              <button onClick={() => fileRef.current?.click()} className="p-1.5 rounded-xl text-muted-foreground hover:text-white hover:bg-white/10 transition-all" title="Attach media">
-                <Image className="w-4 h-4" />
+              </div>
+            )}
+
+            <div className="flex items-center justify-between pt-3 border-t border-white/10">
+              <div className="flex items-center gap-1">
+                {POST_TYPES.map(pt => (
+                  <button key={pt.type} onClick={() => setPostType(pt.type)}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${postType === pt.type ? "bg-white/10 text-white" : "text-muted-foreground hover:text-white"}`}>
+                    <pt.icon className={`w-3.5 h-3.5 ${pt.color}`} />
+                    <span className="hidden sm:inline">{pt.label}</span>
+                  </button>
+                ))}
+                <input ref={fileRef} type="file" accept="image/*,video/*" onChange={handleMediaChange} className="hidden" />
+                <button onClick={() => fileRef.current?.click()} className="p-1.5 rounded-xl text-muted-foreground hover:text-white hover:bg-white/10 transition-all" title="Attach media">
+                  <Image className="w-4 h-4" />
+                </button>
+              </div>
+              <button onClick={handlePost} disabled={creating || (!content.trim() && !mediaFile)}
+                className="flex items-center gap-2 px-5 py-2 rounded-xl bg-gradient-to-r from-primary to-accent text-white font-bold text-sm hover:opacity-90 disabled:opacity-50 transition-all">
+                {creating ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Send className="w-4 h-4" /> Post</>}
               </button>
             </div>
-            <button onClick={handlePost} disabled={creating || (!content.trim() && !mediaFile)}
-              className="flex items-center gap-2 px-5 py-2 rounded-xl bg-gradient-to-r from-primary to-accent text-white font-bold text-sm hover:opacity-90 disabled:opacity-50 transition-all">
-              {creating ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Send className="w-4 h-4" /> Post</>}
-            </button>
           </div>
-        </div>
         )}
 
         {/* Filter tabs */}
@@ -343,7 +404,9 @@ export default function SocialisePage() {
             <AnimatePresence>
               {posts.map(post => (
                 <PostCard key={post.id} post={post} currentUserId={user?.id ?? 0}
-                  onLike={handleLike} onDelete={handleDelete} onComment={id => setCommentPostId(id)} />
+                  onLike={handleLike} onDelete={handleDelete}
+                  onComment={id => setCommentPostId(id)}
+                  onFollow={handleFollow} />
               ))}
             </AnimatePresence>
           </div>

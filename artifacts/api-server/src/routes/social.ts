@@ -4,7 +4,7 @@ import {
   socialPostsTable, socialLikesTable, socialCommentsTable,
   socialFollowsTable, usersTable
 } from "@workspace/db";
-import { eq, desc, and, sql } from "drizzle-orm";
+import { eq, desc, and, sql, count } from "drizzle-orm";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
@@ -31,13 +31,36 @@ function authMiddleware(req: any, res: any, next: any) {
 async function enrichPost(post: any, currentUserId?: number) {
   const [user] = await db.select({ name: usersTable.name, role: usersTable.role, avatarUrl: usersTable.avatarUrl })
     .from(usersTable).where(eq(usersTable.id, post.userId)).limit(1);
+
   let liked = false;
+  let isFollowing = false;
+
+  const [{ value: followerCount }] = await db
+    .select({ value: count() })
+    .from(socialFollowsTable)
+    .where(eq(socialFollowsTable.followingId, post.userId));
+
   if (currentUserId) {
     const [like] = await db.select().from(socialLikesTable)
       .where(and(eq(socialLikesTable.postId, post.id), eq(socialLikesTable.userId, currentUserId))).limit(1);
     liked = !!like;
+
+    if (currentUserId !== post.userId) {
+      const [follow] = await db.select().from(socialFollowsTable)
+        .where(and(eq(socialFollowsTable.followerId, currentUserId), eq(socialFollowsTable.followingId, post.userId))).limit(1);
+      isFollowing = !!follow;
+    }
   }
-  return { ...post, authorName: user?.name ?? "Unknown", authorRole: user?.role ?? "student", authorAvatarUrl: user?.avatarUrl ?? null, liked };
+
+  return {
+    ...post,
+    authorName: user?.name ?? "Unknown",
+    authorRole: user?.role ?? "student",
+    authorAvatarUrl: user?.avatarUrl ?? null,
+    liked,
+    isFollowing,
+    authorFollowerCount: Number(followerCount),
+  };
 }
 
 router.get("/feed", authMiddleware, async (req: any, res) => {
@@ -162,13 +185,27 @@ router.post("/follow/:userId", authMiddleware, async (req: any, res) => {
       .where(and(eq(socialFollowsTable.followerId, followerId), eq(socialFollowsTable.followingId, followingId))).limit(1);
     if (existing) {
       await db.delete(socialFollowsTable).where(eq(socialFollowsTable.id, existing.id));
-      res.json({ following: false });
     } else {
       await db.insert(socialFollowsTable).values({ followerId, followingId });
-      res.json({ following: true });
     }
+    const [{ value: followerCount }] = await db
+      .select({ value: count() })
+      .from(socialFollowsTable)
+      .where(eq(socialFollowsTable.followingId, followingId));
+    res.json({ following: !existing, followerCount: Number(followerCount) });
   } catch (err) {
     res.status(500).json({ error: "Failed to toggle follow" });
+  }
+});
+
+router.get("/users/:userId/stats", authMiddleware, async (req: any, res) => {
+  try {
+    const userId = Number(req.params.userId);
+    const [{ value: followers }] = await db.select({ value: count() }).from(socialFollowsTable).where(eq(socialFollowsTable.followingId, userId));
+    const [{ value: following }] = await db.select({ value: count() }).from(socialFollowsTable).where(eq(socialFollowsTable.followerId, userId));
+    res.json({ followers: Number(followers), following: Number(following) });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to fetch stats" });
   }
 });
 
