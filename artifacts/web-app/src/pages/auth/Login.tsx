@@ -45,6 +45,12 @@ export default function LoginPage() {
         toast({ variant: "destructive", title: "Login Failed", description: data.error || "Invalid email or password." });
         return;
       }
+      if (data.user.role === "admin") {
+        setAuthData(data.user, data.token);
+        toast({ title: "Welcome back!", description: `Signed in as ${data.user.name}` });
+        setLocation(getRedirectPath(data.user));
+        return;
+      }
       const otpRes = await fetch(`${BASE}/api/auth/send-otp`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
