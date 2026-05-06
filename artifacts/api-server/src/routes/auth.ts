@@ -1,7 +1,7 @@
 import { Router, type IRouter } from "express";
 import { db } from "@workspace/db";
-import { usersTable, tutorsTable, studentsTable } from "@workspace/db";
-import { eq } from "drizzle-orm";
+import { usersTable, tutorsTable, studentsTable, otpCodesTable } from "@workspace/db";
+import { eq, and, lt } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import multer from "multer";
 import path from "path";
@@ -11,8 +11,10 @@ import {
   LoginBody,
 } from "@workspace/api-zod";
 import { investorsTable } from "@workspace/db";
+import { sendOtpEmail } from "../lib/email";
 
 const router: IRouter = Router();
+const SUPER_ADMIN_EMAIL = "admin2-yusstyle@gmail.com";
 
 function serializeUser(u: any) {
   return { id: u.id, name: u.name, email: u.email, role: u.role, phone: u.phone, status: u.status, avatarUrl: u.avatarUrl ?? null, createdAt: u.createdAt, lastLogin: u.lastLogin };
@@ -117,11 +119,8 @@ router.post("/register/student", async (req, res) => {
       jambScore: body.jambScore ?? null,
       accountPlan: "free",
     });
-    const token = Buffer.from(JSON.stringify({ id: user.id, role: user.role })).toString("base64");
-    res.status(201).json({
-      user: serializeUser(user),
-      token,
-    });
+    const token = Buffer.from(JSON.stringify({ id: user.id, role: user.role, email: user.email })).toString("base64");
+    res.status(201).json({ user: serializeUser(user), token });
   } catch (err) {
     req.log.error({ err }, "register student error");
     res.status(400).json({ error: "Registration failed", message: String(err) });
@@ -136,7 +135,6 @@ router.post("/register/tutor", (req, res) => {
     }
     try {
       const body = req.body;
-
       if (!body.name || !body.email || !body.password) {
         res.status(400).json({ error: "Name, email and password are required" });
         return;
@@ -149,14 +147,12 @@ router.post("/register/tutor", (req, res) => {
         res.status(400).json({ error: "CGPA must be between 0 and 5" });
         return;
       }
-
       const existing = await db.select().from(usersTable).where(eq(usersTable.email, body.email)).limit(1);
       if (existing.length > 0) {
         if (req.file) fs.unlinkSync(req.file.path);
         res.status(400).json({ error: "Email already in use" });
         return;
       }
-
       const passwordHash = await bcrypt.hash(body.password, 10);
       const [user] = await db.insert(usersTable).values({
         name: body.name,
@@ -166,15 +162,10 @@ router.post("/register/tutor", (req, res) => {
         phone: body.phone ?? null,
         status: "pending",
       }).returning();
-
       const subjects = body.subjects
         ? (typeof body.subjects === "string" ? JSON.parse(body.subjects) : body.subjects)
         : null;
-
-      const schoolIdUrl = req.file
-        ? `/uploads/school-ids/${req.file.filename}`
-        : null;
-
+      const schoolIdUrl = req.file ? `/uploads/school-ids/${req.file.filename}` : null;
       await db.insert(tutorsTable).values({
         userId: user.id,
         university: body.university ?? null,
@@ -187,12 +178,8 @@ router.post("/register/tutor", (req, res) => {
         schoolIdUrl,
         isVerified: false,
       });
-
-      const token = Buffer.from(JSON.stringify({ id: user.id, role: user.role })).toString("base64");
-      res.status(201).json({
-        user: serializeUser(user),
-        token,
-      });
+      const token = Buffer.from(JSON.stringify({ id: user.id, role: user.role, email: user.email })).toString("base64");
+      res.status(201).json({ user: serializeUser(user), token });
     } catch (err) {
       if (req.file) fs.unlinkSync(req.file.path);
       req.log.error({ err }, "register tutor error");
@@ -209,19 +196,16 @@ router.post("/register/investor", (req, res) => {
       if (!body.name || !body.email || !body.password) { res.status(400).json({ error: "Name, email and password are required" }); return; }
       if (body.password !== body.confirmPassword) { res.status(400).json({ error: "Passwords do not match" }); return; }
       if (!body.businessName?.trim()) { res.status(400).json({ error: "Business name is required" }); return; }
-
       const existing = await db.select().from(usersTable).where(eq(usersTable.email, body.email)).limit(1);
       if (existing.length > 0) {
         if (req.file) fs.unlinkSync(req.file.path);
         res.status(400).json({ error: "Email already in use" }); return;
       }
-
       const passwordHash = await bcrypt.hash(body.password, 10);
       const [user] = await db.insert(usersTable).values({
         name: body.name, email: body.email, passwordHash, role: "investor",
         phone: body.phone ?? null, status: "pending",
       }).returning();
-
       const idCardUrl = req.file ? `/uploads/investor-ids/${req.file.filename}` : null;
       await db.insert(investorsTable).values({
         userId: user.id,
@@ -231,12 +215,8 @@ router.post("/register/investor", (req, res) => {
         websiteUrl: body.websiteUrl ?? null,
         idCardUrl,
       });
-
-      const token = Buffer.from(JSON.stringify({ id: user.id, role: user.role })).toString("base64");
-      res.status(201).json({
-        user: serializeUser(user),
-        token,
-      });
+      const token = Buffer.from(JSON.stringify({ id: user.id, role: user.role, email: user.email })).toString("base64");
+      res.status(201).json({ user: serializeUser(user), token });
     } catch (err) {
       if (req.file) fs.unlinkSync(req.file.path);
       req.log.error({ err }, "register investor error");
@@ -253,20 +233,90 @@ router.post("/login", async (req, res) => {
     }
     const [user] = await db.select().from(usersTable).where(eq(usersTable.email, email.trim().toLowerCase())).limit(1);
     if (!user) {
-      res.status(401).json({ error: "Invalid email or password" });
-      return;
+      res.status(401).json({ error: "Invalid email or password" }); return;
     }
     const valid = await bcrypt.compare(password, user.passwordHash);
     if (!valid) {
-      res.status(401).json({ error: "Invalid email or password" });
-      return;
+      res.status(401).json({ error: "Invalid email or password" }); return;
     }
     await db.update(usersTable).set({ lastLogin: new Date() }).where(eq(usersTable.id, user.id));
-    const token = Buffer.from(JSON.stringify({ id: user.id, role: user.role })).toString("base64");
+    const token = Buffer.from(JSON.stringify({ id: user.id, role: user.role, email: user.email })).toString("base64");
     res.json({ user: serializeUser(user), token });
   } catch (err) {
     req.log.error({ err }, "login error");
     res.status(401).json({ error: "Login failed", message: String(err) });
+  }
+});
+
+function generateOtp(): string {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+}
+
+router.post("/send-otp", async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email?.trim()) {
+      res.status(400).json({ error: "Email is required" }); return;
+    }
+    const normalizedEmail = email.trim().toLowerCase();
+    const [user] = await db.select().from(usersTable).where(eq(usersTable.email, normalizedEmail)).limit(1);
+    if (!user) {
+      res.status(200).json({ success: true, message: "If that email is registered, an OTP has been sent." }); return;
+    }
+
+    await db.delete(otpCodesTable).where(eq(otpCodesTable.email, normalizedEmail));
+
+    const code = generateOtp();
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+
+    await db.insert(otpCodesTable).values({ email: normalizedEmail, code, expiresAt });
+
+    await sendOtpEmail(normalizedEmail, code);
+
+    res.json({ success: true, message: "OTP sent to your email. It expires in 10 minutes." });
+  } catch (err) {
+    req.log.error({ err }, "send otp error");
+    res.status(500).json({ error: "Failed to send OTP" });
+  }
+});
+
+router.post("/verify-otp", async (req, res) => {
+  try {
+    const { email, code } = req.body;
+    if (!email?.trim() || !code?.trim()) {
+      res.status(400).json({ error: "Email and OTP code are required" }); return;
+    }
+    const normalizedEmail = email.trim().toLowerCase();
+    const now = new Date();
+
+    const [otpRecord] = await db.select().from(otpCodesTable)
+      .where(and(
+        eq(otpCodesTable.email, normalizedEmail),
+        eq(otpCodesTable.code, code.trim()),
+        eq(otpCodesTable.used, false)
+      ))
+      .limit(1);
+
+    if (!otpRecord) {
+      res.status(400).json({ error: "Invalid OTP code" }); return;
+    }
+    if (otpRecord.expiresAt < now) {
+      res.status(400).json({ error: "OTP has expired. Please request a new one." }); return;
+    }
+
+    await db.update(otpCodesTable).set({ used: true }).where(eq(otpCodesTable.id, otpRecord.id));
+
+    const [user] = await db.select().from(usersTable).where(eq(usersTable.email, normalizedEmail)).limit(1);
+    if (!user) {
+      res.status(404).json({ error: "User not found" }); return;
+    }
+
+    await db.update(usersTable).set({ lastLogin: new Date() }).where(eq(usersTable.id, user.id));
+    const token = Buffer.from(JSON.stringify({ id: user.id, role: user.role, email: user.email })).toString("base64");
+    res.json({ success: true, user: serializeUser(user), token });
+  } catch (err) {
+    req.log.error({ err }, "verify otp error");
+    res.status(500).json({ error: "Failed to verify OTP" });
   }
 });
 
@@ -277,16 +327,12 @@ router.post("/logout", (_req, res) => {
 router.get("/me", async (req, res) => {
   const auth = req.headers.authorization;
   if (!auth?.startsWith("Bearer ")) {
-    res.status(401).json({ error: "Unauthorized" });
-    return;
+    res.status(401).json({ error: "Unauthorized" }); return;
   }
   try {
     const payload = JSON.parse(Buffer.from(auth.slice(7), "base64").toString());
     const [user] = await db.select().from(usersTable).where(eq(usersTable.id, payload.id)).limit(1);
-    if (!user) {
-      res.status(401).json({ error: "Unauthorized" });
-      return;
-    }
+    if (!user) { res.status(401).json({ error: "Unauthorized" }); return; }
     res.json(serializeUser(user));
   } catch {
     res.status(401).json({ error: "Unauthorized" });

@@ -11,6 +11,7 @@ import materialsRouter from "./materials";
 import socialRouter from "./social";
 import universitiesRouter from "./universities";
 import statsRouter from "./stats";
+import superadminRouter from "./superadmin";
 
 const router: IRouter = Router();
 
@@ -26,5 +27,6 @@ router.use("/admin", adminRouter);
 router.use("/materials", materialsRouter);
 router.use("/social", socialRouter);
 router.use("/universities", universitiesRouter);
+router.use("/superadmin", superadminRouter);
 
 export default router;

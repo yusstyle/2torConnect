@@ -34,6 +34,7 @@ import SocialisePage from "@/pages/social/Socialise";
 import AdminDashboard from "@/pages/admin/Dashboard";
 import AdminUsersPage from "@/pages/admin/Users";
 import AdminTransactionsPage from "@/pages/admin/Transactions";
+import SuperAdminPage from "@/pages/admin/SuperAdmin";
 
 const queryClient = new QueryClient();
 
@@ -85,6 +86,8 @@ function Router() {
 
       <Route path="/messages" component={MessagesPage} />
       <Route path="/session/:id" component={VideoRoom} />
+
+      <Route path="/superadmin" component={SuperAdminPage} />
 
       <Route path="/admin/dashboard" component={AdminDashboard} />
       <Route path="/admin/users" component={AdminUsersPage} />
