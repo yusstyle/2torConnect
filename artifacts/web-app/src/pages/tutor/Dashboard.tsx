@@ -3,8 +3,11 @@ import { useListSessions, useListTransactions } from "@workspace/api-client-reac
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { useLocation } from "wouter";
 import { format } from "date-fns";
-import { Calendar, DollarSign, Users, Clock, Video, ArrowRight, Loader2 } from "lucide-react";
+import { Calendar, DollarSign, Users, Clock, Video, ArrowRight, Loader2, BadgeCheck } from "lucide-react";
 import { motion } from "framer-motion";
+import { useState, useEffect } from "react";
+import { getApiUrl } from "@/lib/api";
+import { useToast } from "@/hooks/use-toast";
 
 const statusColors: Record<string, string> = {
   pending: "bg-yellow-500/20 text-yellow-400",
@@ -16,6 +19,41 @@ const statusColors: Record<string, string> = {
 export default function TutorDashboardPage() {
   const { user } = useAuthStore();
   const [, setLocation] = useLocation();
+  const { toast } = useToast();
+  const BASE = getApiUrl();
+
+  const [rate, setRate] = useState("");
+  const [savedRate, setSavedRate] = useState<string | null>(null);
+  const [savingRate, setSavingRate] = useState(false);
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    fetch(`${BASE}/tutors/me`, { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.ok ? r.json() : null)
+      .then(data => { if (data?.hourlyRate) { setSavedRate(data.hourlyRate); setRate(data.hourlyRate); } })
+      .catch(() => {});
+  }, []);
+
+  async function saveRate() {
+    if (!rate || isNaN(Number(rate))) return;
+    setSavingRate(true);
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${BASE}/tutors/me/rate`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ hourlyRate: Number(rate) }),
+      });
+      if (res.ok) {
+        setSavedRate(rate);
+        toast({ title: "Rate saved!", description: `Your session price is set to ₦${Number(rate).toLocaleString()}` });
+      } else {
+        toast({ variant: "destructive", title: "Failed to save rate" });
+      }
+    } finally {
+      setSavingRate(false);
+    }
+  }
 
   const { data: sessionsData, isLoading: sessionsLoading } = useListSessions({ tutorId: user?.id, limit: 10 });
   const { data: txData } = useListTransactions({ userId: user?.id, limit: 100 });
@@ -93,6 +131,44 @@ export default function TutorDashboardPage() {
               <div className="text-xs text-muted-foreground mt-1">{stat.label}</div>
             </div>
           ))}
+        </div>
+
+        {/* Set Your Rate */}
+        <div className="glass-panel rounded-2xl p-6 border border-accent/20">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-9 h-9 rounded-xl bg-accent/10 flex items-center justify-center">
+              <DollarSign className="w-5 h-5 text-accent" />
+            </div>
+            <div>
+              <h2 className="text-white font-semibold">Your Session Price</h2>
+              <p className="text-muted-foreground text-xs">Set how much students pay per session</p>
+            </div>
+            {savedRate && (
+              <span className="ml-auto flex items-center gap-1 text-xs text-green-400 font-semibold bg-green-500/10 px-3 py-1 rounded-full">
+                <BadgeCheck className="w-3.5 h-3.5" /> ₦{Number(savedRate).toLocaleString()} saved
+              </span>
+            )}
+          </div>
+          <div className="flex gap-3">
+            <div className="relative flex-1">
+              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground font-semibold text-sm">₦</span>
+              <input
+                type="number"
+                min="0"
+                value={rate}
+                onInput={(e: any) => setRate(e.target.value)}
+                placeholder="e.g. 5000"
+                className="w-full pl-9 pr-4 py-3 rounded-xl bg-black/30 border border-white/10 text-white placeholder:text-muted-foreground focus:outline-none focus:border-accent/50 text-sm"
+              />
+            </div>
+            <button
+              onClick={saveRate}
+              disabled={savingRate || !rate}
+              className="flex items-center gap-2 px-5 py-3 rounded-xl bg-gradient-to-r from-primary to-accent text-white font-bold text-sm hover:opacity-90 transition-all disabled:opacity-50 shrink-0"
+            >
+              {savingRate ? <Loader2 className="w-4 h-4 animate-spin" /> : "Save Rate"}
+            </button>
+          </div>
         </div>
 
         {/* Sessions list */}

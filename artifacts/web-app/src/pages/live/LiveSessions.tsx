@@ -51,7 +51,7 @@ export default function LiveSessionsPage({ role }: Props) {
 
         {/* How it works */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          {role === "student" ? [
+          {(role === "student" ? [
             { icon: CalendarDays, title: "Book a Session", desc: "Find a tutor and book a time slot", color: "text-accent" },
             { icon: CreditCard, title: "Pay to Confirm", desc: "Pay the session fee — tutor is auto-notified", color: "text-green-400" },
             { icon: Video, title: "Watch Live", desc: "Join the session live inside 2torConnect", color: "text-primary" },
@@ -59,24 +59,7 @@ export default function LiveSessionsPage({ role }: Props) {
             { icon: CalendarDays, title: "Set Your Rate", desc: "Students see your price when booking", color: "text-accent" },
             { icon: Wifi, title: "Confirm & Link", desc: "Confirm booking and add your stream URL", color: "text-green-400" },
             { icon: Video, title: "Go Live", desc: "Stream and students watch inside the platform", color: "text-primary" },
-          ]}
-          {role === "student" ? [
-            { icon: CalendarDays, title: "Book a Session", desc: "Find a tutor and book a time slot", color: "text-accent" },
-            { icon: CreditCard, title: "Pay to Confirm", desc: "Pay the session fee — tutor is auto-notified", color: "text-green-400" },
-            { icon: Video, title: "Watch Live", desc: "Join the session live inside 2torConnect", color: "text-primary" },
-          ].map(({ icon: Icon, title, desc, color }) => (
-            <div key={title} className="glass-panel rounded-2xl p-4 flex flex-col items-center text-center gap-2">
-              <div className={`w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center ${color}`}>
-                <Icon className="w-5 h-5" />
-              </div>
-              <p className="text-white font-semibold text-sm">{title}</p>
-              <p className="text-muted-foreground text-xs">{desc}</p>
-            </div>
-          )) : [
-            { icon: CalendarDays, title: "Set Your Rate", desc: "Students see your price when booking", color: "text-accent" },
-            { icon: Wifi, title: "Confirm & Link", desc: "Confirm booking and add your stream URL", color: "text-green-400" },
-            { icon: Video, title: "Go Live", desc: "Stream and students watch inside the platform", color: "text-primary" },
-          ].map(({ icon: Icon, title, desc, color }) => (
+          ]).map(({ icon: Icon, title, desc, color }) => (
             <div key={title} className="glass-panel rounded-2xl p-4 flex flex-col items-center text-center gap-2">
               <div className={`w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center ${color}`}>
                 <Icon className="w-5 h-5" />

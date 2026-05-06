@@ -71,6 +71,46 @@ router.get("/", async (req, res) => {
   }
 });
 
+router.get("/me", async (req: any, res) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
+    const [row] = await db
+      .select({ tutor: tutorsTable, user: usersTable })
+      .from(tutorsTable)
+      .innerJoin(usersTable, eq(tutorsTable.userId, usersTable.id))
+      .where(eq(tutorsTable.userId, userId))
+      .limit(1);
+    if (!row) { res.status(404).json({ error: "Tutor profile not found" }); return; }
+    res.json(buildTutorProfile(row.tutor, row.user));
+  } catch (err) {
+    req.log.error({ err }, "get tutor me error");
+    res.status(500).json({ error: "Failed to get tutor profile" });
+  }
+});
+
+router.patch("/me/rate", async (req: any, res) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
+    const { hourlyRate } = req.body;
+    if (hourlyRate === undefined || isNaN(Number(hourlyRate))) {
+      res.status(400).json({ error: "Invalid hourlyRate" }); return;
+    }
+    const [tutor] = await db
+      .update(tutorsTable)
+      .set({ hourlyRate: String(hourlyRate) })
+      .where(eq(tutorsTable.userId, userId))
+      .returning();
+    if (!tutor) { res.status(404).json({ error: "Tutor not found" }); return; }
+    const [user] = await db.select().from(usersTable).where(eq(usersTable.id, tutor.userId)).limit(1);
+    res.json(buildTutorProfile(tutor, user));
+  } catch (err) {
+    req.log.error({ err }, "update rate error");
+    res.status(500).json({ error: "Failed to update rate" });
+  }
+});
+
 router.get("/:id", async (req, res) => {
   try {
     const id = Number(req.params.id);
