@@ -56,7 +56,9 @@ export default function LoginPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: email.trim() }),
       });
-      if (otpRes.ok) {
+      const otpData = otpRes.ok ? await otpRes.json() : null;
+
+      if (otpData?.emailConfigured) {
         toast({ title: "OTP Sent", description: "Check your email for a 6-digit verification code." });
         setStep("otp");
         startCooldown();

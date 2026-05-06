@@ -271,9 +271,10 @@ router.post("/send-otp", async (req, res) => {
 
     await db.insert(otpCodesTable).values({ email: normalizedEmail, code, expiresAt });
 
-    await sendOtpEmail(normalizedEmail, code);
+    const emailSent = await sendOtpEmail(normalizedEmail, code);
+    const emailConfigured = !!(process.env["SMTP_USER"] && process.env["SMTP_PASS"]);
 
-    res.json({ success: true, message: "OTP sent to your email. It expires in 10 minutes." });
+    res.json({ success: true, emailConfigured, emailSent, message: "OTP sent to your email. It expires in 10 minutes." });
   } catch (err) {
     req.log.error({ err }, "send otp error");
     res.status(500).json({ error: "Failed to send OTP" });
