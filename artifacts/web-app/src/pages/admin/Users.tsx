@@ -2,8 +2,11 @@ import { useState } from "react";
 import { useListUsers, useUpdateUser } from "@workspace/api-client-react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { format } from "date-fns";
-import { Search, Loader2, CheckCircle, XCircle, Clock } from "lucide-react";
+import { Search, Loader2, CheckCircle, XCircle, Clock, FileImage, X, Eye } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useAuthStore } from "@/lib/auth";
+
+const BASE = import.meta.env.BASE_URL?.replace(/\/$/, "") ?? "";
 
 const statusColors: Record<string, string> = {
   active: "bg-green-500/20 text-green-400",
@@ -15,14 +18,24 @@ const statusColors: Record<string, string> = {
 const roleColors: Record<string, string> = {
   student: "bg-blue-500/20 text-blue-400",
   tutor: "bg-purple-500/20 text-purple-400",
+  investor: "bg-yellow-500/20 text-yellow-400",
   admin: "bg-accent/20 text-accent",
 };
 
+interface DocUser {
+  id: number;
+  name: string;
+  role: string;
+  documentUrl: string | null;
+}
+
 export default function AdminUsersPage() {
+  const { token } = useAuthStore();
   const { toast } = useToast();
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("");
   const [page, setPage] = useState(1);
+  const [docUser, setDocUser] = useState<DocUser | null>(null);
 
   const { data, isLoading, refetch } = useListUsers(
     { search: search || undefined, role: (roleFilter as any) || undefined, page, limit: 20 }
@@ -37,6 +50,10 @@ export default function AdminUsersPage() {
 
   const users = data?.users ?? [];
   const total = data?.total ?? 0;
+
+  const activateUser = (id: number) => updateMutation.mutate({ id, data: { status: "active" } });
+  const rejectUser = (id: number) => updateMutation.mutate({ id, data: { status: "rejected" } });
+  const suspendUser = (id: number) => updateMutation.mutate({ id, data: { status: "suspended" } });
 
   return (
     <DashboardLayout role="admin" title="User Management">
@@ -57,6 +74,7 @@ export default function AdminUsersPage() {
             <option value="">All Roles</option>
             <option value="student">Students</option>
             <option value="tutor">Tutors</option>
+            <option value="investor">Investors / Sponsors</option>
             <option value="admin">Admins</option>
           </select>
         </div>
@@ -72,41 +90,53 @@ export default function AdminUsersPage() {
             <p className="text-center text-muted-foreground py-12">No users found.</p>
           ) : (
             <div className="divide-y divide-white/5">
-              {users.map(user => (
-                <div key={user.id} className="p-4 flex flex-col sm:flex-row sm:items-center gap-3 hover:bg-white/2 transition-colors">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="text-white font-medium">{user.name}</span>
-                      <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${roleColors[user.role] ?? ""}`}>{user.role}</span>
-                      <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${statusColors[user.status] ?? ""}`}>{user.status}</span>
+              {users.map((user: any) => {
+                const hasDoc = !!(user.documentUrl);
+                return (
+                  <div key={user.id} className="p-4 flex flex-col sm:flex-row sm:items-center gap-3 hover:bg-white/2 transition-colors">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1 flex-wrap">
+                        <span className="text-white font-medium">{user.name}</span>
+                        <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${roleColors[user.role] ?? ""}`}>{user.role}</span>
+                        <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${statusColors[user.status] ?? ""}`}>{user.status}</span>
+                        {user.country && <span className="px-2 py-0.5 rounded-full text-xs bg-white/5 text-muted-foreground">{user.country}</span>}
+                      </div>
+                      <p className="text-sm text-muted-foreground">{user.email} · Joined {format(new Date(user.createdAt), "MMM d, yyyy")}</p>
+                      {user.university && <p className="text-xs text-accent/70 mt-0.5">{user.university}</p>}
                     </div>
-                    <p className="text-sm text-muted-foreground">{user.email} · Joined {format(new Date(user.createdAt), "MMM d, yyyy")}</p>
+                    <div className="flex gap-2 flex-wrap">
+                      {hasDoc && (
+                        <button
+                          onClick={() => setDocUser({ id: user.id, name: user.name, role: user.role, documentUrl: user.documentUrl })}
+                          className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 text-xs font-medium transition-colors">
+                          <Eye className="w-3.5 h-3.5" /> View ID
+                        </button>
+                      )}
+                      {user.status !== "active" && (
+                        <button onClick={() => activateUser(user.id)}
+                          disabled={updateMutation.isPending}
+                          className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-green-500/10 text-green-400 hover:bg-green-500/20 text-xs font-medium transition-colors disabled:opacity-50">
+                          <CheckCircle className="w-3.5 h-3.5" /> Approve
+                        </button>
+                      )}
+                      {user.status === "active" && (
+                        <button onClick={() => suspendUser(user.id)}
+                          disabled={updateMutation.isPending}
+                          className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 text-xs font-medium transition-colors disabled:opacity-50">
+                          <XCircle className="w-3.5 h-3.5" /> Suspend
+                        </button>
+                      )}
+                      {user.status === "pending" && (
+                        <button onClick={() => rejectUser(user.id)}
+                          disabled={updateMutation.isPending}
+                          className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-yellow-500/10 text-yellow-400 hover:bg-yellow-500/20 text-xs font-medium transition-colors disabled:opacity-50">
+                          <Clock className="w-3.5 h-3.5" /> Reject
+                        </button>
+                      )}
+                    </div>
                   </div>
-                  <div className="flex gap-2">
-                    {user.status !== "active" && (
-                      <button onClick={() => updateMutation.mutate({ id: user.id, data: { status: "active" } })}
-                        disabled={updateMutation.isPending}
-                        className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-green-500/10 text-green-400 hover:bg-green-500/20 text-xs font-medium transition-colors disabled:opacity-50">
-                        <CheckCircle className="w-3.5 h-3.5" /> Activate
-                      </button>
-                    )}
-                    {user.status === "active" && (
-                      <button onClick={() => updateMutation.mutate({ id: user.id, data: { status: "suspended" } })}
-                        disabled={updateMutation.isPending}
-                        className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 text-xs font-medium transition-colors disabled:opacity-50">
-                        <XCircle className="w-3.5 h-3.5" /> Suspend
-                      </button>
-                    )}
-                    {user.status === "pending" && (
-                      <button onClick={() => updateMutation.mutate({ id: user.id, data: { status: "rejected" } })}
-                        disabled={updateMutation.isPending}
-                        className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-yellow-500/10 text-yellow-400 hover:bg-yellow-500/20 text-xs font-medium transition-colors disabled:opacity-50">
-                        <Clock className="w-3.5 h-3.5" /> Reject
-                      </button>
-                    )}
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
@@ -125,6 +155,64 @@ export default function AdminUsersPage() {
           </div>
         )}
       </div>
+
+      {/* Document viewer modal */}
+      {docUser && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" onClick={() => setDocUser(null)}>
+          <div className="w-full max-w-lg bg-[#0f1117] border border-white/10 rounded-3xl overflow-hidden shadow-2xl" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between p-5 border-b border-white/10">
+              <div>
+                <p className="text-white font-bold">{docUser.name}</p>
+                <p className="text-xs text-muted-foreground capitalize">{docUser.role} — Uploaded ID Document</p>
+              </div>
+              <button onClick={() => setDocUser(null)} className="p-1.5 rounded-lg hover:bg-white/10 text-muted-foreground">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-5">
+              {docUser.documentUrl ? (
+                docUser.documentUrl.toLowerCase().endsWith(".pdf") ? (
+                  <div className="flex flex-col items-center gap-4 py-6">
+                    <FileImage className="w-16 h-16 text-muted-foreground" />
+                    <p className="text-muted-foreground text-sm">PDF document uploaded</p>
+                    <a
+                      href={`${BASE}/api${docUser.documentUrl}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="px-5 py-2.5 rounded-xl bg-primary text-white font-bold text-sm hover:opacity-90 transition-all"
+                    >
+                      Open PDF
+                    </a>
+                  </div>
+                ) : (
+                  <img
+                    src={`${BASE}/api${docUser.documentUrl}`}
+                    alt="ID Document"
+                    className="w-full rounded-2xl object-contain max-h-96"
+                    onError={e => { (e.target as HTMLImageElement).src = ""; }}
+                  />
+                )
+              ) : (
+                <p className="text-muted-foreground text-center py-8">No document uploaded</p>
+              )}
+            </div>
+            <div className="flex gap-3 p-5 border-t border-white/10">
+              <button
+                onClick={() => { updateMutation.mutate({ id: docUser.id, data: { status: "active" } }); setDocUser(null); }}
+                disabled={updateMutation.isPending}
+                className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-green-500/10 text-green-400 hover:bg-green-500/20 font-bold text-sm transition-all disabled:opacity-50">
+                <CheckCircle className="w-4 h-4" /> Approve User
+              </button>
+              <button
+                onClick={() => { updateMutation.mutate({ id: docUser.id, data: { status: "rejected" } }); setDocUser(null); }}
+                disabled={updateMutation.isPending}
+                className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-red-500/10 text-red-400 hover:bg-red-500/20 font-bold text-sm transition-all disabled:opacity-50">
+                <XCircle className="w-4 h-4" /> Reject User
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </DashboardLayout>
   );
 }

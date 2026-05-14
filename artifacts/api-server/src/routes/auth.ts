@@ -111,6 +111,7 @@ router.post("/register/student", async (req, res) => {
       role: "student",
       phone: body.phone ?? null,
       status: "active",
+      country: (body as any).country ?? null,
     }).returning();
     await db.insert(studentsTable).values({
       userId: user.id,
@@ -161,6 +162,7 @@ router.post("/register/tutor", (req, res) => {
         role: "tutor",
         phone: body.phone ?? null,
         status: "pending",
+        country: body.country ?? null,
       }).returning();
       const subjects = body.subjects
         ? (typeof body.subjects === "string" ? JSON.parse(body.subjects) : body.subjects)
@@ -205,6 +207,7 @@ router.post("/register/investor", (req, res) => {
       const [user] = await db.insert(usersTable).values({
         name: body.name, email: body.email, passwordHash, role: "investor",
         phone: body.phone ?? null, status: "pending",
+        country: body.country ?? null,
       }).returning();
       const idCardUrl = req.file ? `/uploads/investor-ids/${req.file.filename}` : null;
       await db.insert(investorsTable).values({

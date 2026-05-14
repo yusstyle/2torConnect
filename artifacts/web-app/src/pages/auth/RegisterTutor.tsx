@@ -4,11 +4,12 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Mail, Lock, User, Phone, ArrowRight, Loader2, BookOpen,
   Plus, X, GraduationCap, Upload, FileCheck, AlertCircle,
-  ChevronRight, ChevronLeft, Video
+  ChevronRight, ChevronLeft, Video, Globe
 } from "lucide-react";
 import { UniversityCombobox } from "@/components/UniversityCombobox";
 import { useAuthStore } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
+import { COUNTRIES } from "@/lib/currency";
 
 const SUBJECTS = [
   "Mathematics", "Physics", "Chemistry", "Biology", "English",
@@ -31,7 +32,7 @@ export default function RegisterTutorPage() {
 
   const [form, setForm] = useState({
     name: "", email: "", password: "", confirmPassword: "",
-    phone: "", university: "", faculty: "", department: "",
+    phone: "", country: "Nigeria", university: "", faculty: "", department: "",
     level: "", aboutYou: "", cgpa: "",
   });
   const [subjects, setSubjects] = useState<string[]>([]);
@@ -105,6 +106,7 @@ export default function RegisterTutorPage() {
       formData.append("password", form.password);
       formData.append("confirmPassword", form.confirmPassword);
       formData.append("phone", form.phone);
+      if (form.country) formData.append("country", form.country);
       formData.append("university", form.university);
       formData.append("faculty", form.faculty);
       formData.append("department", form.department);
@@ -209,6 +211,18 @@ export default function RegisterTutorPage() {
                     <div className="relative">
                       <Mail className="absolute left-3.5 top-3.5 w-4 h-4 text-muted-foreground" />
                       <input type="email" value={form.email} onChange={set("email")} className={iconInputClass} placeholder="you@university.edu.ng" />
+                    </div>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-sm font-medium text-white/80">Country</label>
+                    <div className="relative">
+                      <Globe className="absolute left-3.5 top-3.5 w-4 h-4 text-muted-foreground pointer-events-none" />
+                      <select value={form.country} onChange={set("country")}
+                        className="w-full bg-black/40 border border-white/10 rounded-xl py-3 pl-11 pr-4 text-white focus:outline-none focus:border-primary transition-all appearance-none">
+                        <option value="">Select country…</option>
+                        {COUNTRIES.map(c => <option key={c} value={c} className="bg-gray-900">{c}</option>)}
+                      </select>
                     </div>
                   </div>
 

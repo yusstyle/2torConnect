@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { db } from "@workspace/db";
-import { usersTable, studentsTable, tutorsTable } from "@workspace/db";
+import { usersTable, studentsTable, tutorsTable, investorsTable } from "@workspace/db";
 import { eq, ilike, or, count, and } from "drizzle-orm";
 import { UpdateUserBody } from "@workspace/api-zod";
 
@@ -31,24 +31,31 @@ router.get("/", async (req, res) => {
     const userIds = users.map(u => u.id);
     const studentMap = new Map<number, any>();
     const tutorMap = new Map<number, any>();
+    const investorMap = new Map<number, any>();
     if (userIds.length > 0) {
       const sRows = await db.select().from(studentsTable);
       for (const s of sRows) if (userIds.includes(s.userId)) studentMap.set(s.userId, s);
       const tRows = await db.select().from(tutorsTable);
       for (const t of tRows) if (userIds.includes(t.userId)) tutorMap.set(t.userId, t);
+      const iRows = await db.select().from(investorsTable);
+      for (const i of iRows) if (userIds.includes(i.userId)) investorMap.set(i.userId, i);
     }
 
     res.json({
       users: users.map(u => {
         const s = studentMap.get(u.id);
         const t = tutorMap.get(u.id);
+        const inv = investorMap.get(u.id);
+        const documentUrl = t?.schoolIdUrl ?? inv?.idCardUrl ?? null;
         return {
           id: u.id, name: u.name, email: u.email, role: u.role, phone: u.phone, status: u.status,
           avatarUrl: u.avatarUrl ?? null, createdAt: u.createdAt, lastLogin: u.lastLogin,
+          country: u.country ?? inv?.country ?? null,
           university: s?.university ?? t?.university ?? null,
           level: s?.admissionType ?? t?.level ?? null,
           subjects: t?.subjects ?? null,
           aboutYou: t?.aboutYou ?? null,
+          documentUrl,
         };
       }),
       total: Number(total),

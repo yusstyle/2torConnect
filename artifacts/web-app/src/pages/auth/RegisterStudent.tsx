@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
 import { motion } from "framer-motion";
-import { Mail, Lock, User, Phone, ArrowRight, Loader2 } from "lucide-react";
+import { Mail, Lock, User, Phone, ArrowRight, Loader2, Globe } from "lucide-react";
 import { UniversityCombobox } from "@/components/UniversityCombobox";
 import { useRegisterStudent } from "@workspace/api-client-react";
 import { useAuthStore } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
+import { COUNTRIES } from "@/lib/currency";
 
 export default function RegisterStudentPage() {
   const [, setLocation] = useLocation();
@@ -14,7 +15,7 @@ export default function RegisterStudentPage() {
 
   const [form, setForm] = useState({
     name: "", email: "", password: "", confirmPassword: "",
-    phone: "", university: "", admissionType: "", jambScore: "",
+    phone: "", university: "", admissionType: "", jambScore: "", country: "Nigeria",
   });
 
   const set = (field: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
@@ -45,7 +46,8 @@ export default function RegisterStudentPage() {
         phone: form.phone || undefined, university: form.university || undefined,
         admissionType: form.admissionType || undefined,
         jambScore: form.jambScore ? Number(form.jambScore) : undefined,
-      },
+        country: form.country || undefined,
+      } as any,
     });
   };
 
@@ -103,6 +105,18 @@ export default function RegisterStudentPage() {
                 onChange={val => setForm(f => ({ ...f, university: val }))}
                 placeholder="Search or type your university…"
               />
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-sm font-medium text-white/80">Country</label>
+              <div className="relative">
+                <Globe className="absolute left-4 top-3.5 w-4 h-4 text-muted-foreground pointer-events-none" />
+                <select value={form.country} onChange={set("country")}
+                  className="w-full bg-black/40 border border-white/10 rounded-xl py-3 pl-12 pr-4 text-white focus:outline-none focus:border-accent transition-all appearance-none">
+                  <option value="">Select your country…</option>
+                  {COUNTRIES.map(c => <option key={c} value={c} className="bg-gray-900">{c}</option>)}
+                </select>
+              </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

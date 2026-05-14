@@ -2,7 +2,7 @@ import DashboardLayout from "@/components/layout/DashboardLayout";
 import { useAuthStore } from "@/lib/auth";
 import { useListTransactions } from "@workspace/api-client-react";
 import { useLocation } from "wouter";
-import { Building2, DollarSign, TrendingUp, ArrowRight, Clock, GraduationCap, Sparkles, Trophy, Users } from "lucide-react";
+import { Building2, TrendingUp, ArrowRight, Clock, GraduationCap, Sparkles, Trophy, Users, XCircle } from "lucide-react";
 import { motion } from "framer-motion";
 import { format } from "date-fns";
 import { useQuery } from "@tanstack/react-query";
@@ -40,6 +40,19 @@ export default function SponsorDashboard() {
             <div>
               <p className="text-yellow-400 font-semibold">Account Under Review</p>
               <p className="text-muted-foreground text-sm">Your ID is being verified by our team. You'll be notified once approved — usually within 24–48 hours.</p>
+            </div>
+          </div>
+        )}
+
+        {(user?.status as string) === "rejected" && (
+          <div className="glass-panel rounded-2xl p-5 border border-red-500/30 bg-red-500/5">
+            <div className="flex items-start gap-3">
+              <XCircle className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
+              <div>
+                <p className="text-red-400 font-semibold">Verification Not Approved</p>
+                <p className="text-muted-foreground text-sm mt-0.5">Your ID document could not be verified. This may be because the document was unclear or did not match the name provided.</p>
+                <p className="text-muted-foreground text-sm mt-2">Please contact <span className="text-white">support@2torconnect.com</span> to resubmit your verification.</p>
+              </div>
             </div>
           </div>
         )}

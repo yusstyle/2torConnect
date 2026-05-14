@@ -3,7 +3,7 @@ import { useListSessions, useListTransactions } from "@workspace/api-client-reac
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { useLocation } from "wouter";
 import { format } from "date-fns";
-import { Calendar, DollarSign, Users, Clock, Video, ArrowRight, Loader2, BadgeCheck } from "lucide-react";
+import { Calendar, DollarSign, Users, Clock, Video, ArrowRight, Loader2, BadgeCheck, XCircle } from "lucide-react";
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
 import { getApiUrl } from "@/lib/api";
@@ -77,6 +77,20 @@ export default function TutorDashboardPage() {
               <div>
                 <p className="text-yellow-400 font-semibold">Application Under Review</p>
                 <p className="text-muted-foreground text-sm">Our team is reviewing your school ID and CGPA. You'll be notified once approved — usually within 24–48 hours.</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Rejected banner */}
+        {(user?.status as string) === "rejected" && (
+          <div className="glass-panel rounded-2xl p-5 border border-red-500/30 bg-red-500/5">
+            <div className="flex items-start gap-3">
+              <XCircle className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
+              <div>
+                <p className="text-red-400 font-semibold">Application Not Approved</p>
+                <p className="text-muted-foreground text-sm mt-0.5">Unfortunately your tutor application was not approved. This may be due to an unclear school ID or CGPA that did not meet our requirements.</p>
+                <p className="text-muted-foreground text-sm mt-2">Please contact <span className="text-white">support@2torconnect.com</span> to appeal or re-apply with updated documents.</p>
               </div>
             </div>
           </div>
