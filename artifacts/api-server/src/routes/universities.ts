@@ -175,6 +175,60 @@ router.get("/", async (_req, res) => {
 });
 
 
+router.get("/info", async (req, res) => {
+  try {
+    const name = String(req.query.name ?? "").trim();
+    if (!name) { res.status(400).json({ error: "name is required" }); return; }
+
+    const [nominatimRes, wikiRes] = await Promise.allSettled([
+      fetch(
+        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(name)}&format=json&limit=1&addressdetails=1`,
+        { headers: { "User-Agent": "2torConnect/1.0 contact@2torconnect.com" }, signal: AbortSignal.timeout(6000) }
+      ),
+      fetch(
+        `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(name.replace(/ /g, "_"))}`,
+        { headers: { "User-Agent": "2torConnect/1.0" }, signal: AbortSignal.timeout(6000) }
+      ),
+    ]);
+
+    let location: { lat: number; lon: number; display_name: string; address: any } | null = null;
+    let wiki: { description: string; image: string | null; wikiUrl: string | null; coordinates: { lat: number; lon: number } | null } | null = null;
+
+    if (nominatimRes.status === "fulfilled" && nominatimRes.value.ok) {
+      const data = await nominatimRes.value.json() as any[];
+      if (data.length > 0) {
+        location = { lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon), display_name: data[0].display_name, address: data[0].address };
+      }
+    }
+
+    if (wikiRes.status === "fulfilled" && wikiRes.value.ok) {
+      const data = await wikiRes.value.json() as any;
+      if (data.type !== "disambiguation" && !data.title?.includes("may refer to")) {
+        wiki = {
+          description: data.extract ?? null,
+          image: data.originalimage?.source ?? data.thumbnail?.source ?? null,
+          wikiUrl: data.content_urls?.desktop?.page ?? null,
+          coordinates: data.coordinates ? { lat: data.coordinates.lat, lon: data.coordinates.lon } : null,
+        };
+      }
+    }
+
+    const coords = location ? { lat: location.lat, lon: location.lon } : (wiki?.coordinates ?? null);
+
+    res.json({
+      name,
+      description: wiki?.description ?? null,
+      image: wiki?.image ?? null,
+      wikiUrl: wiki?.wikiUrl ?? null,
+      coordinates: coords,
+      displayAddress: location?.display_name ?? null,
+      address: location?.address ?? null,
+    });
+  } catch (err: any) {
+    res.status(500).json({ error: "Failed to fetch university info", message: err.message });
+  }
+});
+
 router.get("/search", async (req, res) => {
   try {
     const q = String(req.query.q ?? "").trim();

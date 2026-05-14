@@ -1,11 +1,12 @@
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useLocation } from "wouter";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { useAuthStore } from "@/lib/auth";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   GraduationCap, Search, MapPin, Users, ExternalLink, CheckCircle2,
-  Sparkles, Globe, Trophy, Star, X, ChevronRight, BookOpen, ArrowLeft
+  Sparkles, Globe, Trophy, Star, X, ChevronRight, BookOpen, ArrowLeft, Map
 } from "lucide-react";
 import { ALL_UNIVERSITIES } from "@/components/UniversityCombobox";
 
@@ -25,6 +26,7 @@ interface Performer {
 
 export default function SponsorUniversities() {
   const { token } = useAuthStore();
+  const [, setLocation] = useLocation();
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<"active" | "featured" | "all">("all");
   const [countryFilter, setCountryFilter] = useState("All");
@@ -209,11 +211,18 @@ export default function SponsorUniversities() {
           <div className="glass-panel rounded-2xl p-6 border border-yellow-500/20 bg-gradient-to-br from-yellow-500/10 to-orange-500/5">
             <h3 className="text-white font-bold text-lg mb-2">Ready to Sponsor {selectedUni.name}?</h3>
             <p className="text-white/60 text-sm mb-4">Your contribution will be distributed automatically to the most active students and tutors above.</p>
-            <button
-              onClick={() => alert("Payment integration coming soon — contact us to sponsor directly.")}
-              className="w-full py-3 rounded-xl font-bold text-white bg-gradient-to-r from-yellow-500 to-orange-400 hover:opacity-90 transition-all shadow-lg flex items-center justify-center gap-2">
-              <Star className="w-5 h-5" /> Sponsor This University
-            </button>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setLocation(`/university/${encodeURIComponent(selectedUni.name)}`)}
+                className="flex items-center gap-2 px-5 py-3 rounded-xl font-bold text-white bg-white/10 hover:bg-white/15 transition-all text-sm">
+                <Map className="w-4 h-4" /> View Campus
+              </button>
+              <button
+                onClick={() => alert("Payment integration coming soon — contact us to sponsor directly.")}
+                className="flex-1 py-3 rounded-xl font-bold text-white bg-gradient-to-r from-yellow-500 to-orange-400 hover:opacity-90 transition-all shadow-lg flex items-center justify-center gap-2">
+                <Star className="w-5 h-5" /> Sponsor This University
+              </button>
+            </div>
           </div>
         </div>
       </DashboardLayout>
@@ -355,14 +364,21 @@ export default function SponsorUniversities() {
                       </div>
                     </div>
 
-                    <button
-                      className={`w-full flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-bold transition-all ${uni.active
-                        ? "bg-gradient-to-r from-yellow-500 to-orange-400 text-white hover:opacity-90"
-                        : "bg-white/5 text-muted-foreground"}`}>
-                      {uni.active
-                        ? <><Trophy className="w-3.5 h-3.5" /> Sponsor this University</>
-                        : <><Sparkles className="w-3.5 h-3.5" /> Awaiting members</>}
-                    </button>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={e => { e.stopPropagation(); setLocation(`/university/${encodeURIComponent(uni.name)}`); }}
+                        className="flex items-center justify-center gap-1 px-3 py-2 rounded-xl text-xs font-bold bg-white/8 text-muted-foreground hover:bg-white/15 hover:text-white transition-all">
+                        <Map className="w-3.5 h-3.5" /> Campus
+                      </button>
+                      <button
+                        className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-bold transition-all ${uni.active
+                          ? "bg-gradient-to-r from-yellow-500 to-orange-400 text-white hover:opacity-90"
+                          : "bg-white/5 text-muted-foreground"}`}>
+                        {uni.active
+                          ? <><Trophy className="w-3.5 h-3.5" /> Sponsor</>
+                          : <><Sparkles className="w-3.5 h-3.5" /> Awaiting</>}
+                      </button>
+                    </div>
                   </div>
                 </motion.div>
               ))}

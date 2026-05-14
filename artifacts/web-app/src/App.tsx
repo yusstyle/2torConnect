@@ -23,6 +23,7 @@ import TutorMaterialsPage from "@/pages/tutor/Materials";
 
 import SponsorDashboard from "@/pages/investor/Dashboard";
 import SponsorUniversitiesPage from "@/pages/investor/Universities";
+import UniversityDetailPage from "@/pages/UniversityDetail";
 import ProfilePage from "@/pages/Profile";
 
 import MessagesPage from "@/pages/Messages";
@@ -77,6 +78,7 @@ function Router() {
 
       <Route path="/investor/dashboard" component={SponsorDashboard} />
       <Route path="/investor/universities" component={SponsorUniversitiesPage} />
+      <Route path="/university/:name" component={UniversityDetailPage} />
 
       <Route path="/profile" component={ProfilePage} />
       <Route path="/socialise" component={SocialisePage} />
