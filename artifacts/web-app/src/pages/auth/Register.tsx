@@ -48,10 +48,10 @@ export default function RegisterChoicePage() {
               <div className="w-14 h-14 rounded-2xl bg-yellow-500/20 text-yellow-400 flex items-center justify-center mb-5">
                 <Building2 className="w-7 h-7" />
               </div>
-              <h3 className="text-xl font-bold text-white mb-2">I'm an Investor</h3>
-              <p className="text-muted-foreground text-sm">Fund students and tutors, sponsor sessions, and help grow the next generation.</p>
+              <h3 className="text-xl font-bold text-white mb-2">I'm a Sponsor</h3>
+              <p className="text-muted-foreground text-sm">Invest in universities and automatically support the top-performing students and tutors.</p>
               <div className="mt-6 text-yellow-400 font-semibold flex items-center gap-2 text-sm group-hover:translate-x-2 transition-transform">
-                Apply as Investor <ArrowRight className="w-4 h-4" />
+                Apply as Sponsor <ArrowRight className="w-4 h-4" />
               </div>
             </div>
           </Link>

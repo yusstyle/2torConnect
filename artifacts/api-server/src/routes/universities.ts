@@ -1,7 +1,7 @@
 import { Router, type IRouter } from "express";
 import { db } from "@workspace/db";
-import { studentsTable, tutorsTable } from "@workspace/db";
-import { sql } from "drizzle-orm";
+import { studentsTable, tutorsTable, usersTable, sessionsTable } from "@workspace/db";
+import { sql, eq, or, count } from "drizzle-orm";
 
 const router: IRouter = Router();
 
@@ -171,6 +171,59 @@ router.get("/", async (_req, res) => {
     res.json({ active: real, featured, total: real.length + featured.length });
   } catch (err: any) {
     res.status(500).json({ error: "Failed to load universities", message: err.message });
+  }
+});
+
+
+router.get("/top-performers/:universityName", async (req, res) => {
+  try {
+    const universityName = decodeURIComponent(req.params.universityName);
+
+    const studentRows = await db
+      .select({
+        userId: studentsTable.userId,
+        name: usersTable.name,
+        email: usersTable.email,
+        avatarUrl: usersTable.avatarUrl,
+        status: usersTable.status,
+        university: studentsTable.university,
+        sessionCount: count(sessionsTable.id),
+      })
+      .from(studentsTable)
+      .innerJoin(usersTable, eq(studentsTable.userId, usersTable.id))
+      .leftJoin(sessionsTable, eq(sessionsTable.studentId, usersTable.id))
+      .where(sql`LOWER(${studentsTable.university}) = LOWER(${universityName})`)
+      .groupBy(studentsTable.userId, usersTable.id, usersTable.name, usersTable.email, usersTable.avatarUrl, usersTable.status, studentsTable.university)
+      .orderBy(sql`COUNT(${sessionsTable.id}) DESC`)
+      .limit(10);
+
+    const tutorRows = await db
+      .select({
+        userId: tutorsTable.userId,
+        name: usersTable.name,
+        email: usersTable.email,
+        avatarUrl: usersTable.avatarUrl,
+        status: usersTable.status,
+        university: tutorsTable.university,
+        subjects: tutorsTable.subjects,
+        aboutYou: tutorsTable.aboutYou,
+        sessionCount: count(sessionsTable.id),
+      })
+      .from(tutorsTable)
+      .innerJoin(usersTable, eq(tutorsTable.userId, usersTable.id))
+      .leftJoin(sessionsTable, eq(sessionsTable.tutorId, usersTable.id))
+      .where(sql`LOWER(${tutorsTable.university}) = LOWER(${universityName})`)
+      .groupBy(tutorsTable.userId, usersTable.id, usersTable.name, usersTable.email, usersTable.avatarUrl, usersTable.status, tutorsTable.university, tutorsTable.subjects, tutorsTable.aboutYou)
+      .orderBy(sql`COUNT(${sessionsTable.id}) DESC`)
+      .limit(10);
+
+    res.json({
+      university: universityName,
+      topStudents: studentRows.map(r => ({ ...r, role: "student" })),
+      topTutors: tutorRows.map(r => ({ ...r, role: "tutor" })),
+    });
+  } catch (err: any) {
+    res.status(500).json({ error: "Failed to load top performers", message: err.message });
   }
 });
 

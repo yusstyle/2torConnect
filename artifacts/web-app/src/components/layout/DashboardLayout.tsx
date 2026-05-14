@@ -75,11 +75,7 @@ export function DashboardLayout({ children, role: roleProp, title }: DashboardLa
     ],
     investor: [
       { label: "Dashboard", href: "/investor/dashboard", icon: LayoutDashboard },
-      { label: "Browse Universities", href: "/investor/universities", icon: GraduationCap },
-      { label: "Find Students", href: "/investor/students", icon: Users },
-      { label: "Browse Tutors", href: "/investor/tutors", icon: BookOpen },
-      { label: "Live Sessions", href: "/investor/live", icon: Video },
-      { label: "Transactions", href: "/investor/transactions", icon: CreditCard },
+      { label: "Sponsor a University", href: "/investor/universities", icon: GraduationCap },
       { label: "Messages", href: "/messages", icon: MessageSquare },
       { label: "ConnectFeed", href: "/socialise", icon: Globe },
       { label: "My Profile", href: "/profile", icon: UserCircle },
@@ -171,7 +167,7 @@ export function DashboardLayout({ children, role: roleProp, title }: DashboardLa
                 </div>
                 <div className="min-w-0">
                   <p className="text-sm font-bold text-white truncate">{user.name}</p>
-                  <p className={`text-xs capitalize font-medium ${user.role === "investor" ? "text-yellow-400" : user.role === "admin" ? "text-red-400" : "text-accent"}`}>{user.role}</p>
+                  <p className={`text-xs capitalize font-medium ${user.role === "investor" ? "text-yellow-400" : user.role === "admin" ? "text-red-400" : "text-accent"}`}>{user.role === "investor" ? "Sponsor" : user.role}</p>
                 </div>
                 <UserCircle className="w-4 h-4 text-muted-foreground group-hover:text-white ml-auto shrink-0 transition-colors" />
               </Link>

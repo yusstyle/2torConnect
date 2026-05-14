@@ -7,7 +7,7 @@ import LoginPage from "@/pages/auth/Login";
 import RegisterChoicePage from "@/pages/auth/Register";
 import RegisterStudentPage from "@/pages/auth/RegisterStudent";
 import RegisterTutorPage from "@/pages/auth/RegisterTutor";
-import RegisterInvestorPage from "@/pages/auth/RegisterInvestor";
+import RegisterSponsorPage from "@/pages/auth/RegisterInvestor";
 
 import StudentDashboard from "@/pages/student/Dashboard";
 import FindTutorPage from "@/pages/student/FindTutor";
@@ -20,10 +20,8 @@ import TutorEarningsPage from "@/pages/tutor/Earnings";
 import TutorAvailabilityPage from "@/pages/tutor/Availability";
 import TutorMaterialsPage from "@/pages/tutor/Materials";
 
-import InvestorDashboard from "@/pages/investor/Dashboard";
-import InvestorStudentsPage from "@/pages/investor/Students";
-import InvestorUniversitiesPage from "@/pages/investor/Universities";
-import InvestorTutorsPage from "@/pages/investor/Tutors";
+import SponsorDashboard from "@/pages/investor/Dashboard";
+import SponsorUniversitiesPage from "@/pages/investor/Universities";
 import ProfilePage from "@/pages/Profile";
 
 import MessagesPage from "@/pages/Messages";
@@ -60,7 +58,7 @@ function Router() {
       <Route path="/register" component={RegisterChoicePage} />
       <Route path="/register/student" component={RegisterStudentPage} />
       <Route path="/register/tutor" component={RegisterTutorPage} />
-      <Route path="/register/investor" component={RegisterInvestorPage} />
+      <Route path="/register/investor" component={RegisterSponsorPage} />
 
       <Route path="/student/dashboard" component={StudentDashboard} />
       <Route path="/student/find-tutor" component={FindTutorPage} />
@@ -75,11 +73,8 @@ function Router() {
       <Route path="/tutor/materials" component={TutorMaterialsPage} />
       <Route path="/tutor/live" component={() => <LiveSessionsPage role="tutor" />} />
 
-      <Route path="/investor/dashboard" component={InvestorDashboard} />
-      <Route path="/investor/students" component={InvestorStudentsPage} />
-      <Route path="/investor/tutors" component={InvestorTutorsPage} />
-      <Route path="/investor/universities" component={InvestorUniversitiesPage} />
-      <Route path="/investor/live" component={() => <LiveSessionsPage role="student" />} />
+      <Route path="/investor/dashboard" component={SponsorDashboard} />
+      <Route path="/investor/universities" component={SponsorUniversitiesPage} />
 
       <Route path="/profile" component={ProfilePage} />
       <Route path="/socialise" component={SocialisePage} />

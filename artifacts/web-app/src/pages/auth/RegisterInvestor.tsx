@@ -116,8 +116,8 @@ export default function RegisterInvestorPage() {
                 <Building2 className="w-5 h-5 text-white" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-white">Join as an Investor</h1>
-                <p className="text-muted-foreground text-sm">Fund students & tutors worldwide</p>
+                <h1 className="text-2xl font-bold text-white">Join as a Sponsor</h1>
+                <p className="text-muted-foreground text-sm">Invest in universities and empower top performers</p>
               </div>
             </div>
 
