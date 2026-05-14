@@ -1,6 +1,6 @@
 kind = "web"
 previewPath = "/"
-title = "3torConnect"
+title = "2torConnect"
 version = "1.0.0"
 id = "artifacts/web-app"
 router = "path"
@@ -12,7 +12,7 @@ version = "1.0.0"
 [[services]]
 name = "web"
 paths = [ "/" ]
-localPort = 22965
+localPort = 3000
 
 [services.development]
 run = "pnpm --filter @workspace/web-app run dev"
@@ -27,5 +27,5 @@ from = "/*"
 to = "/index.html"
 
 [services.env]
-PORT = "22965"
+PORT = "3000"
 BASE_PATH = "/"
