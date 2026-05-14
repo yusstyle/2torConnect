@@ -1,21 +1,53 @@
-import { useState, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { useAuthStore } from "@/lib/auth";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import {
   GraduationCap, Search, MapPin, Users, ExternalLink, CheckCircle2,
-  Sparkles, Globe, Trophy, Star, X, ChevronRight, BookOpen, ArrowLeft, Map
+  Sparkles, Globe, Trophy, Star, BookOpen, ArrowLeft, Map, Loader2
 } from "lucide-react";
-import { ALL_UNIVERSITIES } from "@/components/UniversityCombobox";
 
 const BASE = import.meta.env.BASE_URL?.replace(/\/$/, "") ?? "";
 
-interface University {
+const COLOR_POOL = [
+  "from-blue-500 to-cyan-400", "from-purple-500 to-indigo-400", "from-green-500 to-emerald-400",
+  "from-red-500 to-orange-400", "from-yellow-500 to-amber-400", "from-teal-500 to-cyan-400",
+  "from-pink-500 to-rose-400", "from-violet-500 to-purple-400", "from-sky-500 to-blue-400",
+  "from-lime-500 to-green-400", "from-orange-500 to-red-400", "from-cyan-500 to-sky-400",
+];
+
+function makeAcronym(name: string) {
+  return name.split(" ")
+    .filter(w => !["of", "the", "and", "a", "an", "for", "in", "at", "de", "la", "le"].includes(w.toLowerCase()))
+    .map(w => w[0])
+    .join("")
+    .slice(0, 5)
+    .toUpperCase();
+}
+
+function colorFor(name: string) {
+  let h = 0;
+  for (let i = 0; i < name.length; i++) h = ((h << 5) - h + name.charCodeAt(i)) | 0;
+  return COLOR_POOL[Math.abs(h) % COLOR_POOL.length];
+}
+
+interface PlatformUni {
   name: string; acronym: string; location: string; country: string; type: string;
   established: number | null; website: string | null; color: string;
   studentsCount: number; tutorsCount: number; active: boolean;
+}
+
+interface HipolabsResult {
+  name: string; country: string; domain: string | null;
+}
+
+interface UniCard {
+  name: string; acronym: string; location: string; country: string; type: string;
+  established: number | null; website: string | null; color: string;
+  studentsCount: number; tutorsCount: number; active: boolean;
+  fromSearch?: boolean;
 }
 
 interface Performer {
@@ -28,17 +60,35 @@ export default function SponsorUniversities() {
   const { token } = useAuthStore();
   const [, setLocation] = useLocation();
   const [search, setSearch] = useState("");
-  const [filter, setFilter] = useState<"active" | "featured" | "all">("all");
-  const [countryFilter, setCountryFilter] = useState("All");
-  const [selectedUni, setSelectedUni] = useState<University | null>(null);
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [selectedUni, setSelectedUni] = useState<UniCard | null>(null);
 
-  const { data, isLoading } = useQuery({
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(search.trim()), 350);
+    return () => clearTimeout(t);
+  }, [search]);
+
+  const { data: platformData, isLoading: platformLoading } = useQuery({
     queryKey: ["universities"],
     queryFn: async () => {
       const res = await fetch(`${BASE}/api/universities`, { headers: { Authorization: `Bearer ${token}` } });
       if (!res.ok) throw new Error("Failed");
-      return res.json() as Promise<{ active: University[]; featured: University[] }>;
+      return res.json() as Promise<{ active: PlatformUni[]; featured: PlatformUni[] }>;
     },
+    staleTime: 60_000,
+  });
+
+  const { data: searchData, isLoading: searchLoading } = useQuery({
+    queryKey: ["uni-world-search", debouncedSearch],
+    queryFn: async () => {
+      if (!debouncedSearch || debouncedSearch.length < 2) return { universities: [] };
+      const res = await fetch(`${BASE}/api/universities/search?q=${encodeURIComponent(debouncedSearch)}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) return { universities: [] };
+      return res.json() as Promise<{ universities: HipolabsResult[] }>;
+    },
+    enabled: debouncedSearch.length >= 2,
     staleTime: 60_000,
   });
 
@@ -55,51 +105,53 @@ export default function SponsorUniversities() {
     staleTime: 30_000,
   });
 
-  const supplemental: University[] = useMemo(() => {
-    const existing = new Set([
-      ...(data?.active ?? []).map(u => u.name.toLowerCase()),
-      ...(data?.featured ?? []).map(u => u.name.toLowerCase()),
-    ]);
-    const COLOR_POOL = [
-      "from-blue-500 to-cyan-400", "from-purple-500 to-indigo-400", "from-green-500 to-emerald-400",
-      "from-red-500 to-orange-400", "from-yellow-500 to-amber-400", "from-teal-500 to-cyan-400",
-    ];
-    return ALL_UNIVERSITIES
-      .filter(name => !existing.has(name.toLowerCase()))
-      .map((name, i) => ({
-        name, acronym: name.split(" ").filter(w => !["of","the","and","a","an"].includes(w.toLowerCase())).map(w => w[0]).join("").slice(0, 5).toUpperCase(),
-        location: "—", country: "Unknown", type: "University",
-        established: null, website: null,
-        color: COLOR_POOL[i % COLOR_POOL.length],
-        studentsCount: 0, tutorsCount: 0, active: false,
+  const platformActive = platformData?.active ?? [];
+  const platformFeatured = platformData?.featured ?? [];
+  const platformAll = [...platformActive, ...platformFeatured];
+
+  const platformNames = useMemo(() => new Set(platformAll.map(u => u.name.toLowerCase())), [platformAll.length]);
+
+  const totalStudents = platformActive.reduce((s, u) => s + u.studentsCount, 0);
+  const totalTutors = platformActive.reduce((s, u) => s + u.tutorsCount, 0);
+
+  const isSearching = debouncedSearch.length >= 2;
+
+  const displayList: UniCard[] = useMemo(() => {
+    if (!isSearching) {
+      return platformAll;
+    }
+
+    const lq = debouncedSearch.toLowerCase();
+
+    const platformMatches: UniCard[] = platformAll.filter(u =>
+      u.name.toLowerCase().includes(lq) ||
+      u.acronym?.toLowerCase().includes(lq) ||
+      u.country?.toLowerCase().includes(lq)
+    );
+
+    const worldResults: UniCard[] = (searchData?.universities ?? [])
+      .filter(u => !platformNames.has(u.name.toLowerCase()))
+      .map((u, i) => ({
+        name: u.name,
+        acronym: makeAcronym(u.name),
+        location: u.domain ?? "—",
+        country: u.country,
+        type: "University",
+        established: null,
+        website: u.domain ? `https://${u.domain}` : null,
+        color: colorFor(u.name),
+        studentsCount: 0,
+        tutorsCount: 0,
+        active: false,
+        fromSearch: true,
       }));
-  }, [data?.active?.length, data?.featured?.length]);
 
-  const allList: University[] = filter === "active" ? (data?.active ?? [])
-    : filter === "featured" ? [...(data?.featured ?? []), ...supplemental]
-    : [...(data?.active ?? []), ...(data?.featured ?? []), ...supplemental];
-
-  const countries = useMemo(() => {
-    const set = new Set(allList.map(u => u.country).filter(Boolean));
-    return ["All", ...Array.from(set).sort()];
-  }, [allList.length]);
-
-  const filtered = allList.filter(u => {
-    const matchSearch = !search || u.name.toLowerCase().includes(search.toLowerCase())
-      || u.acronym.toLowerCase().includes(search.toLowerCase())
-      || u.country?.toLowerCase().includes(search.toLowerCase());
-    const matchCountry = countryFilter === "All" || u.country === countryFilter;
-    return matchSearch && matchCountry;
-  });
-
-  const totalStudents = (data?.active ?? []).reduce((s, u) => s + u.studentsCount, 0);
-  const totalTutors = (data?.active ?? []).reduce((s, u) => s + u.tutorsCount, 0);
-  const totalCountries = new Set([...(data?.active ?? []), ...(data?.featured ?? [])].map(u => u.country)).size;
+    return [...platformMatches, ...worldResults];
+  }, [isSearching, debouncedSearch, platformAll.length, searchData?.universities?.length, platformNames]);
 
   if (selectedUni) {
     const topStudents = performers?.topStudents ?? [];
     const topTutors = performers?.topTutors ?? [];
-    const allPerformers = [...topStudents.map(p => ({ ...p, role: "student" })), ...topTutors.map(p => ({ ...p, role: "tutor" }))];
 
     return (
       <DashboardLayout role="investor" title="Sponsor a University">
@@ -109,31 +161,33 @@ export default function SponsorUniversities() {
             <ArrowLeft className="w-4 h-4" /> Back to universities
           </button>
 
-          {/* University header */}
-          <div className={`relative overflow-hidden rounded-3xl p-6 bg-gradient-to-br ${selectedUni.color.replace("from-", "from-").replace("to-", "to-")} bg-opacity-10 border border-white/10`}>
-            <div className="absolute inset-0 opacity-10 bg-gradient-to-br from-yellow-500 to-orange-400" />
+          <div className={`relative overflow-hidden rounded-3xl p-6 border border-white/10`}>
+            <div className={`absolute inset-0 opacity-10 bg-gradient-to-br ${selectedUni.color}`} />
             <div className="relative flex items-center gap-5">
-              <div className={`w-16 h-16 rounded-2xl bg-gradient-to-tr ${selectedUni.color} flex items-center justify-center font-bold text-white text-sm shadow-xl`}>
+              <div className={`w-16 h-16 rounded-2xl bg-gradient-to-tr ${selectedUni.color} flex items-center justify-center font-bold text-white text-sm shadow-xl shrink-0`}>
                 {selectedUni.acronym.slice(0, 4)}
               </div>
-              <div className="flex-1">
+              <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
-                  <h2 className="text-white font-bold text-2xl">{selectedUni.name}</h2>
-                  {selectedUni.active && <CheckCircle2 className="w-5 h-5 text-green-400" />}
+                  <h2 className="text-white font-bold text-2xl leading-tight">{selectedUni.name}</h2>
+                  {selectedUni.active && <CheckCircle2 className="w-5 h-5 text-green-400 shrink-0" />}
                 </div>
                 <div className="flex items-center gap-2 mt-1 flex-wrap text-sm text-white/60">
-                  <MapPin className="w-3.5 h-3.5" /><span>{selectedUni.location}</span>
-                  <span>·</span><span>{selectedUni.country}</span>
+                  <MapPin className="w-3.5 h-3.5 shrink-0" />
+                  <span>{selectedUni.location !== "—" ? selectedUni.location : selectedUni.country}</span>
+                  {selectedUni.country && selectedUni.location !== selectedUni.country && <><span>·</span><span>{selectedUni.country}</span></>}
                   <span>·</span><span>{selectedUni.type}</span>
                   {selectedUni.established && <><span>·</span><span>Est. {selectedUni.established}</span></>}
                 </div>
               </div>
-              {selectedUni.website && (
-                <a href={selectedUni.website} target="_blank" rel="noreferrer"
-                  className="p-3 rounded-xl bg-white/10 hover:bg-white/20 text-white transition-all">
-                  <ExternalLink className="w-5 h-5" />
-                </a>
-              )}
+              <div className="flex gap-2 shrink-0">
+                {selectedUni.website && (
+                  <a href={selectedUni.website} target="_blank" rel="noreferrer"
+                    className="p-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white transition-all">
+                    <ExternalLink className="w-4 h-4" />
+                  </a>
+                )}
+              </div>
             </div>
             <div className="relative mt-4 grid grid-cols-2 gap-3">
               <div className="rounded-2xl bg-black/20 p-3 text-center">
@@ -147,7 +201,6 @@ export default function SponsorUniversities() {
             </div>
           </div>
 
-          {/* How funds are distributed */}
           <div className="glass-panel rounded-2xl p-5 border border-yellow-500/20 bg-yellow-500/5">
             <div className="flex items-center gap-2 mb-3">
               <Sparkles className="w-5 h-5 text-yellow-400" />
@@ -158,24 +211,20 @@ export default function SponsorUniversities() {
             </p>
           </div>
 
-          {/* Top performers */}
           <div>
             <div className="flex items-center gap-2 mb-4">
               <Trophy className="w-5 h-5 text-yellow-400" />
               <h3 className="text-white font-bold text-lg">Top Performers at {selectedUni.name}</h3>
             </div>
-
             {loadingPerformers ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {Array.from({ length: 6 }).map((_, i) => (
-                  <div key={i} className="glass-panel rounded-2xl h-24 animate-pulse bg-white/5" />
-                ))}
+                {Array.from({ length: 4 }).map((_, i) => <div key={i} className="glass-panel rounded-2xl h-24 animate-pulse bg-white/5" />)}
               </div>
-            ) : allPerformers.length === 0 ? (
+            ) : topStudents.length === 0 && topTutors.length === 0 ? (
               <div className="glass-panel rounded-2xl p-10 text-center">
                 <Users className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
                 <p className="text-white font-bold mb-1">No members yet at this university</p>
-                <p className="text-muted-foreground text-sm">As students and tutors register and become active, they'll appear here for automated sponsorship.</p>
+                <p className="text-muted-foreground text-sm">As students and tutors register and become active, they'll appear here.</p>
               </div>
             ) : (
               <div className="space-y-4">
@@ -185,9 +234,7 @@ export default function SponsorUniversities() {
                       <Users className="w-4 h-4" /> Top {topStudents.length} Students
                     </p>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      {topStudents.map((p, i) => (
-                        <PerformerCard key={p.userId} performer={p} rank={i + 1} color="from-accent to-primary" />
-                      ))}
+                      {topStudents.map((p, i) => <PerformerCard key={p.userId} performer={p} rank={i + 1} color="from-accent to-primary" />)}
                     </div>
                   </div>
                 )}
@@ -197,9 +244,7 @@ export default function SponsorUniversities() {
                       <BookOpen className="w-4 h-4" /> Top {topTutors.length} Tutors
                     </p>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      {topTutors.map((p, i) => (
-                        <PerformerCard key={p.userId} performer={p} rank={i + 1} color="from-primary to-purple-500" />
-                      ))}
+                      {topTutors.map((p, i) => <PerformerCard key={p.userId} performer={p} rank={i + 1} color="from-primary to-purple-500" />)}
                     </div>
                   </div>
                 )}
@@ -207,10 +252,9 @@ export default function SponsorUniversities() {
             )}
           </div>
 
-          {/* Sponsor CTA */}
           <div className="glass-panel rounded-2xl p-6 border border-yellow-500/20 bg-gradient-to-br from-yellow-500/10 to-orange-500/5">
             <h3 className="text-white font-bold text-lg mb-2">Ready to Sponsor {selectedUni.name}?</h3>
-            <p className="text-white/60 text-sm mb-4">Your contribution will be distributed automatically to the most active students and tutors above.</p>
+            <p className="text-white/60 text-sm mb-4">Your contribution will be distributed automatically to the most active students and tutors.</p>
             <div className="flex gap-3">
               <button
                 onClick={() => setLocation(`/university/${encodeURIComponent(selectedUni.name)}`)}
@@ -237,153 +281,156 @@ export default function SponsorUniversities() {
         <div className="relative overflow-hidden rounded-3xl p-6 bg-gradient-to-br from-yellow-500/20 via-yellow-500/5 to-orange-500/10 border border-yellow-500/20">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_rgba(234,179,8,0.08),transparent)]" />
           <div className="relative flex items-center gap-4">
-            <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-yellow-500 to-orange-400 flex items-center justify-center shadow-lg">
+            <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-yellow-500 to-orange-400 flex items-center justify-center shadow-lg shrink-0">
               <GraduationCap className="w-7 h-7 text-white" />
             </div>
             <div className="flex-1">
-              <h2 className="text-white font-bold text-xl">Universities on 2torConnect</h2>
-              <p className="text-white/60 text-sm">Select a university to sponsor. Our system will automatically identify and pay the top 10 most active students and tutors.</p>
+              <h2 className="text-white font-bold text-xl">Sponsor Any University in the World</h2>
+              <p className="text-white/60 text-sm">Search from 9,000+ universities worldwide. Our system automatically pays the top 10 active students and tutors at the university you choose.</p>
             </div>
           </div>
-          <div className="relative mt-5 grid grid-cols-4 gap-3">
+          <div className="relative mt-5 grid grid-cols-3 gap-3">
             <div className="rounded-2xl bg-black/20 p-3 text-center">
-              <p className="text-2xl font-bold text-yellow-400">{data?.active?.length ?? 0}</p>
-              <p className="text-xs text-white/60 mt-0.5">Active</p>
+              <p className="text-2xl font-bold text-yellow-400">{platformActive.length}</p>
+              <p className="text-xs text-white/60 mt-0.5">On Platform</p>
             </div>
             <div className="rounded-2xl bg-black/20 p-3 text-center">
               <p className="text-2xl font-bold text-white">{totalStudents}</p>
               <p className="text-xs text-white/60 mt-0.5">Students</p>
             </div>
             <div className="rounded-2xl bg-black/20 p-3 text-center">
-              <p className="text-2xl font-bold text-white">{totalTutors}</p>
+              <p className="text-2xl font-bold text-accent">{totalTutors}</p>
               <p className="text-xs text-white/60 mt-0.5">Tutors</p>
-            </div>
-            <div className="rounded-2xl bg-black/20 p-3 text-center">
-              <p className="text-2xl font-bold text-accent">{totalCountries || "—"}</p>
-              <p className="text-xs text-white/60 mt-0.5">Countries</p>
             </div>
           </div>
         </div>
 
-        {/* Search + filters */}
-        <div className="glass-panel rounded-2xl p-5 space-y-4">
-          <div className="flex items-center gap-3">
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <input
-                value={search} onChange={e => setSearch(e.target.value)}
-                placeholder="Search by name, acronym, or country…"
-                className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder:text-muted-foreground text-sm focus:outline-none focus:border-yellow-500/50"
-              />
-            </div>
+        {/* Search */}
+        <div className="glass-panel rounded-2xl p-4">
+          <div className="relative">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+            {searchLoading && debouncedSearch.length >= 2 && (
+              <Loader2 className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground animate-spin" />
+            )}
+            <input
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Search any university in the world — e.g. Harvard, Unilag, Oxford, IIT…"
+              className="w-full pl-10 pr-10 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder:text-muted-foreground text-sm focus:outline-none focus:border-yellow-500/50 transition-colors"
+            />
           </div>
-
-          <div className="flex gap-2 flex-wrap">
-            {[
-              { key: "all", label: "All Universities", count: (data?.active?.length ?? 0) + (data?.featured?.length ?? 0) },
-              { key: "active", label: "With Members", count: data?.active?.length ?? 0 },
-              { key: "featured", label: "Awaiting Members", count: data?.featured?.length ?? 0 },
-            ].map(t => (
-              <button key={t.key} onClick={() => setFilter(t.key as any)}
-                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${filter === t.key ? "bg-yellow-500 text-black" : "bg-white/5 text-muted-foreground hover:text-white hover:bg-white/10"}`}>
-                {t.label} <span className="opacity-60">· {t.count}</span>
-              </button>
-            ))}
-          </div>
-
-          <div className="flex items-center gap-2 flex-wrap">
-            <Globe className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-            <div className="flex gap-2 flex-wrap">
-              {countries.map(c => (
-                <button key={c} onClick={() => setCountryFilter(c)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${countryFilter === c ? "bg-accent/20 text-accent border border-accent/30" : "bg-white/5 text-muted-foreground hover:text-white hover:bg-white/10"}`}>
-                  {c}
-                </button>
-              ))}
-            </div>
-          </div>
+          {isSearching && (
+            <p className="text-xs text-muted-foreground mt-2 pl-1">
+              {searchLoading ? "Searching worldwide universities…" : `${displayList.length} result${displayList.length !== 1 ? "s" : ""} found`}
+            </p>
+          )}
+          {!isSearching && (
+            <p className="text-xs text-muted-foreground mt-2 pl-1 flex items-center gap-1">
+              <Globe className="w-3 h-3" /> Showing {platformAll.length} universities on the platform — search to find any of 9,000+ worldwide
+            </p>
+          )}
         </div>
 
         {/* Results */}
-        {isLoading ? (
+        {platformLoading && !isSearching ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {Array.from({ length: 9 }).map((_, i) => (
-              <div key={i} className="glass-panel rounded-2xl h-56 animate-pulse bg-white/5" />
+              <div key={i} className="glass-panel rounded-2xl h-52 animate-pulse bg-white/5" />
             ))}
           </div>
-        ) : filtered.length === 0 ? (
+        ) : displayList.length === 0 && isSearching && !searchLoading ? (
           <div className="glass-panel rounded-3xl p-12 text-center">
             <GraduationCap className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
-            <p className="text-white font-bold mb-1">No universities found</p>
-            <p className="text-muted-foreground text-sm">Try a different search or filter</p>
+            <p className="text-white font-bold mb-1">No universities found for "{search}"</p>
+            <p className="text-muted-foreground text-sm">Try a different name or spelling</p>
           </div>
         ) : (
-          <>
-            <p className="text-muted-foreground text-sm">{filtered.length} universit{filtered.length !== 1 ? "ies" : "y"}{countryFilter !== "All" ? ` in ${countryFilter}` : ""}</p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {filtered.map((uni, i) => (
-                <motion.div key={uni.name + i}
-                  initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(i, 15) * 0.03 }}
-                  className={`glass-panel rounded-2xl overflow-hidden hover:border-yellow-500/30 transition-all group cursor-pointer ${uni.active ? "ring-1 ring-yellow-500/20" : ""}`}
-                  onClick={() => setSelectedUni(uni)}>
-                  <div className={`h-2 bg-gradient-to-r ${uni.color}`} />
-                  <div className="p-5">
-                    <div className="flex items-start gap-3 mb-4">
-                      <div className={`w-12 h-12 rounded-xl bg-gradient-to-tr ${uni.color} flex items-center justify-center font-bold text-white text-xs shrink-0 shadow-lg`}>
-                        {uni.acronym.slice(0, 4)}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {displayList.map((uni, i) => (
+              <motion.div
+                key={uni.name + i}
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: Math.min(i, 12) * 0.03 }}
+                className={`glass-panel rounded-2xl overflow-hidden hover:border-yellow-500/30 transition-all group cursor-pointer ${uni.active ? "ring-1 ring-yellow-500/20" : ""}`}
+                onClick={() => setSelectedUni(uni)}
+              >
+                <div className={`h-1.5 bg-gradient-to-r ${uni.color}`} />
+                <div className="p-5">
+                  <div className="flex items-start gap-3 mb-4">
+                    <div className={`w-12 h-12 rounded-xl bg-gradient-to-tr ${uni.color} flex items-center justify-center font-bold text-white text-xs shrink-0 shadow-lg`}>
+                      {uni.acronym.slice(0, 4)}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start gap-1.5">
+                        <p className="text-white font-bold text-sm leading-tight flex-1">{uni.name}</p>
+                        {uni.active && <CheckCircle2 className="w-4 h-4 text-green-400 shrink-0 mt-0.5" />}
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-start gap-1.5">
-                          <p className="text-white font-bold text-sm leading-tight flex-1">{uni.name}</p>
-                          {uni.active && <CheckCircle2 className="w-4 h-4 text-green-400 shrink-0 mt-0.5" />}
-                        </div>
-                        <div className="flex items-center gap-1.5 mt-1 flex-wrap">
-                          <MapPin className="w-3 h-3 text-muted-foreground shrink-0" />
-                          <span className="text-muted-foreground text-xs">{uni.location}</span>
-                          <span className="text-muted-foreground text-xs">·</span>
-                          <span className="text-accent/80 text-xs font-medium">{uni.country}</span>
-                          <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${uni.type === "Private" ? "bg-purple-500/20 text-purple-400" : uni.type === "State" ? "bg-blue-500/20 text-blue-400" : uni.type === "Public" ? "bg-green-500/20 text-green-400" : uni.type === "Federal" ? "bg-green-500/20 text-green-400" : "bg-white/10 text-white/60"}`}>
+                      <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                        <MapPin className="w-3 h-3 text-muted-foreground shrink-0" />
+                        <span className="text-accent/80 text-xs font-medium">{uni.country}</span>
+                        {uni.type && uni.type !== "University" && (
+                          <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${
+                            uni.type === "Private" ? "bg-purple-500/20 text-purple-400"
+                            : uni.type === "State" ? "bg-blue-500/20 text-blue-400"
+                            : uni.type === "Public" ? "bg-green-500/20 text-green-400"
+                            : uni.type === "Federal" ? "bg-green-500/20 text-green-400"
+                            : "bg-white/10 text-white/50"}`}>
                             {uni.type}
                           </span>
-                        </div>
+                        )}
+                        {uni.fromSearch && (
+                          <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-yellow-500/10 text-yellow-400 font-medium">worldwide</span>
+                        )}
                       </div>
-                    </div>
-
-                    <div className="grid grid-cols-3 gap-2 mb-4">
-                      <div className="text-center p-2 rounded-xl bg-white/5">
-                        <p className={`font-bold text-sm ${uni.studentsCount > 0 ? "text-accent" : "text-white"}`}>{uni.studentsCount}</p>
-                        <p className="text-muted-foreground text-[10px]">Students</p>
-                      </div>
-                      <div className="text-center p-2 rounded-xl bg-white/5">
-                        <p className={`font-bold text-sm ${uni.tutorsCount > 0 ? "text-primary" : "text-white"}`}>{uni.tutorsCount}</p>
-                        <p className="text-muted-foreground text-[10px]">Tutors</p>
-                      </div>
-                      <div className="text-center p-2 rounded-xl bg-white/5">
-                        <p className="text-white font-bold text-sm">{uni.established ?? "—"}</p>
-                        <p className="text-muted-foreground text-[10px]">Est.</p>
-                      </div>
-                    </div>
-
-                    <div className="flex gap-2">
-                      <button
-                        onClick={e => { e.stopPropagation(); setLocation(`/university/${encodeURIComponent(uni.name)}`); }}
-                        className="flex items-center justify-center gap-1 px-3 py-2 rounded-xl text-xs font-bold bg-white/8 text-muted-foreground hover:bg-white/15 hover:text-white transition-all">
-                        <Map className="w-3.5 h-3.5" /> Campus
-                      </button>
-                      <button
-                        className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-bold transition-all ${uni.active
-                          ? "bg-gradient-to-r from-yellow-500 to-orange-400 text-white hover:opacity-90"
-                          : "bg-white/5 text-muted-foreground"}`}>
-                        {uni.active
-                          ? <><Trophy className="w-3.5 h-3.5" /> Sponsor</>
-                          : <><Sparkles className="w-3.5 h-3.5" /> Awaiting</>}
-                      </button>
                     </div>
                   </div>
-                </motion.div>
-              ))}
-            </div>
-          </>
+
+                  <div className="grid grid-cols-3 gap-2 mb-4">
+                    <div className="text-center p-2 rounded-xl bg-white/5">
+                      <p className={`font-bold text-sm ${uni.studentsCount > 0 ? "text-accent" : "text-white/40"}`}>{uni.studentsCount}</p>
+                      <p className="text-muted-foreground text-[10px]">Students</p>
+                    </div>
+                    <div className="text-center p-2 rounded-xl bg-white/5">
+                      <p className={`font-bold text-sm ${uni.tutorsCount > 0 ? "text-primary" : "text-white/40"}`}>{uni.tutorsCount}</p>
+                      <p className="text-muted-foreground text-[10px]">Tutors</p>
+                    </div>
+                    <div className="text-center p-2 rounded-xl bg-white/5">
+                      <p className="text-white/50 font-bold text-sm">{uni.established ?? "—"}</p>
+                      <p className="text-muted-foreground text-[10px]">Est.</p>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-2">
+                    <button
+                      onClick={e => { e.stopPropagation(); setLocation(`/university/${encodeURIComponent(uni.name)}`); }}
+                      className="flex items-center justify-center gap-1 px-3 py-2 rounded-xl text-xs font-bold bg-white/8 text-muted-foreground hover:bg-white/15 hover:text-white transition-all">
+                      <Map className="w-3.5 h-3.5" /> Campus
+                    </button>
+                    <button
+                      className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-bold transition-all ${
+                        uni.active
+                          ? "bg-gradient-to-r from-yellow-500 to-orange-400 text-white hover:opacity-90"
+                          : "bg-white/5 text-muted-foreground hover:bg-yellow-500/10 hover:text-yellow-400"
+                      }`}>
+                      {uni.active
+                        ? <><Trophy className="w-3.5 h-3.5" /> Sponsor</>
+                        : <><Star className="w-3.5 h-3.5" /> Sponsor</>}
+                    </button>
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        )}
+
+        {/* World search prompt when no search yet */}
+        {!isSearching && !platformLoading && (
+          <div className="glass-panel rounded-2xl p-6 border border-white/5 text-center">
+            <Globe className="w-10 h-10 text-accent/50 mx-auto mb-3" />
+            <p className="text-white font-bold mb-1">Find any university in the world</p>
+            <p className="text-muted-foreground text-sm">Type in the search box above to discover 9,000+ universities from every country — Harvard, Oxford, UniLag, IIT, and more.</p>
+          </div>
         )}
       </div>
     </DashboardLayout>
