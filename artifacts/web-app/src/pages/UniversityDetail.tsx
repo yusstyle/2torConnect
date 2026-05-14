@@ -1,25 +1,14 @@
-import { useEffect, useMemo } from "react";
 import { useLocation, useRoute } from "wouter";
 import { useQuery } from "@tanstack/react-query";
-import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
-import L from "leaflet";
 import { motion } from "framer-motion";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { useAuthStore } from "@/lib/auth";
 import {
   ArrowLeft, MapPin, ExternalLink, GraduationCap, Loader2,
-  Globe, Info, Trophy, Star, Users, BookOpen, ImageOff
+  Globe, Info, Trophy, Star, Users, BookOpen, Navigation
 } from "lucide-react";
 
 const BASE = import.meta.env.BASE_URL?.replace(/\/$/, "") ?? "";
-
-const mapIcon = L.divIcon({
-  className: "",
-  html: `<div style="background:linear-gradient(135deg,#7c3aed,#06b6d4);width:36px;height:36px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:3px solid white;box-shadow:0 4px 16px rgba(0,0,0,0.4)"></div>`,
-  iconSize: [36, 36],
-  iconAnchor: [18, 36],
-  popupAnchor: [0, -36],
-});
 
 interface UniInfo {
   name: string;
@@ -75,6 +64,19 @@ export default function UniversityDetailPage() {
 
   const coords = info?.coordinates;
 
+  /* Build the OpenStreetMap embed URL */
+  const mapEmbedUrl = coords
+    ? (() => {
+        const delta = 0.012;
+        const bbox = `${coords.lon - delta},${coords.lat - delta},${coords.lon + delta},${coords.lat + delta}`;
+        return `https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${coords.lat},${coords.lon}`;
+      })()
+    : null;
+
+  const mapsOpenUrl = coords
+    ? `https://www.openstreetmap.org/?mlat=${coords.lat}&mlon=${coords.lon}&zoom=16`
+    : null;
+
   return (
     <DashboardLayout role={role} title={uniName || "University"}>
       <div className="space-y-6">
@@ -92,9 +94,10 @@ export default function UniversityDetailPage() {
           </div>
         ) : (
           <>
-            {/* Campus Photo */}
+            {/* Campus Photo Hero */}
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-              className="rounded-3xl overflow-hidden aspect-video relative bg-gradient-to-br from-primary/20 to-accent/10 border border-white/10">
+              className="rounded-3xl overflow-hidden relative bg-gradient-to-br from-primary/20 to-accent/10 border border-white/10"
+              style={{ aspectRatio: "16/7" }}>
               {info?.image ? (
                 <img src={info.image} alt={uniName} className="w-full h-full object-cover" />
               ) : (
@@ -104,12 +107,12 @@ export default function UniversityDetailPage() {
                 </div>
               )}
               {/* Name overlay */}
-              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-6">
+              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/85 via-black/40 to-transparent p-6">
                 <h1 className="text-white font-bold text-2xl drop-shadow-xl">{uniName}</h1>
-                {info?.address?.country && (
+                {info?.address && (
                   <div className="flex items-center gap-1.5 mt-1 text-white/70 text-sm">
-                    <MapPin className="w-3.5 h-3.5" />
-                    {[info.address?.city || info.address?.state, info.address?.country].filter(Boolean).join(", ")}
+                    <MapPin className="w-3.5 h-3.5 shrink-0" />
+                    {[info.address.city || info.address.county || info.address.state, info.address.country].filter(Boolean).join(", ")}
                   </div>
                 )}
               </div>
@@ -129,67 +132,73 @@ export default function UniversityDetailPage() {
                   <Info className="w-4 h-4 text-accent" />
                   <h3 className="text-white font-bold">About {uniName}</h3>
                 </div>
-                <p className="text-white/70 text-sm leading-relaxed line-clamp-6">{info.description}</p>
+                <p className="text-white/70 text-sm leading-relaxed">{info.description}</p>
               </motion.div>
             )}
 
-            {/* Interactive Map */}
-            {coords ? (
+            {/* Interactive Map — OpenStreetMap native iframe */}
+            {mapEmbedUrl ? (
               <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
                 className="glass-panel rounded-3xl overflow-hidden border border-white/10">
-                <div className="px-5 py-4 border-b border-white/5 flex items-center gap-2">
-                  <MapPin className="w-4 h-4 text-accent" />
-                  <h3 className="text-white font-bold">Campus Location</h3>
-                  {info?.displayAddress && (
-                    <span className="text-muted-foreground text-xs ml-auto truncate max-w-xs hidden sm:block">
-                      {info.displayAddress}
+                {/* Header */}
+                <div className="px-5 py-4 border-b border-white/5 flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-xl bg-accent/20 flex items-center justify-center shrink-0">
+                    <Navigation className="w-4 h-4 text-accent" />
+                  </div>
+                  <div>
+                    <h3 className="text-white font-bold text-sm">Campus Location</h3>
+                    {info?.displayAddress && (
+                      <p className="text-muted-foreground text-xs truncate max-w-xs">{info.displayAddress}</p>
+                    )}
+                  </div>
+                  <div className="ml-auto flex items-center gap-2 text-xs text-muted-foreground">
+                    <span className="hidden sm:block">
+                      {coords!.lat.toFixed(5)}°, {coords!.lon.toFixed(5)}°
                     </span>
-                  )}
+                    {mapsOpenUrl && (
+                      <a href={mapsOpenUrl} target="_blank" rel="noreferrer"
+                        className="flex items-center gap-1 text-accent hover:underline font-medium">
+                        <ExternalLink className="w-3 h-3" /> Open in Maps
+                      </a>
+                    )}
+                  </div>
                 </div>
-                <div className="h-72 md:h-96" style={{ zIndex: 0 }}>
-                  <MapContainer
-                    center={[coords.lat, coords.lon]}
-                    zoom={15}
-                    style={{ height: "100%", width: "100%", background: "#1a1a2e" }}
-                    scrollWheelZoom={false}
-                  >
-                    <TileLayer
-                      url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                      attribution='&copy; <a href="https://openstreetmap.org">OpenStreetMap</a> contributors'
-                    />
-                    <Marker position={[coords.lat, coords.lon]} icon={mapIcon}>
-                      <Popup>
-                        <div className="text-sm font-bold">{uniName}</div>
-                        {info?.address?.country && <div className="text-xs text-gray-500">{info.address.country}</div>}
-                      </Popup>
-                    </Marker>
-                  </MapContainer>
+
+                {/* Map iframe */}
+                <div className="relative" style={{ height: "420px" }}>
+                  <iframe
+                    title={`Map of ${uniName}`}
+                    src={mapEmbedUrl}
+                    width="100%"
+                    height="100%"
+                    style={{ border: "none", display: "block" }}
+                    allowFullScreen
+                    loading="lazy"
+                    referrerPolicy="no-referrer-when-downgrade"
+                  />
                 </div>
-                <div className="px-5 py-3 border-t border-white/5 flex items-center gap-4 text-xs text-muted-foreground">
-                  <span>Lat: {coords.lat.toFixed(5)}</span>
-                  <span>Lon: {coords.lon.toFixed(5)}</span>
-                  <a
-                    href={`https://www.openstreetmap.org/?mlat=${coords.lat}&mlon=${coords.lon}&zoom=16`}
-                    target="_blank" rel="noreferrer"
-                    className="ml-auto flex items-center gap-1 text-accent hover:underline">
-                    <ExternalLink className="w-3 h-3" /> Open in Maps
-                  </a>
+
+                {/* Footer */}
+                <div className="px-5 py-3 border-t border-white/5 flex items-center gap-2 text-xs text-muted-foreground">
+                  <MapPin className="w-3 h-3 text-accent shrink-0" />
+                  <span>Map data © <a href="https://openstreetmap.org" target="_blank" rel="noreferrer" className="text-accent hover:underline">OpenStreetMap</a> contributors</span>
                 </div>
               </motion.div>
             ) : !loadingInfo && (
               <div className="glass-panel rounded-2xl p-6 text-center">
                 <MapPin className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
-                <p className="text-muted-foreground text-sm">Campus location not found on map</p>
+                <p className="text-muted-foreground text-sm">Campus location could not be found on the map</p>
               </div>
             )}
 
-            {/* Top Performers */}
+            {/* Top Performers — for sponsors only */}
             {role === "investor" && (
               <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}>
                 <div className="flex items-center gap-2 mb-4">
                   <Trophy className="w-5 h-5 text-yellow-400" />
                   <h3 className="text-white font-bold text-lg">Top Performers</h3>
                 </div>
+
                 {loadingPerformers ? (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {[1,2,3,4].map(i => <div key={i} className="glass-panel rounded-xl h-20 animate-pulse bg-white/5" />)}
@@ -224,7 +233,7 @@ export default function UniversityDetailPage() {
                       <div className="glass-panel rounded-2xl p-8 text-center">
                         <Users className="w-10 h-10 text-muted-foreground mx-auto mb-2" />
                         <p className="text-white font-bold mb-1">No members yet</p>
-                        <p className="text-muted-foreground text-sm">Students and tutors who join from this university will appear here.</p>
+                        <p className="text-muted-foreground text-sm">Students and tutors who register from this university will appear here.</p>
                       </div>
                     )}
                   </div>
@@ -233,7 +242,7 @@ export default function UniversityDetailPage() {
                 {/* Sponsor CTA */}
                 <div className="glass-panel rounded-2xl p-6 border border-yellow-500/20 bg-gradient-to-br from-yellow-500/10 to-orange-500/5 mt-5">
                   <h3 className="text-white font-bold text-lg mb-2">Sponsor {uniName}?</h3>
-                  <p className="text-white/60 text-sm mb-4">Your contribution will be distributed automatically to the top active students and tutors.</p>
+                  <p className="text-white/60 text-sm mb-4">Your contribution is distributed automatically to the top active students and tutors.</p>
                   <button
                     onClick={() => alert("Payment integration coming soon — contact us to sponsor directly.")}
                     className="w-full py-3 rounded-xl font-bold text-white bg-gradient-to-r from-yellow-500 to-orange-400 hover:opacity-90 transition-all shadow-lg flex items-center justify-center gap-2">
