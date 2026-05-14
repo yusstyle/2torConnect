@@ -113,7 +113,24 @@ router.post("/:id/pay", async (req, res) => {
       return;
     }
 
-    const amount = session.amount ?? "0";
+    const amount = Number(session.amount ?? "0");
+
+    if (amount > 0) {
+      const studentTxns = await db
+        .select()
+        .from(transactionsTable)
+        .where(and(eq(transactionsTable.userId, session.studentId), eq(transactionsTable.status, "completed")));
+      const funded = studentTxns.filter((t) => t.type === "bonus").reduce((s, t) => s + Number(t.amount), 0);
+      const spent = studentTxns.filter((t) => t.type === "payment").reduce((s, t) => s + Number(t.amount), 0);
+      const walletBalance = funded - spent;
+      if (walletBalance < amount) {
+        res.status(400).json({
+          error: "Insufficient wallet balance",
+          message: `Your wallet balance (₦${walletBalance.toLocaleString()}) is less than the session amount (₦${amount.toLocaleString()}). Please top up your wallet first.`,
+        });
+        return;
+      }
+    }
 
     await db.update(sessionsTable)
       .set({ isPaid: 1, status: "confirmed" })

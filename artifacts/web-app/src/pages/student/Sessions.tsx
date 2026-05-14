@@ -74,7 +74,7 @@ function PayModal({ sessionId, subject, amount, tutorName, onClose, onPaid }: Pa
           <div className="h-px bg-white/10" />
           <div className="flex justify-between">
             <span className="text-muted-foreground">Total</span>
-            <span className="text-white font-bold text-lg">${Number(amount ?? 0).toLocaleString()}</span>
+            <span className="text-white font-bold text-lg">₦{Number(amount ?? 0).toLocaleString()}</span>
           </div>
         </div>
 
@@ -206,7 +206,7 @@ export default function StudentSessionsPage() {
                       className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-green-500 to-emerald-600 text-white font-bold text-sm hover:opacity-90 transition-all shadow-lg shadow-green-500/25"
                     >
                       <CreditCard className="w-4 h-4" />
-                      Pay ${Number(session.amount).toLocaleString()} to Join
+                      Pay ₦{Number(session.amount).toLocaleString()} to Join
                     </button>
                   )}
 

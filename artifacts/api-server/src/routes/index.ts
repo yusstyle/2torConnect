@@ -13,6 +13,7 @@ import universitiesRouter from "./universities";
 import statsRouter from "./stats";
 import superadminRouter from "./superadmin";
 import sponsorshipRouter from "./sponsorship";
+import walletRouter from "./wallet";
 
 const router: IRouter = Router();
 
@@ -30,5 +31,6 @@ router.use("/social", socialRouter);
 router.use("/universities", universitiesRouter);
 router.use("/superadmin", superadminRouter);
 router.use("/sponsorship-requests", sponsorshipRouter);
+router.use("/wallet", walletRouter);
 
 export default router;

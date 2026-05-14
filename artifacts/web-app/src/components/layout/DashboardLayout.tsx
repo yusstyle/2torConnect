@@ -5,7 +5,7 @@ import { Logo } from "@/components/Logo";
 import {
   LogOut, LayoutDashboard, Users, BookOpen,
   CreditCard, MessageSquare, Calendar,
-  Search, FileText, Menu, X, Video, Globe, GraduationCap, UserCircle, HandCoins
+  Search, FileText, Menu, X, Video, Globe, GraduationCap, UserCircle, HandCoins, Wallet
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -58,6 +58,7 @@ export function DashboardLayout({ children, role: roleProp, title }: DashboardLa
       { label: "My Sessions", href: "/student/sessions", icon: BookOpen },
       { label: "Live Sessions", href: "/student/live", icon: Video },
       { label: "Study Materials", href: "/student/materials", icon: FileText },
+      { label: "My Wallet", href: "/student/wallet", icon: Wallet },
       { label: "Sponsorship", href: "/student/sponsorship", icon: HandCoins },
       { label: "Messages", href: "/messages", icon: MessageSquare },
       { label: "ConnectFeed", href: "/socialise", icon: Globe },

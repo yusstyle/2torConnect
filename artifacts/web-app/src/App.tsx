@@ -13,6 +13,7 @@ import StudentDashboard from "@/pages/student/Dashboard";
 import FindTutorPage from "@/pages/student/FindTutor";
 import StudentSessionsPage from "@/pages/student/Sessions";
 import StudentMaterialsPage from "@/pages/student/Materials";
+import StudentWalletPage from "@/pages/student/Wallet";
 import SponsorshipRequestPage from "@/pages/student/SponsorshipRequest";
 
 import TutorDashboardPage from "@/pages/tutor/Dashboard";
@@ -66,6 +67,7 @@ function Router() {
       <Route path="/student/find-tutor" component={FindTutorPage} />
       <Route path="/student/sessions" component={StudentSessionsPage} />
       <Route path="/student/materials" component={StudentMaterialsPage} />
+      <Route path="/student/wallet" component={StudentWalletPage} />
       <Route path="/student/live" component={() => <LiveSessionsPage role="student" />} />
       <Route path="/student/sponsorship" component={SponsorshipRequestPage} />
 
