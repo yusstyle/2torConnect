@@ -9,30 +9,33 @@ import { usersTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 
-const SUPER_ADMIN_EMAIL = "admin2-yusstyle@gmail.com";
-const SUPER_ADMIN_PASSWORD = "098756098756098756Y";
-const SUPER_ADMIN_NAME = "Super Admin";
+const ADMIN_ACCOUNTS = [
+  { email: "admin2-yusstyle@gmail.com", password: "098756098756098756Y", name: "Super Admin" },
+  { email: "admin@2torconnect.com", password: "admin@2tor2024", name: "Admin" },
+];
 
-async function seedSuperAdmin() {
-  try {
-    const existing = await db.select().from(usersTable).where(eq(usersTable.email, SUPER_ADMIN_EMAIL)).limit(1);
-    if (existing.length === 0) {
-      const passwordHash = await bcrypt.hash(SUPER_ADMIN_PASSWORD, 10);
-      await db.insert(usersTable).values({
-        name: SUPER_ADMIN_NAME,
-        email: SUPER_ADMIN_EMAIL,
-        passwordHash,
-        role: "admin",
-        status: "active",
-      });
-      logger.info("Super admin account created");
+async function seedAdmins() {
+  for (const account of ADMIN_ACCOUNTS) {
+    try {
+      const existing = await db.select().from(usersTable).where(eq(usersTable.email, account.email)).limit(1);
+      if (existing.length === 0) {
+        const passwordHash = await bcrypt.hash(account.password, 10);
+        await db.insert(usersTable).values({
+          name: account.name,
+          email: account.email,
+          passwordHash,
+          role: "admin",
+          status: "active",
+        });
+        logger.info({ email: account.email }, "Admin account created");
+      }
+    } catch (err) {
+      logger.error({ err, email: account.email }, "Failed to seed admin");
     }
-  } catch (err) {
-    logger.error({ err }, "Failed to seed super admin");
   }
 }
 
-seedSuperAdmin();
+seedAdmins();
 
 const app: Express = express();
 
