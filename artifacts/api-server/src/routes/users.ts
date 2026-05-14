@@ -89,10 +89,35 @@ router.patch("/:id", async (req, res) => {
       res.status(404).json({ error: "User not found" });
       return;
     }
-    res.json({ id: user.id, name: user.name, email: user.email, role: user.role, phone: user.phone, status: user.status, avatarUrl: user.avatarUrl ?? null, createdAt: user.createdAt, lastLogin: user.lastLogin });
+    res.json({ id: user.id, name: user.name, email: user.email, role: user.role, phone: user.phone, status: user.status, avatarUrl: user.avatarUrl ?? null, createdAt: user.createdAt, lastLogin: user.lastLogin, bankName: user.bankName ?? null, bankAccountNumber: user.bankAccountNumber ?? null, bankAccountName: user.bankAccountName ?? null });
   } catch (err) {
     req.log.error({ err }, "update user error");
     res.status(500).json({ error: "Failed to update user" });
+  }
+});
+
+router.patch("/:id/bank-details", async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    const { bankName, bankAccountNumber, bankAccountName } = req.body;
+    if (!bankName?.trim() || !bankAccountNumber?.trim() || !bankAccountName?.trim()) {
+      res.status(400).json({ error: "Bank name, account number, and account name are all required" });
+      return;
+    }
+    if (bankAccountNumber.replace(/\D/g, "").length < 10) {
+      res.status(400).json({ error: "Account number must be at least 10 digits" });
+      return;
+    }
+    const [user] = await db
+      .update(usersTable)
+      .set({ bankName: bankName.trim(), bankAccountNumber: bankAccountNumber.trim(), bankAccountName: bankAccountName.trim() })
+      .where(eq(usersTable.id, id))
+      .returning();
+    if (!user) { res.status(404).json({ error: "User not found" }); return; }
+    res.json({ success: true, bankName: user.bankName, bankAccountNumber: user.bankAccountNumber, bankAccountName: user.bankAccountName });
+  } catch (err) {
+    req.log.error({ err }, "update bank details error");
+    res.status(500).json({ error: "Failed to update bank details" });
   }
 });
 

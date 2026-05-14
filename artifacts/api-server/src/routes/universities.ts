@@ -1,7 +1,17 @@
 import { Router, type IRouter } from "express";
 import { db } from "@workspace/db";
-import { studentsTable, tutorsTable, usersTable, sessionsTable } from "@workspace/db";
-import { sql, eq, or, count } from "drizzle-orm";
+import { studentsTable, tutorsTable, usersTable, sessionsTable, transactionsTable } from "@workspace/db";
+import { sql, eq, or, count, and } from "drizzle-orm";
+
+function authMiddleware(req: any, res: any, next: any) {
+  const authHeader = req.headers.authorization;
+  if (!authHeader?.startsWith("Bearer ")) { res.status(401).json({ error: "Unauthorized" }); return; }
+  try {
+    const payload = JSON.parse(Buffer.from(authHeader.slice(7), "base64").toString("utf8"));
+    req.authUser = payload;
+    next();
+  } catch { res.status(401).json({ error: "Invalid token" }); }
+}
 
 const router: IRouter = Router();
 
@@ -297,6 +307,86 @@ router.get("/top-performers/:universityName", async (req, res) => {
     });
   } catch (err: any) {
     res.status(500).json({ error: "Failed to load top performers", message: err.message });
+  }
+});
+
+router.post("/sponsor", authMiddleware, async (req: any, res) => {
+  try {
+    if (req.authUser.role !== "investor") {
+      res.status(403).json({ error: "Only investors can sponsor universities" });
+      return;
+    }
+    const { universityName, amount, splitBetween } = req.body;
+    const parsedAmount = Number(amount);
+    if (!universityName?.trim() || !parsedAmount || parsedAmount <= 0) {
+      res.status(400).json({ error: "University name and a positive amount are required" });
+      return;
+    }
+
+    const split = splitBetween ?? "both";
+
+    const studentRows = split === "tutors" ? [] : await db
+      .select({ userId: studentsTable.userId, name: usersTable.name, sessionCount: count(sessionsTable.id) })
+      .from(studentsTable)
+      .innerJoin(usersTable, eq(studentsTable.userId, usersTable.id))
+      .leftJoin(sessionsTable, eq(sessionsTable.studentId, usersTable.id))
+      .where(and(sql`LOWER(${studentsTable.university}) = LOWER(${universityName})`, eq(usersTable.status, "active")))
+      .groupBy(studentsTable.userId, usersTable.id, usersTable.name)
+      .orderBy(sql`COUNT(${sessionsTable.id}) DESC`)
+      .limit(10);
+
+    const tutorRows = split === "students" ? [] : await db
+      .select({ userId: tutorsTable.userId, name: usersTable.name, sessionCount: count(sessionsTable.id) })
+      .from(tutorsTable)
+      .innerJoin(usersTable, eq(tutorsTable.userId, usersTable.id))
+      .leftJoin(sessionsTable, eq(sessionsTable.tutorId, usersTable.id))
+      .where(and(sql`LOWER(${tutorsTable.university}) = LOWER(${universityName})`, eq(usersTable.status, "active")))
+      .groupBy(tutorsTable.userId, usersTable.id, usersTable.name)
+      .orderBy(sql`COUNT(${sessionsTable.id}) DESC`)
+      .limit(10);
+
+    const recipients = [
+      ...studentRows.map(r => ({ ...r, role: "student" })),
+      ...tutorRows.map(r => ({ ...r, role: "tutor" })),
+    ];
+
+    if (recipients.length === 0) {
+      res.status(400).json({ error: "No active users found at this university to receive sponsorship" });
+      return;
+    }
+
+    const perPerson = Math.floor((parsedAmount / recipients.length) * 100) / 100;
+    const actualTotal = perPerson * recipients.length;
+
+    for (const recipient of recipients) {
+      await db.insert(transactionsTable).values({
+        userId: recipient.userId,
+        type: "bonus",
+        amount: perPerson.toFixed(2),
+        description: `Sponsorship from investor — ${universityName} program`,
+        status: "completed",
+      });
+    }
+
+    await db.insert(transactionsTable).values({
+      userId: req.authUser.id,
+      type: "payment",
+      amount: actualTotal.toFixed(2),
+      description: `Sponsored ${recipients.length} users at ${universityName}`,
+      status: "completed",
+    });
+
+    res.json({
+      success: true,
+      university: universityName,
+      totalDistributed: actualTotal,
+      perPerson,
+      recipientCount: recipients.length,
+      recipients: recipients.map(r => ({ userId: r.userId, name: r.name, role: r.role, amount: perPerson })),
+    });
+  } catch (err: any) {
+    req.log?.error({ err }, "sponsor university error");
+    res.status(500).json({ error: "Failed to process sponsorship", message: err.message });
   }
 });
 

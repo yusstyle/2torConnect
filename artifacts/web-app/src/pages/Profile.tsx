@@ -3,9 +3,18 @@ import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { useAuthStore } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
 import { motion } from "framer-motion";
-import { Camera, Loader2, Check, User, Mail, Phone, ShieldCheck } from "lucide-react";
+import { Camera, Loader2, Check, User, Mail, Phone, ShieldCheck, Building2, Hash, CreditCard } from "lucide-react";
 
 const BASE = import.meta.env.BASE_URL?.replace(/\/$/, "") ?? "";
+
+const NIGERIAN_BANKS = [
+  "Access Bank", "Citibank", "Ecobank", "Fidelity Bank", "First Bank",
+  "First City Monument Bank", "Globus Bank", "GT Bank", "Heritage Bank",
+  "Keystone Bank", "Parallex Bank", "Polaris Bank", "Providus Bank",
+  "Stanbic IBTC Bank", "Standard Chartered", "Sterling Bank", "SunTrust Bank",
+  "Union Bank", "United Bank for Africa", "Unity Bank", "Wema Bank", "Zenith Bank",
+  "Kuda Bank", "Opay", "PalmPay", "Moniepoint",
+];
 
 export default function ProfilePage() {
   const { user, token, login } = useAuthStore();
@@ -17,7 +26,14 @@ export default function ProfilePage() {
   const [name, setName] = useState(user?.name ?? "");
   const [phone, setPhone] = useState(user?.phone ?? "");
 
+  const [savingBank, setSavingBank] = useState(false);
+  const [bankName, setBankName] = useState((user as any)?.bankName ?? "");
+  const [bankAccountNumber, setBankAccountNumber] = useState((user as any)?.bankAccountNumber ?? "");
+  const [bankAccountName, setBankAccountName] = useState((user as any)?.bankAccountName ?? "");
+
   if (!user) return null;
+
+  const showBankSection = (user.role as string) === "student" || (user.role as string) === "tutor";
 
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -60,6 +76,26 @@ export default function ProfilePage() {
     } catch {
       toast({ variant: "destructive", title: "Failed to save" });
     } finally { setSaving(false); }
+  };
+
+  const handleSaveBank = async () => {
+    setSavingBank(true);
+    try {
+      const res = await fetch(`${BASE}/api/users/${user.id}/bank-details`, {
+        method: "PATCH",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ bankName, bankAccountNumber, bankAccountName }),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error ?? "Failed to save");
+      }
+      const data = await res.json();
+      login({ ...user, bankName: data.bankName, bankAccountNumber: data.bankAccountNumber, bankAccountName: data.bankAccountName } as any, token!);
+      toast({ title: "Bank details saved!", description: "Your payout account has been updated." });
+    } catch (e: any) {
+      toast({ variant: "destructive", title: "Failed to save bank details", description: e.message });
+    } finally { setSavingBank(false); }
   };
 
   const initials = user.name.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase();
@@ -143,6 +179,86 @@ export default function ProfilePage() {
             {saving ? "Saving…" : "Save Changes"}
           </button>
         </motion.div>
+
+        {/* Bank account details — students and tutors only */}
+        {showBankSection && (
+          <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="glass-panel rounded-3xl p-6 space-y-5">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-green-500/10 flex items-center justify-center">
+                <CreditCard className="w-5 h-5 text-green-400" />
+              </div>
+              <div>
+                <h3 className="text-white font-bold text-lg">Payout Account</h3>
+                <p className="text-xs text-muted-foreground">Where your {user.role === "tutor" ? "earnings" : "sponsorship funds"} will be sent</p>
+              </div>
+            </div>
+
+            {(bankName || bankAccountNumber) && (
+              <div className="bg-green-500/10 border border-green-500/20 rounded-2xl p-4 flex items-center gap-3">
+                <div className="w-8 h-8 rounded-full bg-green-500/20 flex items-center justify-center shrink-0">
+                  <Check className="w-4 h-4 text-green-400" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-white font-semibold text-sm">{bankName}</p>
+                  <p className="text-muted-foreground text-xs">{bankAccountName} · ****{bankAccountNumber.slice(-4)}</p>
+                </div>
+              </div>
+            )}
+
+            <div className="space-y-4">
+              <div>
+                <label className="text-xs text-muted-foreground mb-1.5 flex items-center gap-1.5 font-medium">
+                  <Building2 className="w-3.5 h-3.5" /> Bank Name
+                </label>
+                <select
+                  value={bankName}
+                  onChange={e => setBankName(e.target.value)}
+                  className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white text-sm focus:outline-none focus:border-accent/50 appearance-none"
+                >
+                  <option value="" className="bg-gray-900">Select your bank…</option>
+                  {NIGERIAN_BANKS.map(b => (
+                    <option key={b} value={b} className="bg-gray-900">{b}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="text-xs text-muted-foreground mb-1.5 flex items-center gap-1.5 font-medium">
+                  <Hash className="w-3.5 h-3.5" /> Account Number
+                </label>
+                <input
+                  type="text"
+                  value={bankAccountNumber}
+                  onChange={e => setBankAccountNumber(e.target.value.replace(/\D/g, "").slice(0, 10))}
+                  placeholder="10-digit account number"
+                  className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white text-sm focus:outline-none focus:border-accent/50 placeholder:text-muted-foreground font-mono tracking-widest"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs text-muted-foreground mb-1.5 flex items-center gap-1.5 font-medium">
+                  <User className="w-3.5 h-3.5" /> Account Name
+                </label>
+                <input
+                  type="text"
+                  value={bankAccountName}
+                  onChange={e => setBankAccountName(e.target.value)}
+                  placeholder="Name on the bank account"
+                  className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white text-sm focus:outline-none focus:border-accent/50 placeholder:text-muted-foreground"
+                />
+              </div>
+            </div>
+
+            <button
+              onClick={handleSaveBank}
+              disabled={savingBank || !bankName || !bankAccountNumber || !bankAccountName}
+              className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-gradient-to-r from-green-500 to-emerald-500 text-white font-bold hover:opacity-90 disabled:opacity-50 transition-all"
+            >
+              {savingBank ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+              {savingBank ? "Saving…" : "Save Payout Account"}
+            </button>
+          </motion.div>
+        )}
       </div>
     </DashboardLayout>
   );

@@ -15,6 +15,9 @@ export const usersTable = pgTable("users", {
   phone: text("phone"),
   status: statusEnum("status").notNull().default("pending"),
   avatarUrl: text("avatar_url"),
+  bankName: text("bank_name"),
+  bankAccountNumber: text("bank_account_number"),
+  bankAccountName: text("bank_account_name"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   lastLogin: timestamp("last_login"),
 });

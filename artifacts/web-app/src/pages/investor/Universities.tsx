@@ -6,8 +6,10 @@ import { useAuthStore } from "@/lib/auth";
 import { motion } from "framer-motion";
 import {
   GraduationCap, Search, MapPin, Users, ExternalLink, CheckCircle2,
-  Sparkles, Globe, Trophy, Star, BookOpen, ArrowLeft, Map, Loader2
+  Sparkles, Globe, Trophy, Star, BookOpen, ArrowLeft, Map, Loader2,
+  X, Zap, UserCheck, BookMarked
 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 const BASE = import.meta.env.BASE_URL?.replace(/\/$/, "") ?? "";
 
@@ -57,11 +59,17 @@ interface Performer {
 }
 
 export default function SponsorUniversities() {
-  const { token } = useAuthStore();
+  const { token, user } = useAuthStore();
+  const { toast } = useToast();
   const [, setLocation] = useLocation();
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [selectedUni, setSelectedUni] = useState<UniCard | null>(null);
+  const [showSponsorModal, setShowSponsorModal] = useState(false);
+  const [sponsorAmount, setSponsorAmount] = useState("");
+  const [splitBetween, setSplitBetween] = useState<"both" | "students" | "tutors">("both");
+  const [sponsoring, setSponsoring] = useState(false);
+  const [sponsorResult, setSponsorResult] = useState<null | { totalDistributed: number; perPerson: number; recipientCount: number; recipients: Array<{ name: string; role: string; amount: number }> }>(null);
 
   useEffect(() => {
     const t = setTimeout(() => setDebouncedSearch(search.trim()), 350);
@@ -104,6 +112,29 @@ export default function SponsorUniversities() {
     enabled: !!selectedUni,
     staleTime: 30_000,
   });
+
+  const handleSponsor = async () => {
+    if (!selectedUni || !sponsorAmount) return;
+    const amount = Number(sponsorAmount);
+    if (!amount || amount <= 0) {
+      toast({ variant: "destructive", title: "Enter a valid amount" });
+      return;
+    }
+    setSponsoring(true);
+    try {
+      const res = await fetch(`${BASE}/api/universities/sponsor`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ universityName: selectedUni.name, amount, splitBetween }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Sponsorship failed");
+      setSponsorResult(data);
+      toast({ title: "Sponsorship sent!", description: `₦${data.totalDistributed.toLocaleString()} distributed to ${data.recipientCount} users` });
+    } catch (e: any) {
+      toast({ variant: "destructive", title: "Failed to sponsor", description: e.message });
+    } finally { setSponsoring(false); }
+  };
 
   const platformActive = platformData?.active ?? [];
   const platformFeatured = platformData?.featured ?? [];
@@ -262,13 +293,151 @@ export default function SponsorUniversities() {
                 <Map className="w-4 h-4" /> View Campus
               </button>
               <button
-                onClick={() => alert("Payment integration coming soon — contact us to sponsor directly.")}
+                onClick={() => { setSponsorAmount(""); setSplitBetween("both"); setSponsorResult(null); setShowSponsorModal(true); }}
                 className="flex-1 py-3 rounded-xl font-bold text-white bg-gradient-to-r from-yellow-500 to-orange-400 hover:opacity-90 transition-all shadow-lg flex items-center justify-center gap-2">
                 <Star className="w-5 h-5" /> Sponsor This University
               </button>
             </div>
           </div>
         </div>
+
+        {/* Sponsorship Modal */}
+        {showSponsorModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm" onClick={() => !sponsoring && setShowSponsorModal(false)}>
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 16 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              className="w-full max-w-md bg-[#0f1117] border border-white/10 rounded-3xl shadow-2xl overflow-hidden"
+              onClick={e => e.stopPropagation()}
+            >
+              {sponsorResult ? (
+                <div className="p-6 space-y-5">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="w-10 h-10 rounded-full bg-green-500/20 flex items-center justify-center">
+                        <Zap className="w-5 h-5 text-green-400" />
+                      </div>
+                      <h3 className="text-white font-bold text-lg">Sponsorship Sent!</h3>
+                    </div>
+                    <button onClick={() => setShowSponsorModal(false)} className="p-1.5 rounded-lg hover:bg-white/10 text-muted-foreground">
+                      <X className="w-5 h-5" />
+                    </button>
+                  </div>
+                  <div className="bg-green-500/10 border border-green-500/20 rounded-2xl p-4 text-center">
+                    <p className="text-3xl font-bold text-white">₦{sponsorResult.totalDistributed.toLocaleString()}</p>
+                    <p className="text-green-400 text-sm mt-1">distributed to {sponsorResult.recipientCount} users</p>
+                    <p className="text-muted-foreground text-xs mt-1">₦{sponsorResult.perPerson.toLocaleString()} each</p>
+                  </div>
+                  <div className="space-y-2 max-h-52 overflow-y-auto">
+                    {sponsorResult.recipients.map((r, i) => (
+                      <div key={i} className="flex items-center gap-3 p-3 rounded-xl bg-white/5">
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${r.role === "student" ? "bg-accent/20 text-accent" : "bg-primary/20 text-primary"}`}>
+                          {r.name.charAt(0).toUpperCase()}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-white text-sm font-medium truncate">{r.name}</p>
+                          <p className="text-muted-foreground text-xs capitalize">{r.role}</p>
+                        </div>
+                        <p className="text-green-400 text-sm font-bold shrink-0">+₦{r.amount.toLocaleString()}</p>
+                      </div>
+                    ))}
+                  </div>
+                  <button onClick={() => setShowSponsorModal(false)} className="w-full py-3 rounded-xl bg-white/10 hover:bg-white/15 text-white font-bold transition-all">
+                    Done
+                  </button>
+                </div>
+              ) : (
+                <div className="p-6 space-y-5">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-white font-bold text-lg">Sponsor {selectedUni.name}</h3>
+                      <p className="text-muted-foreground text-xs mt-0.5">Funds go directly to active students & tutors</p>
+                    </div>
+                    <button onClick={() => setShowSponsorModal(false)} disabled={sponsoring} className="p-1.5 rounded-lg hover:bg-white/10 text-muted-foreground">
+                      <X className="w-5 h-5" />
+                    </button>
+                  </div>
+
+                  <div>
+                    <label className="text-xs text-muted-foreground mb-2 block font-medium">Amount (₦)</label>
+                    <input
+                      type="number"
+                      value={sponsorAmount}
+                      onChange={e => setSponsorAmount(e.target.value)}
+                      placeholder="e.g. 100000"
+                      min="1000"
+                      className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white text-lg font-bold focus:outline-none focus:border-yellow-500/50 placeholder:text-muted-foreground placeholder:font-normal"
+                    />
+                    <div className="flex gap-2 mt-2">
+                      {[10000, 50000, 100000, 500000].map(v => (
+                        <button key={v} onClick={() => setSponsorAmount(String(v))} className="flex-1 py-1.5 rounded-lg bg-white/5 hover:bg-yellow-500/10 hover:text-yellow-400 text-muted-foreground text-xs font-medium transition-all">
+                          ₦{(v / 1000)}k
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-xs text-muted-foreground mb-2 block font-medium">Distribute to</label>
+                    <div className="grid grid-cols-3 gap-2">
+                      {([
+                        { key: "both", label: "Everyone", icon: Users },
+                        { key: "students", label: "Students", icon: UserCheck },
+                        { key: "tutors", label: "Tutors", icon: BookMarked },
+                      ] as const).map(({ key, label, icon: Icon }) => (
+                        <button
+                          key={key}
+                          onClick={() => setSplitBetween(key)}
+                          className={`flex flex-col items-center gap-1.5 py-3 rounded-xl border text-xs font-bold transition-all ${splitBetween === key ? "border-yellow-500/60 bg-yellow-500/10 text-yellow-400" : "border-white/10 bg-white/5 text-muted-foreground hover:border-yellow-500/30"}`}
+                        >
+                          <Icon className="w-4 h-4" />
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {sponsorAmount && Number(sponsorAmount) > 0 && (
+                    <div className="bg-white/5 rounded-2xl p-4">
+                      <p className="text-xs text-muted-foreground mb-2 font-medium">Distribution preview</p>
+                      {loadingPerformers ? (
+                        <p className="text-white/40 text-sm">Loading performers…</p>
+                      ) : (() => {
+                        const students = splitBetween === "tutors" ? [] : (performers?.topStudents ?? []);
+                        const tutors = splitBetween === "students" ? [] : (performers?.topTutors ?? []);
+                        const total = students.length + tutors.length;
+                        const each = total > 0 ? Math.floor((Number(sponsorAmount) / total) * 100) / 100 : 0;
+                        return total === 0 ? (
+                          <p className="text-yellow-400 text-sm">No active users found — consider choosing a different group</p>
+                        ) : (
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <p className="text-white font-bold">{total} recipients</p>
+                              <p className="text-muted-foreground text-xs">{students.length} student{students.length !== 1 ? "s" : ""} · {tutors.length} tutor{tutors.length !== 1 ? "s" : ""}</p>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-yellow-400 font-bold">₦{each.toLocaleString()} each</p>
+                              <p className="text-muted-foreground text-xs">Total ₦{(each * total).toLocaleString()}</p>
+                            </div>
+                          </div>
+                        );
+                      })()}
+                    </div>
+                  )}
+
+                  <button
+                    onClick={handleSponsor}
+                    disabled={sponsoring || !sponsorAmount || Number(sponsorAmount) <= 0}
+                    className="w-full py-3.5 rounded-xl font-bold text-white bg-gradient-to-r from-yellow-500 to-orange-400 hover:opacity-90 disabled:opacity-50 transition-all flex items-center justify-center gap-2 shadow-lg"
+                  >
+                    {sponsoring ? <><Loader2 className="w-5 h-5 animate-spin" /> Processing…</> : <><Zap className="w-5 h-5" /> Confirm & Distribute</>}
+                  </button>
+                  <p className="text-center text-xs text-muted-foreground">Funds are credited instantly to each recipient's wallet</p>
+                </div>
+              )}
+            </motion.div>
+          </div>
+        )}
       </DashboardLayout>
     );
   }
