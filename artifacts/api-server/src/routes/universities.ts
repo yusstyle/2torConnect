@@ -175,6 +175,25 @@ router.get("/", async (_req, res) => {
 });
 
 
+router.get("/search", async (req, res) => {
+  try {
+    const q = String(req.query.q ?? "").trim();
+    if (!q) { res.json({ universities: [] }); return; }
+    const url = `http://universities.hipolabs.com/search?name=${encodeURIComponent(q)}&limit=15`;
+    const response = await fetch(url, { signal: AbortSignal.timeout(5000) });
+    if (!response.ok) throw new Error("Upstream failed");
+    const data = await response.json() as Array<{ name: string; country: string; "state-province": string | null; domains: string[]; web_pages: string[] }>;
+    const results = data.slice(0, 15).map(u => ({
+      name: u.name,
+      country: u.country,
+      domain: u.domains?.[0] ?? null,
+    }));
+    res.json({ universities: results });
+  } catch {
+    res.json({ universities: [] });
+  }
+});
+
 router.get("/top-performers/:universityName", async (req, res) => {
   try {
     const universityName = decodeURIComponent(req.params.universityName);

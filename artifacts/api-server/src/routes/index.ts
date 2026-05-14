@@ -12,6 +12,7 @@ import socialRouter from "./social";
 import universitiesRouter from "./universities";
 import statsRouter from "./stats";
 import superadminRouter from "./superadmin";
+import sponsorshipRouter from "./sponsorship";
 
 const router: IRouter = Router();
 
@@ -28,5 +29,6 @@ router.use("/materials", materialsRouter);
 router.use("/social", socialRouter);
 router.use("/universities", universitiesRouter);
 router.use("/superadmin", superadminRouter);
+router.use("/sponsorship-requests", sponsorshipRouter);
 
 export default router;

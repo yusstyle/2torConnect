@@ -9,3 +9,4 @@ export * from "./materials";
 export * from "./investors";
 export * from "./social";
 export * from "./otp";
+export * from "./sponsorship";
