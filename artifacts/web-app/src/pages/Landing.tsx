@@ -16,10 +16,10 @@ const fadeUp = (delay = 0) => ({
 });
 
 interface PlatformStats {
-  students: number;
-  verifiedTutors: number;
+  totalStudents: number;
+  totalTutors: number;
   universities: number;
-  totalEarnings: number;
+  totalRevenue: number;
 }
 
 function formatEarnings(amount: number): string {
@@ -45,13 +45,13 @@ export default function LandingPage() {
 
   const heroStats = [
     {
-      value: stats ? formatCount(stats.students) : "…",
+      value: stats ? formatCount(stats.totalStudents) : "…",
       label: "Students Enrolled",
       icon: Users,
       color: "text-accent",
     },
     {
-      value: stats ? formatCount(stats.verifiedTutors) : "…",
+      value: stats ? formatCount(stats.totalTutors) : "…",
       label: "Verified Tutors",
       icon: GraduationCap,
       color: "text-primary",
@@ -63,7 +63,7 @@ export default function LandingPage() {
       color: "text-yellow-400",
     },
     {
-      value: stats ? formatEarnings(stats.totalEarnings) : "…",
+      value: stats ? formatEarnings(stats.totalRevenue) : "…",
       label: "Earned by Tutors",
       icon: Banknote,
       color: "text-green-400",
