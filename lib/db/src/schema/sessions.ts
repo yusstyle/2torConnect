@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, timestamp, numeric, pgEnum } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, timestamp, numeric, pgEnum, boolean } from "drizzle-orm/pg-core";
 import { usersTable } from "./users";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
@@ -17,6 +17,8 @@ export const sessionsTable = pgTable("sessions", {
   isPaid: integer("is_paid").notNull().default(0),
   liveUrl: text("live_url"),
   notes: text("notes"),
+  isGroupSession: boolean("is_group_session").notNull().default(false),
+  maxStudents: integer("max_students").notNull().default(1),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

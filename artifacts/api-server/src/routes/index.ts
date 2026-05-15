@@ -15,6 +15,12 @@ import superadminRouter from "./superadmin";
 import sponsorshipRouter from "./sponsorship";
 import walletRouter from "./wallet";
 import aiRouter from "./ai";
+import notificationsRouter from "./notifications";
+import reviewsRouter from "./reviews";
+import assignmentsRouter from "./assignments";
+import leaderboardRouter from "./leaderboard";
+import referralsRouter from "./referrals";
+import groupsRouter from "./groups";
 
 const router: IRouter = Router();
 
@@ -34,5 +40,11 @@ router.use("/superadmin", superadminRouter);
 router.use("/sponsorship-requests", sponsorshipRouter);
 router.use("/wallet", walletRouter);
 router.use("/ai", aiRouter);
+router.use("/notifications", notificationsRouter);
+router.use("/reviews", reviewsRouter);
+router.use("/assignments", assignmentsRouter);
+router.use("/leaderboard", leaderboardRouter);
+router.use("/referrals", referralsRouter);
+router.use("/groups", groupsRouter);
 
 export default router;

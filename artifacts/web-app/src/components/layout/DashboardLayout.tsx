@@ -5,9 +5,11 @@ import { Logo } from "@/components/Logo";
 import {
   LogOut, LayoutDashboard, Users, BookOpen,
   CreditCard, MessageSquare, Calendar,
-  Search, FileText, Menu, X, Video, Globe, GraduationCap, UserCircle, HandCoins, Wallet, Sparkles
+  Search, FileText, Menu, X, Video, Globe, GraduationCap, UserCircle, HandCoins, Wallet, Sparkles,
+  Trophy, Gift, Users2, ClipboardList
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import NotificationBell from "@/components/NotificationBell";
 
 interface NavItem {
   label: string;
@@ -61,6 +63,10 @@ export function DashboardLayout({ children, role: roleProp, title }: DashboardLa
       { label: "AI Study Assistant", href: "/student/ai-assistant", icon: Sparkles },
       { label: "My Wallet", href: "/student/wallet", icon: Wallet },
       { label: "Sponsorship", href: "/student/sponsorship", icon: HandCoins },
+      { label: "Assignments Board", href: "/student/assignments", icon: ClipboardList },
+      { label: "Group Sessions", href: "/group-sessions", icon: Users2 },
+      { label: "Leaderboard", href: "/leaderboard", icon: Trophy },
+      { label: "Refer & Earn", href: "/referral", icon: Gift },
       { label: "Messages", href: "/messages", icon: MessageSquare },
       { label: "ConnectFeed", href: "/socialise", icon: Globe },
       { label: "My Profile", href: "/profile", icon: UserCircle },
@@ -72,6 +78,10 @@ export function DashboardLayout({ children, role: roleProp, title }: DashboardLa
       { label: "Materials", href: "/tutor/materials", icon: FileText },
       { label: "Availability", href: "/tutor/availability", icon: Calendar },
       { label: "Earnings", href: "/tutor/earnings", icon: CreditCard },
+      { label: "Assignments Board", href: "/tutor/assignments", icon: ClipboardList },
+      { label: "Group Sessions", href: "/group-sessions", icon: Users2 },
+      { label: "Leaderboard", href: "/leaderboard", icon: Trophy },
+      { label: "Refer & Earn", href: "/referral", icon: Gift },
       { label: "Messages", href: "/messages", icon: MessageSquare },
       { label: "ConnectFeed", href: "/socialise", icon: Globe },
       { label: "My Profile", href: "/profile", icon: UserCircle },
@@ -79,6 +89,8 @@ export function DashboardLayout({ children, role: roleProp, title }: DashboardLa
     investor: [
       { label: "Dashboard", href: "/investor/dashboard", icon: LayoutDashboard },
       { label: "Sponsor a University", href: "/investor/universities", icon: GraduationCap },
+      { label: "Leaderboard", href: "/leaderboard", icon: Trophy },
+      { label: "Refer & Earn", href: "/referral", icon: Gift },
       { label: "Messages", href: "/messages", icon: MessageSquare },
       { label: "ConnectFeed", href: "/socialise", icon: Globe },
       { label: "My Profile", href: "/profile", icon: UserCircle },
@@ -117,12 +129,15 @@ export function DashboardLayout({ children, role: roleProp, title }: DashboardLa
           </button>
           <Logo size={32} />
         </div>
-        <Link href="/profile" className={`w-9 h-9 rounded-full bg-gradient-to-tr ${roleGradient[user.role] ?? "from-primary to-accent"} flex items-center justify-center font-bold text-white text-sm shrink-0 overflow-hidden border-2 border-white/20`}>
-          {user.avatarUrl
-            ? <img src={user.avatarUrl} alt="avatar" className="w-full h-full object-cover" />
-            : <span>{user.name.split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase()}</span>
-          }
-        </Link>
+        <div className="flex items-center gap-2">
+          <NotificationBell />
+          <Link href="/profile" className={`w-9 h-9 rounded-full bg-gradient-to-tr ${roleGradient[user.role] ?? "from-primary to-accent"} flex items-center justify-center font-bold text-white text-sm shrink-0 overflow-hidden border-2 border-white/20`}>
+            {user.avatarUrl
+              ? <img src={user.avatarUrl} alt="avatar" className="w-full h-full object-cover" />
+              : <span>{user.name.split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase()}</span>
+            }
+          </Link>
+        </div>
       </div>
 
       {/* Backdrop overlay for mobile */}
@@ -147,8 +162,9 @@ export function DashboardLayout({ children, role: roleProp, title }: DashboardLa
             transition={{ type: "spring", stiffness: 300, damping: 30 }}
             className="fixed md:static inset-y-0 left-0 z-50 w-72 md:w-64 glass-panel border-r border-y-0 border-l-0 flex flex-col"
           >
-            <div className="p-5 hidden md:flex items-center border-b border-white/5">
+            <div className="p-5 hidden md:flex items-center justify-between border-b border-white/5">
               <Logo size={44} />
+              <NotificationBell />
             </div>
 
             {/* Mobile sidebar header */}

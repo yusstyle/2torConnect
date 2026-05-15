@@ -35,7 +35,7 @@ router.get("/", async (req, res) => {
     const page = Number(req.query.page) || 1;
     const limit = Number(req.query.limit) || 20;
     const offset = (page - 1) * limit;
-    const { subject, status, search } = req.query;
+    const { subject, status, search, minRating, maxPrice } = req.query;
 
     const userConditions = [];
     if (status) userConditions.push(eq(usersTable.status, status as any));
@@ -51,7 +51,7 @@ router.get("/", async (req, res) => {
       .from(tutorsTable)
       .innerJoin(usersTable, eq(tutorsTable.userId, usersTable.id))
       .where(userConditions.length > 0 ? and(...userConditions) : undefined)
-      .limit(limit)
+      .limit(limit * 3) // over-fetch so we can filter by subject/rating/price client-side
       .offset(offset);
 
     const [{ value: total }] = await db
@@ -61,7 +61,10 @@ router.get("/", async (req, res) => {
       .where(userConditions.length > 0 ? and(...userConditions) : undefined);
 
     const tutors = rows
-      .filter(r => !subject || (r.tutor.subjects ?? []).includes(subject as string))
+      .filter(r => !subject || (r.tutor.subjects ?? []).some(s => s.toLowerCase().includes((subject as string).toLowerCase())))
+      .filter(r => !minRating || Number(r.tutor.rating ?? 0) >= Number(minRating))
+      .filter(r => !maxPrice || Number(r.tutor.hourlyRate ?? 99999) <= Number(maxPrice))
+      .slice(0, limit)
       .map(r => buildTutorProfile(r.tutor, r.user));
 
     res.json({ tutors, total: Number(total), page, limit });

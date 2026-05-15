@@ -38,6 +38,12 @@ import AdminUsersPage from "@/pages/admin/Users";
 import AdminTransactionsPage from "@/pages/admin/Transactions";
 import SuperAdminPage from "@/pages/admin/SuperAdmin";
 
+import StudentAssignmentsPage from "@/pages/student/Assignments";
+import TutorAssignmentsPage from "@/pages/tutor/Assignments";
+import LeaderboardPage from "@/pages/Leaderboard";
+import ReferralPage from "@/pages/Referral";
+import GroupSessionsPage from "@/pages/GroupSessions";
+
 const queryClient = new QueryClient();
 
 function NotFound() {
@@ -91,6 +97,12 @@ function Router() {
       <Route path="/session/:id" component={VideoRoom} />
 
       <Route path="/superadmin" component={SuperAdminPage} />
+
+      <Route path="/student/assignments" component={StudentAssignmentsPage} />
+      <Route path="/tutor/assignments" component={TutorAssignmentsPage} />
+      <Route path="/leaderboard" component={LeaderboardPage} />
+      <Route path="/referral" component={ReferralPage} />
+      <Route path="/group-sessions" component={GroupSessionsPage} />
 
       <Route path="/admin/dashboard" component={AdminDashboard} />
       <Route path="/admin/users" component={AdminUsersPage} />

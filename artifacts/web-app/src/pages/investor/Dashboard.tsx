@@ -2,7 +2,7 @@ import DashboardLayout from "@/components/layout/DashboardLayout";
 import { useAuthStore } from "@/lib/auth";
 import { useListTransactions } from "@workspace/api-client-react";
 import { useLocation } from "wouter";
-import { Building2, TrendingUp, ArrowRight, Clock, GraduationCap, Sparkles, Trophy, Users, XCircle } from "lucide-react";
+import { Building2, TrendingUp, ArrowRight, Clock, GraduationCap, Sparkles, Trophy, Users, XCircle, DollarSign } from "lucide-react";
 import { motion } from "framer-motion";
 import { format } from "date-fns";
 import { useQuery } from "@tanstack/react-query";

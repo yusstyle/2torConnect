@@ -19,6 +19,7 @@ export const usersTable = pgTable("users", {
   bankAccountNumber: text("bank_account_number"),
   bankAccountName: text("bank_account_name"),
   country: text("country"),
+  referralCode: text("referral_code").unique(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   lastLogin: timestamp("last_login"),
 });
