@@ -6,6 +6,7 @@ import runtimeErrorOverlay from "@replit/vite-plugin-runtime-error-modal";
 
 const port = Number(process.env.PORT ?? "3000");
 const basePath = process.env.BASE_PATH ?? "/";
+const isMainDevServer = port === 5000;
 
 export default defineConfig({
   base: basePath,
@@ -13,7 +14,8 @@ export default defineConfig({
     react(),
     tailwindcss(),
     runtimeErrorOverlay(),
-    ...(process.env.NODE_ENV !== "production" &&
+    ...(isMainDevServer &&
+    process.env.NODE_ENV !== "production" &&
     process.env.REPL_ID !== undefined
       ? [
           await import("@replit/vite-plugin-cartographer").then((m) =>
