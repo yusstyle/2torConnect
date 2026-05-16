@@ -44,7 +44,7 @@ export default function FindTutorPage() {
   const [selectedTutor, setSelectedTutor] = useState<Tutor | null>(null);
   const [reviewTutorId, setReviewTutorId] = useState<number | null>(null);
 
-  const headers = token ? { Authorization: `Bearer ${token}` } : {};
+  const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
 
   const load = async () => {
     setLoading(true);
@@ -193,7 +193,7 @@ function TutorCard({ tutor, onBook, onMessage, onReview }: { tutor: Tutor; onBoo
   const [reviews, setReviews] = useState<any[]>([]);
   const [reviewsLoading, setReviewsLoading] = useState(false);
   const { token } = useAuthStore();
-  const headers = token ? { Authorization: `Bearer ${token}` } : {};
+  const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
   const hasRating = tutor.rating && Number(tutor.rating) > 0;
 
   const toggleReviews = async () => {

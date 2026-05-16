@@ -6,7 +6,6 @@ import { pushNotification } from "./notifications";
 
 const router = Router();
 
-// GET /api/assignments — all open assignments (tutor view) or student's own
 router.get("/", async (req, res) => {
   try {
     const userId = Number((req as any).user?.id);
@@ -44,7 +43,6 @@ router.get("/", async (req, res) => {
       .orderBy(desc(assignmentsTable.createdAt))
       .limit(100);
 
-    // Attach response count for each assignment
     const enriched = await Promise.all(rows.map(async (a) => {
       const responses = await db
         .select({ id: assignmentResponsesTable.id })
@@ -53,13 +51,12 @@ router.get("/", async (req, res) => {
       return { ...a, responseCount: responses.length };
     }));
 
-    res.json(enriched);
+    return res.json(enriched);
   } catch (err) {
-    res.status(500).json({ error: "Failed to fetch assignments" });
+    return res.status(500).json({ error: "Failed to fetch assignments" });
   }
 });
 
-// GET /api/assignments/:id — single assignment with responses
 router.get("/:id", async (req, res) => {
   try {
     const id = Number(req.params.id);
@@ -95,13 +92,12 @@ router.get("/:id", async (req, res) => {
       .where(eq(assignmentResponsesTable.assignmentId, id))
       .orderBy(desc(assignmentResponsesTable.createdAt));
 
-    res.json({ ...assignment, responses });
+    return res.json({ ...assignment, responses });
   } catch (err) {
-    res.status(500).json({ error: "Failed to fetch assignment" });
+    return res.status(500).json({ error: "Failed to fetch assignment" });
   }
 });
 
-// POST /api/assignments — student creates
 router.post("/", async (req, res) => {
   try {
     const studentId = Number((req as any).user?.id);
@@ -117,13 +113,12 @@ router.post("/", async (req, res) => {
       description,
       deadline: deadline ? new Date(deadline) : null,
     }).returning();
-    res.status(201).json(a);
+    return res.status(201).json(a);
   } catch (err) {
-    res.status(500).json({ error: "Failed to create assignment" });
+    return res.status(500).json({ error: "Failed to create assignment" });
   }
 });
 
-// POST /api/assignments/:id/respond — tutor responds
 router.post("/:id/respond", async (req, res) => {
   try {
     const tutorId = Number((req as any).user?.id);
@@ -137,10 +132,8 @@ router.post("/:id/respond", async (req, res) => {
       response,
     }).returning();
 
-    // Update assignment status to answered
     await db.update(assignmentsTable).set({ status: "answered" }).where(eq(assignmentsTable.id, assignmentId));
 
-    // Notify student
     const [asgn] = await db.select({ studentId: assignmentsTable.studentId, title: assignmentsTable.title }).from(assignmentsTable).where(eq(assignmentsTable.id, assignmentId));
     const [tutor] = await db.select({ name: usersTable.name }).from(usersTable).where(eq(usersTable.id, tutorId));
     if (asgn) {
@@ -153,21 +146,20 @@ router.post("/:id/respond", async (req, res) => {
       );
     }
 
-    res.status(201).json(resp);
+    return res.status(201).json(resp);
   } catch (err) {
-    res.status(500).json({ error: "Failed to submit response" });
+    return res.status(500).json({ error: "Failed to submit response" });
   }
 });
 
-// PATCH /api/assignments/:id/close — student closes
 router.patch("/:id/close", async (req, res) => {
   try {
     const studentId = Number((req as any).user?.id);
     const id = Number(req.params.id);
     await db.update(assignmentsTable).set({ status: "closed" }).where(and(eq(assignmentsTable.id, id), eq(assignmentsTable.studentId, studentId)));
-    res.json({ success: true });
+    return res.json({ success: true });
   } catch (err) {
-    res.status(500).json({ error: "Failed to close assignment" });
+    return res.status(500).json({ error: "Failed to close assignment" });
   }
 });
 

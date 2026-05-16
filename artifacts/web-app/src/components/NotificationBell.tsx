@@ -30,7 +30,7 @@ export default function NotificationBell() {
   const [loading, setLoading] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
 
-  const headers = token ? { Authorization: `Bearer ${token}`, "Content-Type": "application/json" } : {};
+  const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}`, "Content-Type": "application/json" } : {};
   const unread = notifs.filter(n => !n.isRead).length;
 
   const fetchNotifs = async () => {

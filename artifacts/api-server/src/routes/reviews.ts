@@ -6,7 +6,6 @@ import { pushNotification } from "./notifications";
 
 const router = Router();
 
-// GET /api/reviews?tutorId=X
 router.get("/", async (req, res) => {
   try {
     const tutorId = Number(req.query.tutorId);
@@ -31,13 +30,12 @@ router.get("/", async (req, res) => {
       .from(reviewsTable)
       .where(eq(reviewsTable.tutorId, tutorId));
 
-    res.json({ reviews: rows, avgRating: stats?.avg ?? null, total: Number(stats?.total ?? 0) });
+    return res.json({ reviews: rows, avgRating: stats?.avg ?? null, total: Number(stats?.total ?? 0) });
   } catch (err) {
-    res.status(500).json({ error: "Failed to fetch reviews" });
+    return res.status(500).json({ error: "Failed to fetch reviews" });
   }
 });
 
-// POST /api/reviews
 router.post("/", async (req, res) => {
   try {
     const { tutorId, sessionId, rating, comment } = req.body;
@@ -55,7 +53,6 @@ router.post("/", async (req, res) => {
       comment: comment || null,
     }).returning();
 
-    // Update tutor average rating
     const [stats] = await db
       .select({ avg: avg(reviewsTable.rating) })
       .from(reviewsTable)
@@ -67,7 +64,6 @@ router.post("/", async (req, res) => {
         .where(eq(tutorsTable.userId, Number(tutorId)));
     }
 
-    // Notify tutor
     const [student] = await db.select({ name: usersTable.name }).from(usersTable).where(eq(usersTable.id, studentId));
     await pushNotification(
       Number(tutorId),
@@ -77,9 +73,9 @@ router.post("/", async (req, res) => {
       "/tutor/dashboard"
     );
 
-    res.status(201).json(review);
+    return res.status(201).json(review);
   } catch (err) {
-    res.status(500).json({ error: "Failed to submit review" });
+    return res.status(500).json({ error: "Failed to submit review" });
   }
 });
 

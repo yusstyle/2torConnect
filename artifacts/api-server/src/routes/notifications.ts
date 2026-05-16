@@ -5,7 +5,6 @@ import { eq, and, desc } from "drizzle-orm";
 
 const router = Router();
 
-// GET /api/notifications — current user's notifications
 router.get("/", async (req, res) => {
   try {
     const userId = Number((req as any).user?.id);
@@ -16,13 +15,12 @@ router.get("/", async (req, res) => {
       .where(eq(notificationsTable.userId, userId))
       .orderBy(desc(notificationsTable.createdAt))
       .limit(50);
-    res.json(rows);
+    return res.json(rows);
   } catch (err) {
-    res.status(500).json({ error: "Failed to fetch notifications" });
+    return res.status(500).json({ error: "Failed to fetch notifications" });
   }
 });
 
-// GET /api/notifications/unread-count
 router.get("/unread-count", async (req, res) => {
   try {
     const userId = Number((req as any).user?.id);
@@ -31,13 +29,12 @@ router.get("/unread-count", async (req, res) => {
       .select()
       .from(notificationsTable)
       .where(and(eq(notificationsTable.userId, userId), eq(notificationsTable.isRead, false)));
-    res.json({ count: rows.length });
+    return res.json({ count: rows.length });
   } catch (err) {
-    res.status(500).json({ error: "Failed to get count" });
+    return res.status(500).json({ error: "Failed to get count" });
   }
 });
 
-// PATCH /api/notifications/:id/read
 router.patch("/:id/read", async (req, res) => {
   try {
     const userId = Number((req as any).user?.id);
@@ -46,13 +43,12 @@ router.patch("/:id/read", async (req, res) => {
       .update(notificationsTable)
       .set({ isRead: true })
       .where(and(eq(notificationsTable.id, id), eq(notificationsTable.userId, userId)));
-    res.json({ success: true });
+    return res.json({ success: true });
   } catch (err) {
-    res.status(500).json({ error: "Failed to mark read" });
+    return res.status(500).json({ error: "Failed to mark read" });
   }
 });
 
-// PATCH /api/notifications/read-all
 router.patch("/read-all", async (req, res) => {
   try {
     const userId = Number((req as any).user?.id);
@@ -61,15 +57,14 @@ router.patch("/read-all", async (req, res) => {
       .update(notificationsTable)
       .set({ isRead: true })
       .where(eq(notificationsTable.userId, userId));
-    res.json({ success: true });
+    return res.json({ success: true });
   } catch (err) {
-    res.status(500).json({ error: "Failed to mark all read" });
+    return res.status(500).json({ error: "Failed to mark all read" });
   }
 });
 
 export default router;
 
-// Helper to push a notification (used by other routes)
 export async function pushNotification(userId: number, type: string, title: string, message: string, link?: string) {
   try {
     await db.insert(notificationsTable).values({ userId, type, title, message, link });

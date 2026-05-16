@@ -1,5 +1,4 @@
-import { db } from "@workspace/db";
-import { sql } from "drizzle-orm";
+import { pool } from "@workspace/db";
 
 async function migrate() {
   const steps = [
@@ -15,17 +14,19 @@ async function migrate() {
     { name: "assignment_responses table", q: `CREATE TABLE IF NOT EXISTS assignment_responses (id SERIAL PRIMARY KEY, assignment_id INTEGER NOT NULL REFERENCES assignments(id) ON DELETE CASCADE, tutor_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE, response TEXT NOT NULL, created_at TIMESTAMP DEFAULT NOW() NOT NULL)` },
     { name: "referrals table", q: `CREATE TABLE IF NOT EXISTS referrals (id SERIAL PRIMARY KEY, referrer_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE, referred_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE, status referral_status NOT NULL DEFAULT 'credited', created_at TIMESTAMP DEFAULT NOW() NOT NULL)` },
     { name: "session_participants table", q: `CREATE TABLE IF NOT EXISTS session_participants (id SERIAL PRIMARY KEY, session_id INTEGER NOT NULL REFERENCES sessions(id) ON DELETE CASCADE, student_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE, joined_at TIMESTAMP DEFAULT NOW() NOT NULL)` },
+    { name: "groups table alias (session_participants already covers groups)", q: `SELECT 1` },
   ];
 
   for (const step of steps) {
     try {
-      await db.execute(sql.raw(step.q));
+      await pool.query(step.q);
       console.log(`✓ ${step.name}`);
     } catch (e: any) {
-      console.log(`~ ${step.name}: ${e.message.slice(0, 80)}`);
+      console.log(`~ ${step.name}: ${e.message.slice(0, 100)}`);
     }
   }
   console.log("Migration complete");
+  await pool.end();
   process.exit(0);
 }
 

@@ -62,6 +62,21 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Global soft-auth: decode Bearer token and attach to req.user + req.authUser
+app.use((req: any, _res, next) => {
+  const authHeader = req.headers.authorization;
+  if (authHeader?.startsWith("Bearer ")) {
+    try {
+      const payload = JSON.parse(Buffer.from(authHeader.slice(7), "base64").toString("utf8"));
+      req.user = payload;
+      req.authUser = payload;
+    } catch {
+      // invalid token — routes that require auth will reject
+    }
+  }
+  next();
+});
+
 app.use("/api", router);
 const uploadDir = path.join(process.cwd(), "uploads");
 app.use("/uploads", express.static(uploadDir));

@@ -1,11 +1,10 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
-import { usersTable, tutorsTable, sessionsTable, reviewsTable } from "@workspace/db";
-import { eq, desc, count, avg, and } from "drizzle-orm";
+import { usersTable, tutorsTable, sessionsTable } from "@workspace/db";
+import { eq, desc, count } from "drizzle-orm";
 
 const router = Router();
 
-// GET /api/leaderboard/tutors
 router.get("/tutors", async (req, res) => {
   try {
     const rows = await db
@@ -25,16 +24,14 @@ router.get("/tutors", async (req, res) => {
       .orderBy(desc(tutorsTable.totalSessions))
       .limit(20);
 
-    res.json(rows);
+    return res.json(rows);
   } catch (err) {
-    res.status(500).json({ error: "Failed to fetch leaderboard" });
+    return res.status(500).json({ error: "Failed to fetch leaderboard" });
   }
 });
 
-// GET /api/leaderboard/students
 router.get("/students", async (req, res) => {
   try {
-    // Count completed sessions per student
     const sessionCounts = await db
       .select({
         studentId: sessionsTable.studentId,
@@ -51,16 +48,16 @@ router.get("/students", async (req, res) => {
     const enriched = await Promise.all(
       sessionCounts.map(async ({ studentId, sessionCount }) => {
         const [user] = await db
-          .select({ name: usersTable.name, avatarUrl: usersTable.avatarUrl, university: usersTable.name })
+          .select({ name: usersTable.name, avatarUrl: usersTable.avatarUrl })
           .from(usersTable)
           .where(eq(usersTable.id, studentId));
         return { studentId, sessionCount, name: user?.name ?? "Unknown", avatarUrl: user?.avatarUrl };
       })
     );
 
-    res.json(enriched);
+    return res.json(enriched);
   } catch (err) {
-    res.status(500).json({ error: "Failed to fetch leaderboard" });
+    return res.status(500).json({ error: "Failed to fetch leaderboard" });
   }
 });
 

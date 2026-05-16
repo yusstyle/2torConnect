@@ -13,4 +13,5 @@ export const UserProfileRole = {
   student: "student",
   tutor: "tutor",
   admin: "admin",
+  investor: "investor",
 } as const;

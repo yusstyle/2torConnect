@@ -377,7 +377,7 @@ export default function SocialisePage() {
 
         {/* Filter tabs */}
         <div className="flex gap-2 overflow-x-auto pb-1">
-          {[{ id: "all", label: "All", icon: Radio }, ...POST_TYPES].map(f => (
+          {[{ id: "all", label: "All", icon: Radio, color: "" }, ...POST_TYPES.map(p => ({ ...p, id: p.type }))].map(f => (
             <button key={f.id} onClick={() => setActiveFilter(f.id as any)}
               className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold whitespace-nowrap transition-all shrink-0 ${
                 activeFilter === f.id ? "bg-gradient-to-r from-primary to-accent text-white shadow-md" : "glass-panel text-muted-foreground hover:text-white"

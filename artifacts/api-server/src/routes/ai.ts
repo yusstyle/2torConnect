@@ -62,14 +62,14 @@ router.post("/chat", async (req, res) => {
     }
 
     res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
-    res.end();
+    return res.end();
   } catch (err) {
     console.error("AI chat error:", err);
     if (res.headersSent) {
       res.write(`data: ${JSON.stringify({ error: "AI error" })}\n\n`);
-      res.end();
+      return res.end();
     } else {
-      res.status(500).json({ error: "Failed to get AI response" });
+      return res.status(500).json({ error: "Failed to get AI response" });
     }
   }
 });

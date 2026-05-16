@@ -19,7 +19,7 @@ export default function LeaderboardPage() {
   const [students, setStudents] = useState<StudentEntry[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const headers = token ? { Authorization: `Bearer ${token}` } : {};
+  const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
 
   useEffect(() => {
     const load = async () => {
