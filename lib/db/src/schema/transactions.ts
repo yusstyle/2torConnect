@@ -14,6 +14,7 @@ export const transactionsTable = pgTable("transactions", {
   type: transactionTypeEnum("type").notNull(),
   amount: numeric("amount", { precision: 10, scale: 2 }).notNull(),
   description: text("description"),
+  reference: text("reference"),
   status: transactionStatusEnum("status").notNull().default("pending"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });

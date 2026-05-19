@@ -1,13 +1,13 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuthStore } from "@/lib/auth";
 import { useListTransactions } from "@workspace/api-client-react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { format } from "date-fns";
-import { Wallet, TrendingUp, ArrowDownCircle, Plus, X, Loader2, CreditCard } from "lucide-react";
+import { Wallet, TrendingUp, ArrowDownCircle, Plus, X, Loader2, CreditCard, CheckCircle, AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { getApiUrl } from "@/lib/api";
 
-function FundModal({ onClose, onFunded }: { onClose: () => void; onFunded: () => void }) {
+function FundModal({ onClose }: { onClose: () => void }) {
   const [amount, setAmount] = useState("");
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
@@ -30,13 +30,13 @@ function FundModal({ onClose, onFunded }: { onClose: () => void; onFunded: () =>
       });
       if (!res.ok) {
         const err = await res.json();
-        throw new Error(err.error ?? "Failed to fund wallet");
+        throw new Error(err.error ?? "Failed to initiate payment");
       }
-      toast({ title: "Wallet funded!", description: `₦${parsed.toLocaleString()} added to your wallet.` });
-      onFunded();
+      const data = await res.json();
+      // Redirect to Monnify secure checkout
+      window.location.href = data.checkoutUrl;
     } catch (e: any) {
-      toast({ variant: "destructive", title: "Funding failed", description: e.message });
-    } finally {
+      toast({ variant: "destructive", title: "Payment initiation failed", description: e.message });
       setLoading(false);
     }
   };
@@ -79,8 +79,8 @@ function FundModal({ onClose, onFunded }: { onClose: () => void; onFunded: () =>
         </div>
 
         <div className="bg-accent/10 border border-accent/20 rounded-xl p-3 text-xs text-muted-foreground">
-          <p className="font-semibold text-accent mb-1">Simulated Payment</p>
-          <p>Funds are added instantly to your wallet balance for use in booking sessions.</p>
+          <p className="font-semibold text-accent mb-1">Secure Payment via Monnify</p>
+          <p>You'll be redirected to Monnify's secure checkout to complete payment with card or bank transfer.</p>
         </div>
 
         <div className="flex gap-3">
@@ -93,7 +93,7 @@ function FundModal({ onClose, onFunded }: { onClose: () => void; onFunded: () =>
             className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-primary to-accent text-white font-bold text-sm hover:opacity-90 transition-all disabled:opacity-50"
           >
             {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
-            Add Funds
+            {loading ? "Redirecting…" : "Pay Now"}
           </button>
         </div>
       </div>
@@ -117,7 +117,11 @@ const typeLabels: Record<string, string> = {
 
 export default function StudentWalletPage() {
   const { user } = useAuthStore();
+  const { token } = useAuthStore();
+  const { toast } = useToast();
   const [showFund, setShowFund] = useState(false);
+  const [verifying, setVerifying] = useState(false);
+  const [verifyStatus, setVerifyStatus] = useState<"success" | "failed" | null>(null);
 
   const { data, isLoading, refetch } = useListTransactions({ userId: user?.id });
 
@@ -127,13 +131,66 @@ export default function StudentWalletPage() {
   const totalSpent = completed.filter((t) => t.type === "payment").reduce((s, t) => s + Number(t.amount), 0);
   const balance = totalFunded - totalSpent;
 
+  // Verify payment when Monnify redirects back with transactionReference in URL
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const transactionReference = params.get("transactionReference");
+    if (!transactionReference || !token) return;
+
+    // Clean query params from URL without triggering a reload
+    const url = new URL(window.location.href);
+    url.searchParams.delete("transactionReference");
+    url.searchParams.delete("paymentReference");
+    url.searchParams.delete("paymentStatus");
+    window.history.replaceState({}, "", url.toString());
+
+    setVerifying(true);
+    fetch(`${getApiUrl()}/wallet/verify`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ transactionReference }),
+    })
+      .then(async (res) => {
+        if (!res.ok) {
+          const err = await res.json();
+          throw new Error(err.error ?? "Verification failed");
+        }
+        return res.json();
+      })
+      .then(() => {
+        setVerifyStatus("success");
+        toast({ title: "Payment confirmed!", description: "Your wallet has been funded successfully." });
+        refetch();
+      })
+      .catch((e: any) => {
+        setVerifyStatus("failed");
+        toast({ variant: "destructive", title: "Payment verification failed", description: e.message });
+      })
+      .finally(() => setVerifying(false));
+  }, [token]);
+
   return (
     <DashboardLayout role="student" title="My Wallet">
-      {showFund && (
-        <FundModal
-          onClose={() => setShowFund(false)}
-          onFunded={() => { setShowFund(false); refetch(); }}
-        />
+      {showFund && <FundModal onClose={() => setShowFund(false)} />}
+
+      {/* Payment verification banners */}
+      {verifying && (
+        <div className="mb-4 flex items-center gap-3 p-4 rounded-2xl bg-accent/10 border border-accent/20 text-accent">
+          <Loader2 className="w-5 h-5 animate-spin shrink-0" />
+          <p className="text-sm font-medium">Verifying your payment with Monnify…</p>
+        </div>
+      )}
+      {verifyStatus === "success" && (
+        <div className="mb-4 flex items-center gap-3 p-4 rounded-2xl bg-green-500/10 border border-green-500/20 text-green-400">
+          <CheckCircle className="w-5 h-5 shrink-0" />
+          <p className="text-sm font-medium">Payment confirmed! Your wallet has been funded.</p>
+        </div>
+      )}
+      {verifyStatus === "failed" && (
+        <div className="mb-4 flex items-center gap-3 p-4 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-400">
+          <AlertCircle className="w-5 h-5 shrink-0" />
+          <p className="text-sm font-medium">Payment verification failed. If you were charged, please contact support.</p>
+        </div>
       )}
 
       <div className="space-y-6">
@@ -200,7 +257,13 @@ export default function StudentWalletPage() {
                     <p className={`font-bold ${typeColors[t.type] ?? "text-white"}`}>
                       {t.type === "payment" || t.type === "withdrawal" ? "-" : "+"}₦{Number(t.amount).toLocaleString()}
                     </p>
-                    <p className="text-xs text-muted-foreground capitalize">{t.status}</p>
+                    <p className={`text-xs capitalize ${
+                      t.status === "pending" ? "text-yellow-400" :
+                      t.status === "failed" ? "text-red-400" :
+                      "text-muted-foreground"
+                    }`}>
+                      {t.status}
+                    </p>
                   </div>
                 </div>
               ))}
