@@ -68,3 +68,9 @@ channel = "stable-25_05"
 [[ports]]
 localPort = 5000
 externalPort = 80
+
+[userenv]
+
+[userenv.shared]
+MONNIFY_BASE_URL = "https://sandbox.monnify.com"
+MONNIFY_WALLET_ACCOUNT = "2932618747"
