@@ -194,28 +194,26 @@ export default function SponsorUniversities() {
 
           <div className={`relative overflow-hidden rounded-3xl p-6 border border-white/10`}>
             <div className={`absolute inset-0 opacity-10 bg-gradient-to-br ${selectedUni.color}`} />
-            <div className="relative flex items-center gap-5">
-              <div className={`w-16 h-16 rounded-2xl bg-gradient-to-tr ${selectedUni.color} flex items-center justify-center font-bold text-white text-sm shadow-xl shrink-0`}>
+            <div className="relative flex items-start gap-4">
+              <div className={`w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-tr ${selectedUni.color} flex items-center justify-center font-bold text-white text-xs sm:text-sm shadow-xl shrink-0`}>
                 {selectedUni.acronym.slice(0, 4)}
               </div>
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <h2 className="text-white font-bold text-2xl leading-tight">{selectedUni.name}</h2>
-                  {selectedUni.active && <CheckCircle2 className="w-5 h-5 text-green-400 shrink-0" />}
+                <div className="flex items-start gap-2">
+                  <h2 className="text-white font-bold text-lg sm:text-2xl leading-tight break-words">{selectedUni.name}</h2>
+                  {selectedUni.active && <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5 text-green-400 shrink-0 mt-1" />}
                 </div>
-                <div className="flex items-center gap-2 mt-1 flex-wrap text-sm text-white/60">
-                  <MapPin className="w-3.5 h-3.5 shrink-0" />
+                <div className="flex items-center gap-1.5 mt-1 flex-wrap text-xs sm:text-sm text-white/60">
+                  <MapPin className="w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0" />
                   <span>{selectedUni.location !== "—" ? selectedUni.location : selectedUni.country}</span>
                   {selectedUni.country && selectedUni.location !== selectedUni.country && <><span>·</span><span>{selectedUni.country}</span></>}
                   <span>·</span><span>{selectedUni.type}</span>
                   {selectedUni.established && <><span>·</span><span>Est. {selectedUni.established}</span></>}
                 </div>
-              </div>
-              <div className="flex gap-2 shrink-0">
                 {selectedUni.website && (
                   <a href={selectedUni.website} target="_blank" rel="noreferrer"
-                    className="p-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white transition-all">
-                    <ExternalLink className="w-4 h-4" />
+                    className="inline-flex items-center gap-1.5 mt-2 text-xs text-white/50 hover:text-white transition-colors">
+                    <ExternalLink className="w-3 h-3" /> Website
                   </a>
                 )}
               </div>
@@ -450,12 +448,12 @@ export default function SponsorUniversities() {
         <div className="relative overflow-hidden rounded-3xl p-6 bg-gradient-to-br from-yellow-500/20 via-yellow-500/5 to-orange-500/10 border border-yellow-500/20">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_rgba(234,179,8,0.08),transparent)]" />
           <div className="relative flex items-center gap-4">
-            <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-yellow-500 to-orange-400 flex items-center justify-center shadow-lg shrink-0">
-              <GraduationCap className="w-7 h-7 text-white" />
+            <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-gradient-to-tr from-yellow-500 to-orange-400 flex items-center justify-center shadow-lg shrink-0">
+              <GraduationCap className="w-6 h-6 sm:w-7 sm:h-7 text-white" />
             </div>
-            <div className="flex-1">
-              <h2 className="text-white font-bold text-xl">Sponsor Any University in the World</h2>
-              <p className="text-white/60 text-sm">Search from 9,000+ universities worldwide. Our system automatically pays the top 10 active students and tutors at the university you choose.</p>
+            <div className="flex-1 min-w-0">
+              <h2 className="text-white font-bold text-base sm:text-xl leading-snug">Sponsor Any University in the World</h2>
+              <p className="text-white/60 text-xs sm:text-sm mt-0.5">Search 9,000+ universities. Our system automatically pays the top 10 active students and tutors you choose.</p>
             </div>
           </div>
           <div className="relative mt-5 grid grid-cols-3 gap-3">

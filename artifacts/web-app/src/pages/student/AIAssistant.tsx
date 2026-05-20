@@ -166,7 +166,7 @@ export default function AIAssistantPage() {
 
   return (
     <DashboardLayout role="student" title="AI Study Assistant">
-      <div className="flex flex-col h-[calc(100vh-120px)] md:h-[calc(100vh-80px)] max-w-3xl mx-auto">
+      <div className="flex flex-col h-[calc(100dvh-300px)] md:h-[calc(100vh-80px)] max-w-3xl mx-auto">
 
         {/* Header */}
         <div className="flex items-center justify-between mb-4 shrink-0">

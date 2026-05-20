@@ -102,16 +102,18 @@ export default function SponsorshipRequestPage() {
         {/* Hero */}
         <div className="relative overflow-hidden rounded-3xl p-6 bg-gradient-to-br from-yellow-500/20 via-yellow-500/5 to-orange-500/10 border border-yellow-500/20">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_rgba(234,179,8,0.08),transparent)]" />
-          <div className="relative flex items-center gap-4">
-            <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-yellow-500 to-orange-400 flex items-center justify-center shadow-lg">
-              <HandCoins className="w-7 h-7 text-white" />
-            </div>
-            <div className="flex-1">
-              <h2 className="text-white font-bold text-xl">Request Sponsorship</h2>
-              <p className="text-white/60 text-sm">Post your story and let sponsors find you. Sponsors browse by university and fund the most active students.</p>
+          <div className="relative flex flex-col sm:flex-row sm:items-center gap-4">
+            <div className="flex items-center gap-4 flex-1 min-w-0">
+              <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-gradient-to-tr from-yellow-500 to-orange-400 flex items-center justify-center shadow-lg shrink-0">
+                <HandCoins className="w-6 h-6 sm:w-7 sm:h-7 text-white" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h2 className="text-white font-bold text-lg sm:text-xl">Request Sponsorship</h2>
+                <p className="text-white/60 text-sm">Post your story and let sponsors find you. Sponsors browse by university and fund the most active students.</p>
+              </div>
             </div>
             <button onClick={() => setShowForm(true)}
-              className="shrink-0 flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-white bg-gradient-to-r from-yellow-500 to-orange-400 hover:opacity-90 transition-all shadow-lg text-sm">
+              className="w-full sm:w-auto shrink-0 flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl font-bold text-white bg-gradient-to-r from-yellow-500 to-orange-400 hover:opacity-90 transition-all shadow-lg text-sm">
               <Plus className="w-4 h-4" /> Post Request
             </button>
           </div>
