@@ -2,6 +2,7 @@ const MONNIFY_BASE_URL = process.env.MONNIFY_BASE_URL ?? "https://sandbox.monnif
 const MONNIFY_API_KEY = process.env.MONNIFY_API_KEY ?? "";
 const MONNIFY_SECRET_KEY = process.env.MONNIFY_SECRET_KEY ?? "";
 export const MONNIFY_WALLET_ACCOUNT = process.env.MONNIFY_WALLET_ACCOUNT ?? "";
+const MONNIFY_CONTRACT_CODE = process.env.MONNIFY_CONTRACT_CODE ?? "";
 
 let cachedToken: string | null = null;
 let tokenExpiry = 0;
@@ -50,7 +51,7 @@ export async function initializePayment(params: InitPaymentParams): Promise<Init
       paymentReference: params.paymentReference,
       paymentDescription: params.description ?? "Wallet top-up",
       currencyCode: "NGN",
-      contractCode: MONNIFY_WALLET_ACCOUNT,
+      contractCode: MONNIFY_CONTRACT_CODE,
       redirectUrl: params.redirectUrl,
       paymentMethods: ["CARD", "ACCOUNT_TRANSFER"],
     }),

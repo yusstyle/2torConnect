@@ -75,3 +75,4 @@ externalPort = 80
 MONNIFY_BASE_URL = "https://sandbox.monnify.com"
 MONNIFY_WALLET_ACCOUNT = "2932618747"
 NEON_DATABASE_URL = "postgresql://neondb_owner:npg_lVEndJZFm3u5@ep-frosty-feather-aqjbp1ri-pooler.c-8.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require"
+MONNIFY_CONTRACT_CODE = "9373199067"
