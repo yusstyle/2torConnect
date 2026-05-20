@@ -103,6 +103,25 @@ router.patch("/:id", async (req, res) => {
   }
 });
 
+router.patch("/:id/username", async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    const { username } = req.body;
+    if (!username?.trim()) { res.status(400).json({ error: "Username is required" }); return; }
+    const clean = username.trim().toLowerCase().replace(/[^a-z0-9_]/g, "");
+    if (clean.length < 3) { res.status(400).json({ error: "Username must be at least 3 characters (letters, numbers, underscores only)" }); return; }
+    if (clean.length > 30) { res.status(400).json({ error: "Username must be 30 characters or less" }); return; }
+    const [existing] = await db.select({ id: usersTable.id }).from(usersTable).where(eq(usersTable.username, clean)).limit(1);
+    if (existing && existing.id !== id) { res.status(409).json({ error: "That username is already taken" }); return; }
+    const [user] = await db.update(usersTable).set({ username: clean }).where(eq(usersTable.id, id)).returning();
+    if (!user) { res.status(404).json({ error: "User not found" }); return; }
+    res.json({ success: true, username: user.username });
+  } catch (err) {
+    req.log.error({ err }, "update username error");
+    res.status(500).json({ error: "Failed to update username" });
+  }
+});
+
 router.patch("/:id/bank-details", async (req, res) => {
   try {
     const id = Number(req.params.id);

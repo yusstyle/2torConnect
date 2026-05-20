@@ -17,7 +17,7 @@ const router: IRouter = Router();
 const SUPER_ADMIN_EMAIL = "admin2-yusstyle@gmail.com";
 
 function serializeUser(u: any) {
-  return { id: u.id, name: u.name, email: u.email, role: u.role, phone: u.phone, status: u.status, avatarUrl: u.avatarUrl ?? null, createdAt: u.createdAt, lastLogin: u.lastLogin };
+  return { id: u.id, name: u.name, email: u.email, role: u.role, phone: u.phone, status: u.status, avatarUrl: u.avatarUrl ?? null, username: u.username ?? null, createdAt: u.createdAt, lastLogin: u.lastLogin };
 }
 
 const uploadDir = path.join(process.cwd(), "uploads", "school-ids");

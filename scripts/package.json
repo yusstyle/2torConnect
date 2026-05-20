@@ -6,6 +6,7 @@
   "scripts": {
     "hello": "tsx ./src/hello.ts",
     "migrate": "tsx ./src/migrate.ts",
+    "add-username-column": "tsx ./src/add-username-column.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {

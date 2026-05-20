@@ -3,7 +3,7 @@ import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { useAuthStore } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
 import { motion } from "framer-motion";
-import { Camera, Loader2, Check, User, Mail, Phone, ShieldCheck, Building2, Hash, CreditCard } from "lucide-react";
+import { Camera, Loader2, Check, User, Mail, Phone, ShieldCheck, Building2, Hash, CreditCard, AtSign } from "lucide-react";
 
 const BASE = import.meta.env.BASE_URL?.replace(/\/$/, "") ?? "";
 
@@ -25,6 +25,9 @@ export default function ProfilePage() {
   const [saving, setSaving] = useState(false);
   const [name, setName] = useState(user?.name ?? "");
   const [phone, setPhone] = useState(user?.phone ?? "");
+
+  const [username, setUsername] = useState((user as any)?.username ?? "");
+  const [savingUsername, setSavingUsername] = useState(false);
 
   const [savingBank, setSavingBank] = useState(false);
   const [bankName, setBankName] = useState((user as any)?.bankName ?? "");
@@ -59,6 +62,24 @@ export default function ProfilePage() {
       toast({ variant: "destructive", title: "Failed to upload photo" });
       setPreview(user.avatarUrl ?? null);
     } finally { setUploading(false); }
+  };
+
+  const handleSaveUsername = async () => {
+    setSavingUsername(true);
+    try {
+      const res = await fetch(`${BASE}/api/users/${user.id}/username`, {
+        method: "PATCH",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ username: username.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Failed");
+      login({ ...user, username: data.username } as any, token!);
+      setUsername(data.username ?? "");
+      toast({ title: `Username set to @${data.username}!` });
+    } catch (e: any) {
+      toast({ variant: "destructive", title: "Failed to set username", description: e.message });
+    } finally { setSavingUsername(false); }
   };
 
   const handleSave = async () => {
@@ -177,6 +198,52 @@ export default function ProfilePage() {
             className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-gradient-to-r from-primary to-accent text-white font-bold hover:opacity-90 disabled:opacity-50 transition-all">
             {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
             {saving ? "Saving…" : "Save Changes"}
+          </button>
+        </motion.div>
+
+        {/* Username */}
+        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} className="glass-panel rounded-3xl p-6 space-y-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-accent/10 flex items-center justify-center">
+              <AtSign className="w-5 h-5 text-accent" />
+            </div>
+            <div>
+              <h3 className="text-white font-bold text-lg">Username</h3>
+              <p className="text-xs text-muted-foreground">Your unique handle on ConnectFeed</p>
+            </div>
+          </div>
+
+          {(user as any)?.username && (
+            <div className="bg-accent/10 border border-accent/20 rounded-2xl px-4 py-3 flex items-center gap-2">
+              <AtSign className="w-4 h-4 text-accent shrink-0" />
+              <span className="text-accent font-bold">@{(user as any).username}</span>
+              <span className="text-muted-foreground text-xs ml-1">· Your current username</span>
+            </div>
+          )}
+
+          <div>
+            <label className="text-xs text-muted-foreground mb-1.5 block font-medium">
+              {(user as any)?.username ? "Change username" : "Choose a username"}
+            </label>
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm font-medium select-none">@</span>
+              <input
+                value={username}
+                onChange={e => setUsername(e.target.value.replace(/[^a-zA-Z0-9_]/g, "").slice(0, 30))}
+                placeholder="yourhandle"
+                className="w-full pl-8 pr-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white text-sm focus:outline-none focus:border-accent/50 placeholder:text-muted-foreground font-mono"
+              />
+            </div>
+            <p className="text-xs text-muted-foreground mt-1 ml-1">Letters, numbers, underscores only · 3–30 characters</p>
+          </div>
+
+          <button
+            onClick={handleSaveUsername}
+            disabled={savingUsername || username.trim().length < 3}
+            className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-gradient-to-r from-accent/80 to-primary text-white font-bold hover:opacity-90 disabled:opacity-50 transition-all"
+          >
+            {savingUsername ? <Loader2 className="w-4 h-4 animate-spin" /> : <AtSign className="w-4 h-4" />}
+            {savingUsername ? "Saving…" : "Save Username"}
           </button>
         </motion.div>
 

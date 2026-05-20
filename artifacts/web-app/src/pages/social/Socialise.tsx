@@ -5,21 +5,29 @@ import { useToast } from "@/hooks/use-toast";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Heart, MessageCircle, Share2, Image, Video, Loader2,
-  Send, X, Feather, Film, Radio, MoreHorizontal, Trash2, UserPlus, UserCheck, Users
+  Send, X, Feather, Film, Radio, MoreHorizontal, Trash2, UserPlus, UserCheck, Users,
+  Search, Sparkles, AtSign,
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 
 type PostType = "tweet" | "post" | "reel" | "video";
+type FeedMode = "foryou" | "following";
 
 interface Post {
   id: number; userId: number; content: string | null; mediaUrl: string | null;
   mediaType: string | null; type: PostType; likeCount: number; commentCount: number;
-  createdAt: string; authorName: string; authorRole: string; authorAvatarUrl?: string | null;
+  createdAt: string; authorName: string; authorUsername: string | null;
+  authorRole: string; authorAvatarUrl?: string | null;
   liked: boolean; isFollowing: boolean; authorFollowerCount: number;
 }
 
 interface Comment {
-  id: number; content: string; createdAt: string; authorName: string;
+  id: number; content: string; createdAt: string; authorName: string; authorUsername: string | null;
+}
+
+interface SearchUser {
+  id: number; name: string; username: string | null; role: string;
+  avatarUrl: string | null; isFollowing: boolean; followerCount: number;
 }
 
 const POST_TYPES: { type: PostType; label: string; icon: React.ElementType; color: string }[] = [
@@ -36,6 +44,24 @@ const ROLE_COLORS: Record<string, string> = {
   admin: "bg-red-500/20 text-red-400",
 };
 
+const ROLE_GRAD: Record<string, string> = {
+  student: "from-accent to-primary",
+  tutor: "from-primary to-purple-500",
+  investor: "from-yellow-500 to-orange-400",
+  admin: "from-red-500 to-pink-500",
+};
+
+function Avatar({ name, avatarUrl, role, size = "md" }: { name: string; avatarUrl?: string | null; role: string; size?: "sm" | "md" }) {
+  const sz = size === "sm" ? "w-8 h-8 text-xs" : "w-10 h-10 text-sm";
+  return (
+    <div className={`${sz} rounded-full bg-gradient-to-tr ${ROLE_GRAD[role] ?? "from-primary to-accent"} flex items-center justify-center text-white font-bold shrink-0 overflow-hidden`}>
+      {avatarUrl
+        ? <img src={avatarUrl} alt={name} className="w-full h-full object-cover" />
+        : <span>{name.charAt(0).toUpperCase()}</span>}
+    </div>
+  );
+}
+
 function PostCard({ post, currentUserId, onLike, onDelete, onComment, onFollow }: {
   post: Post; currentUserId: number;
   onLike: (id: number) => void;
@@ -48,42 +74,39 @@ function PostCard({ post, currentUserId, onLike, onDelete, onComment, onFollow }
 
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-      className="glass-panel rounded-2xl p-5 hover:border-white/20 transition-all">
+      className="glass-panel rounded-2xl p-4 sm:p-5 hover:border-white/20 transition-all">
       <div className="flex items-start gap-3 mb-3">
-        <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-primary to-accent flex items-center justify-center text-white font-bold shrink-0 overflow-hidden">
-          {post.authorAvatarUrl
-            ? <img src={post.authorAvatarUrl} alt={post.authorName} className="w-full h-full object-cover" />
-            : <span>{post.authorName.charAt(0).toUpperCase()}</span>}
-        </div>
+        <Avatar name={post.authorName} avatarUrl={post.authorAvatarUrl} role={post.authorRole} />
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-1.5 flex-wrap">
             <span className="text-white font-bold text-sm">{post.authorName}</span>
-            <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${ROLE_COLORS[post.authorRole] ?? "bg-white/10 text-white/60"}`}>{post.authorRole}</span>
-            <span className="text-muted-foreground text-xs">{formatDistanceToNow(new Date(post.createdAt), { addSuffix: true })}</span>
+            {post.authorUsername && (
+              <span className="text-muted-foreground text-xs">@{post.authorUsername}</span>
+            )}
+            <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${ROLE_COLORS[post.authorRole] ?? "bg-white/10 text-white/60"}`}>{post.authorRole}</span>
             {post.type !== "tweet" && (
-              <span className="text-xs px-2 py-0.5 rounded-full bg-white/10 text-white/60 font-medium capitalize">{post.type}</span>
+              <span className="text-xs px-1.5 py-0.5 rounded-full bg-white/10 text-white/60 font-medium capitalize">{post.type}</span>
             )}
           </div>
-          <div className="flex items-center gap-1 mt-0.5">
-            <Users className="w-3 h-3 text-muted-foreground" />
-            <span className="text-xs text-muted-foreground">
-              {post.authorFollowerCount} {post.authorFollowerCount === 1 ? "follower" : "followers"}
-            </span>
+          <div className="flex items-center gap-2 mt-0.5">
+            <span className="text-muted-foreground text-xs">{formatDistanceToNow(new Date(post.createdAt), { addSuffix: true })}</span>
+            <span className="text-muted-foreground text-xs">·</span>
+            <span className="text-xs text-muted-foreground">{post.authorFollowerCount} {post.authorFollowerCount === 1 ? "follower" : "followers"}</span>
           </div>
         </div>
         <div className="flex items-center gap-2 shrink-0">
           {!isOwn && (
             <button
               onClick={() => onFollow(post.userId)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all border ${
+              className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all border ${
                 post.isFollowing
                   ? "border-white/20 bg-white/5 text-white/70 hover:border-red-400/50 hover:text-red-400 hover:bg-red-400/10"
                   : "border-accent/50 bg-accent/10 text-accent hover:bg-accent/20"
               }`}
             >
               {post.isFollowing
-                ? <><UserCheck className="w-3 h-3" /> Following</>
-                : <><UserPlus className="w-3 h-3" /> Follow</>}
+                ? <><UserCheck className="w-3 h-3" /> <span className="hidden sm:inline">Following</span></>
+                : <><UserPlus className="w-3 h-3" /> <span className="hidden sm:inline">Follow</span></>}
             </button>
           )}
           {isOwn && (
@@ -185,8 +208,9 @@ function CommentDrawer({ postId, onClose }: { postId: number; onClose: () => voi
                     {c.authorName.charAt(0)}
                   </div>
                   <div className="flex-1">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <span className="text-white font-semibold text-xs">{c.authorName}</span>
+                      {c.authorUsername && <span className="text-muted-foreground text-xs">@{c.authorUsername}</span>}
                       <span className="text-muted-foreground text-xs">{formatDistanceToNow(new Date(c.createdAt), { addSuffix: true })}</span>
                     </div>
                     <p className="text-white/80 text-sm mt-0.5">{c.content}</p>
@@ -199,6 +223,93 @@ function CommentDrawer({ postId, onClose }: { postId: number; onClose: () => voi
   );
 }
 
+function PeopleSearch({ BASE, token, onFollow }: {
+  BASE: string; token: string | null;
+  onFollow: (userId: number, isFollowing: boolean, followerCount: number) => void;
+}) {
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState<SearchUser[]>([]);
+  const [loading, setLoading] = useState(false);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const headers = { Authorization: `Bearer ${token}` };
+
+  useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    if (!query.trim() || query.trim().length < 2) { setResults([]); return; }
+    debounceRef.current = setTimeout(async () => {
+      setLoading(true);
+      try {
+        const res = await fetch(`${BASE}/api/social/search/users?q=${encodeURIComponent(query)}`, { headers });
+        const data = await res.json();
+        setResults(data.users ?? []);
+      } finally { setLoading(false); }
+    }, 350);
+  }, [query]);
+
+  const handleFollow = async (userId: number) => {
+    const res = await fetch(`${BASE}/api/social/follow/${userId}`, { method: "POST", headers });
+    const data = await res.json();
+    setResults(prev => prev.map(u => u.id === userId ? { ...u, isFollowing: data.following, followerCount: data.followerCount } : u));
+    onFollow(userId, data.following, data.followerCount);
+  };
+
+  return (
+    <div className="glass-panel rounded-2xl p-4 border border-white/10">
+      <div className="flex items-center gap-2 mb-3">
+        <Search className="w-4 h-4 text-accent shrink-0" />
+        <h3 className="text-white font-bold text-sm">Find People</h3>
+      </div>
+      <div className="relative">
+        <AtSign className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
+        <input
+          value={query}
+          onChange={e => setQuery(e.target.value)}
+          placeholder="Search by name or @username…"
+          className="w-full pl-9 pr-4 py-2.5 bg-black/40 border border-white/10 rounded-xl text-white placeholder:text-white/30 focus:outline-none focus:border-accent text-sm transition-all"
+        />
+        {loading && <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground animate-spin" />}
+      </div>
+
+      <AnimatePresence>
+        {results.length > 0 && (
+          <motion.div initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+            className="mt-3 space-y-2">
+            {results.map(u => (
+              <div key={u.id} className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-white/5 transition-all">
+                <Avatar name={u.name} avatarUrl={u.avatarUrl} role={u.role} size="sm" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-white font-semibold text-sm truncate">{u.name}</p>
+                  <p className="text-muted-foreground text-xs truncate">
+                    {u.username ? `@${u.username}` : <span className="italic">no username set</span>}
+                    {" · "}
+                    <span className={`capitalize ${ROLE_COLORS[u.role]?.split(" ")[1] ?? "text-muted-foreground"}`}>{u.role}</span>
+                    {" · "}{u.followerCount} followers
+                  </p>
+                </div>
+                <button
+                  onClick={() => handleFollow(u.id)}
+                  className={`shrink-0 flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all border ${
+                    u.isFollowing
+                      ? "border-white/20 bg-white/5 text-white/70 hover:border-red-400/50 hover:text-red-400"
+                      : "border-accent/40 bg-accent/10 text-accent hover:bg-accent/20"
+                  }`}
+                >
+                  {u.isFollowing ? <><UserCheck className="w-3 h-3" /> Following</> : <><UserPlus className="w-3 h-3" /> Follow</>}
+                </button>
+              </div>
+            ))}
+          </motion.div>
+        )}
+        {!loading && query.trim().length >= 2 && results.length === 0 && (
+          <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-muted-foreground text-xs text-center mt-3 py-2">
+            No users found for "{query}"
+          </motion.p>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
 export default function SocialisePage() {
   const { user } = useAuthStore();
   const { toast } = useToast();
@@ -207,8 +318,10 @@ export default function SocialisePage() {
   const [creating, setCreating] = useState(false);
   const [content, setContent] = useState("");
   const [postType, setPostType] = useState<PostType>("tweet");
+  const [feedMode, setFeedMode] = useState<FeedMode>("foryou");
   const [activeFilter, setActiveFilter] = useState<PostType | "all">("all");
   const [commentPostId, setCommentPostId] = useState<number | null>(null);
+  const [showSearch, setShowSearch] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const [mediaFile, setMediaFile] = useState<File | null>(null);
   const [mediaPreview, setMediaPreview] = useState<string | null>(null);
@@ -218,11 +331,13 @@ export default function SocialisePage() {
   const token = useAuthStore.getState().token;
   const headers = { Authorization: `Bearer ${token}` };
 
-  const fetchFeed = useCallback(async (type?: string) => {
+  const fetchFeed = useCallback(async (mode: FeedMode, type?: string) => {
     setLoading(true);
     try {
-      const url = type && type !== "all" ? `${BASE}/api/social/feed?type=${type}&limit=30` : `${BASE}/api/social/feed?limit=30`;
-      const res = await fetch(url, { headers });
+      const params = new URLSearchParams({ limit: "30" });
+      if (mode === "following") params.set("mode", "following");
+      if (type && type !== "all") params.set("type", type);
+      const res = await fetch(`${BASE}/api/social/feed?${params}`, { headers });
       const data = await res.json();
       setPosts(data.posts ?? []);
     } finally { setLoading(false); }
@@ -237,7 +352,7 @@ export default function SocialisePage() {
     } catch {}
   }, [user?.id]);
 
-  useEffect(() => { fetchFeed(activeFilter === "all" ? undefined : activeFilter); }, [activeFilter]);
+  useEffect(() => { fetchFeed(feedMode, activeFilter === "all" ? undefined : activeFilter); }, [feedMode, activeFilter]);
   useEffect(() => { fetchMyStats(); }, [fetchMyStats]);
 
   const handleMediaChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -305,15 +420,21 @@ export default function SocialisePage() {
     }
   };
 
+  const handleFollowFromSearch = (_userId: number, isFollowing: boolean) => {
+    if (isFollowing) setMyStats(s => ({ ...s, following: s.following + 1 }));
+    else setMyStats(s => ({ ...s, following: Math.max(0, s.following - 1) }));
+  };
+
   return (
     <DashboardLayout role={user?.role as any} title="">
-      <div className="max-w-2xl mx-auto space-y-5">
+      <div className="max-w-2xl mx-auto space-y-4">
+
         {/* Header */}
-        <div className="text-center py-4">
-          <h1 className="text-3xl font-bold text-white font-display">
+        <div className="text-center py-3">
+          <h1 className="text-2xl sm:text-3xl font-bold text-white font-display">
             Connect<span className="text-accent">Feed</span>
           </h1>
-          <p className="text-muted-foreground text-sm mt-1">Connect, share, and inspire the 2torConnect community</p>
+          <p className="text-muted-foreground text-xs mt-1">Share, connect, and inspire the 2torConnect community</p>
           <div className="flex items-center justify-center gap-6 mt-3">
             <div className="text-center">
               <p className="text-white font-bold text-lg">{myStats.followers}</p>
@@ -324,12 +445,29 @@ export default function SocialisePage() {
               <p className="text-white font-bold text-lg">{myStats.following}</p>
               <p className="text-muted-foreground text-xs">Following</p>
             </div>
+            <div className="w-px h-8 bg-white/10" />
+            <button
+              onClick={() => setShowSearch(s => !s)}
+              className={`flex items-center gap-1.5 text-sm font-semibold transition-all ${showSearch ? "text-accent" : "text-muted-foreground hover:text-white"}`}
+            >
+              <Search className="w-4 h-4" />
+              Find People
+            </button>
           </div>
         </div>
 
-        {/* Compose - hidden for admins */}
+        {/* People Search */}
+        <AnimatePresence>
+          {showSearch && (
+            <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}>
+              <PeopleSearch BASE={BASE} token={token} onFollow={handleFollowFromSearch} />
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Compose */}
         {user?.role !== "admin" && (
-          <div className="glass-panel rounded-3xl p-5">
+          <div className="glass-panel rounded-3xl p-4 sm:p-5">
             <div className="flex items-start gap-3 mb-3">
               <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-primary to-accent flex items-center justify-center text-white font-bold shrink-0 overflow-hidden">
                 {user?.avatarUrl
@@ -338,7 +476,7 @@ export default function SocialisePage() {
               </div>
               <textarea
                 value={content} onChange={e => setContent(e.target.value)}
-                className="flex-1 bg-transparent text-white placeholder:text-white/30 resize-none focus:outline-none text-sm leading-relaxed min-h-[80px]"
+                className="flex-1 bg-transparent text-white placeholder:text-white/30 resize-none focus:outline-none text-sm leading-relaxed min-h-[72px]"
                 placeholder={postType === "tweet" ? "What's on your mind?" : postType === "reel" ? "Add a caption for your reel..." : "Share something with the community..."}
               />
             </div>
@@ -357,7 +495,7 @@ export default function SocialisePage() {
               <div className="flex items-center gap-1">
                 {POST_TYPES.map(pt => (
                   <button key={pt.type} onClick={() => setPostType(pt.type)}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${postType === pt.type ? "bg-white/10 text-white" : "text-muted-foreground hover:text-white"}`}>
+                    className={`flex items-center gap-1 px-2 sm:px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${postType === pt.type ? "bg-white/10 text-white" : "text-muted-foreground hover:text-white"}`}>
                     <pt.icon className={`w-3.5 h-3.5 ${pt.color}`} />
                     <span className="hidden sm:inline">{pt.label}</span>
                   </button>
@@ -368,39 +506,71 @@ export default function SocialisePage() {
                 </button>
               </div>
               <button onClick={handlePost} disabled={creating || (!content.trim() && !mediaFile)}
-                className="flex items-center gap-2 px-5 py-2 rounded-xl bg-gradient-to-r from-primary to-accent text-white font-bold text-sm hover:opacity-90 disabled:opacity-50 transition-all">
+                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-primary to-accent text-white font-bold text-sm hover:opacity-90 disabled:opacity-50 transition-all">
                 {creating ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Send className="w-4 h-4" /> Post</>}
               </button>
             </div>
           </div>
         )}
 
-        {/* Filter tabs */}
-        <div className="flex gap-2 overflow-x-auto pb-1">
-          {[{ id: "all", label: "All", icon: Radio, color: "" }, ...POST_TYPES.map(p => ({ ...p, id: p.type }))].map(f => (
-            <button key={f.id} onClick={() => setActiveFilter(f.id as any)}
-              className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold whitespace-nowrap transition-all shrink-0 ${
-                activeFilter === f.id ? "bg-gradient-to-r from-primary to-accent text-white shadow-md" : "glass-panel text-muted-foreground hover:text-white"
-              }`}>
-              <f.icon className="w-3.5 h-3.5" />
-              {f.label}
+        {/* Feed mode tabs + type filters */}
+        <div className="space-y-2">
+          {/* For You / Following */}
+          <div className="flex rounded-2xl bg-white/5 border border-white/10 p-1 gap-1">
+            <button
+              onClick={() => setFeedMode("foryou")}
+              className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-sm font-bold transition-all ${feedMode === "foryou" ? "bg-gradient-to-r from-primary to-accent text-white shadow-md" : "text-muted-foreground hover:text-white"}`}
+            >
+              <Sparkles className="w-3.5 h-3.5" /> For You
             </button>
-          ))}
+            <button
+              onClick={() => setFeedMode("following")}
+              className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-sm font-bold transition-all ${feedMode === "following" ? "bg-gradient-to-r from-primary to-accent text-white shadow-md" : "text-muted-foreground hover:text-white"}`}
+            >
+              <Users className="w-3.5 h-3.5" /> Following
+            </button>
+          </div>
+
+          {/* Type filter pills */}
+          <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+            {[{ id: "all", label: "All", icon: Radio }, ...POST_TYPES.map(p => ({ ...p, id: p.type }))].map(f => (
+              <button key={f.id} onClick={() => setActiveFilter(f.id as any)}
+                className={`flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all shrink-0 ${
+                  activeFilter === f.id ? "bg-white/15 text-white border border-white/20" : "text-muted-foreground hover:text-white hover:bg-white/5"
+                }`}>
+                <f.icon className="w-3 h-3" />
+                {f.label}
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Feed */}
         {loading ? (
           <div className="flex justify-center py-12"><Loader2 className="w-7 h-7 animate-spin text-accent" /></div>
         ) : posts.length === 0 ? (
-          <div className="text-center py-16 glass-panel rounded-3xl">
-            <div className="w-16 h-16 mx-auto bg-white/5 rounded-full flex items-center justify-center mb-4">
-              <Feather className="w-8 h-8 text-muted-foreground" />
+          <div className="text-center py-14 glass-panel rounded-3xl">
+            <div className="w-14 h-14 mx-auto bg-white/5 rounded-full flex items-center justify-center mb-4">
+              {feedMode === "following" ? <Users className="w-7 h-7 text-muted-foreground" /> : <Feather className="w-7 h-7 text-muted-foreground" />}
             </div>
-            <p className="text-white font-bold text-lg mb-1">Nothing here yet</p>
-            <p className="text-muted-foreground text-sm">Be the first to post something!</p>
+            {feedMode === "following" ? (
+              <>
+                <p className="text-white font-bold text-base mb-1">Nothing from people you follow</p>
+                <p className="text-muted-foreground text-sm">Follow people to see their posts here, or switch to <strong className="text-accent">For You</strong> to see everyone.</p>
+                <button onClick={() => { setShowSearch(true); window.scrollTo({ top: 0, behavior: "smooth" }); }}
+                  className="mt-4 flex items-center gap-2 mx-auto px-4 py-2 rounded-xl bg-accent/10 border border-accent/30 text-accent text-sm font-bold hover:bg-accent/20 transition-all">
+                  <Search className="w-4 h-4" /> Find People to Follow
+                </button>
+              </>
+            ) : (
+              <>
+                <p className="text-white font-bold text-base mb-1">Nothing here yet</p>
+                <p className="text-muted-foreground text-sm">Be the first to post something!</p>
+              </>
+            )}
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-3">
             <AnimatePresence>
               {posts.map(post => (
                 <PostCard key={post.id} post={post} currentUserId={user?.id ?? 0}
