@@ -5,8 +5,8 @@ import { Logo } from "@/components/Logo";
 import {
   LogOut, LayoutDashboard, Users, BookOpen,
   CreditCard, MessageSquare, Calendar,
-  Search, FileText, Menu, X, Video, Globe, GraduationCap, UserCircle, HandCoins, Wallet, Sparkles,
-  Trophy, Gift, Users2, ClipboardList
+  Search, FileText, X, Video, Globe, GraduationCap, UserCircle, HandCoins, Wallet, Sparkles,
+  Trophy, Gift, Users2, ClipboardList, MoreHorizontal, ChevronUp,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import NotificationBell from "@/components/NotificationBell";
@@ -45,7 +45,7 @@ function useIsMobile() {
 export function DashboardLayout({ children, role: roleProp, title }: DashboardLayoutProps) {
   const { user, logout } = useAuthStore();
   const [location, setLocation] = useLocation();
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
   const isMobile = useIsMobile();
 
   if (!user) { setLocation("/login"); return null; }
@@ -53,7 +53,7 @@ export function DashboardLayout({ children, role: roleProp, title }: DashboardLa
   const handleLogout = () => { logout(); setLocation("/"); };
   const role = roleProp ?? user.role;
 
-  const navItems: Record<string, NavItem[]> = {
+  const allNavItems: Record<string, NavItem[]> = {
     student: [
       { label: "Dashboard", href: "/student/dashboard", icon: LayoutDashboard },
       { label: "Find a Tutor", href: "/student/find-tutor", icon: Search },
@@ -105,7 +105,39 @@ export function DashboardLayout({ children, role: roleProp, title }: DashboardLa
     ],
   };
 
-  const currentNav = navItems[role] || navItems[user.role] || [];
+  // Primary items shown in mobile bottom bar (max 4, + "More" button = 5 slots)
+  const mobileBottomItems: Record<string, NavItem[]> = {
+    student: [
+      { label: "Home", href: "/student/dashboard", icon: LayoutDashboard },
+      { label: "Tutors", href: "/student/find-tutor", icon: Search },
+      { label: "Wallet", href: "/student/wallet", icon: Wallet },
+      { label: "Messages", href: "/messages", icon: MessageSquare },
+    ],
+    tutor: [
+      { label: "Home", href: "/tutor/dashboard", icon: LayoutDashboard },
+      { label: "Sessions", href: "/tutor/sessions", icon: BookOpen },
+      { label: "Earnings", href: "/tutor/earnings", icon: CreditCard },
+      { label: "Messages", href: "/messages", icon: MessageSquare },
+    ],
+    investor: [
+      { label: "Home", href: "/investor/dashboard", icon: LayoutDashboard },
+      { label: "Sponsor", href: "/investor/universities", icon: GraduationCap },
+      { label: "Messages", href: "/messages", icon: MessageSquare },
+      { label: "Feed", href: "/socialise", icon: Globe },
+    ],
+    admin: [
+      { label: "Home", href: "/admin/dashboard", icon: LayoutDashboard },
+      { label: "Users", href: "/admin/users", icon: Users },
+      { label: "Sessions", href: "/admin/sessions", icon: BookOpen },
+      { label: "Transactions", href: "/admin/transactions", icon: CreditCard },
+    ],
+  };
+
+  const currentNav = allNavItems[role] || allNavItems[user.role] || [];
+  const bottomNav = mobileBottomItems[role] || mobileBottomItems[user.role] || [];
+  // "More" drawer shows items NOT already in bottom bar
+  const bottomHrefs = new Set(bottomNav.map((i) => i.href));
+  const moreItems = currentNav.filter((i) => !bottomHrefs.has(i.href));
 
   const roleGradient: Record<string, string> = {
     student: "from-accent to-primary",
@@ -114,125 +146,217 @@ export function DashboardLayout({ children, role: roleProp, title }: DashboardLa
     admin: "from-red-500 to-pink-500",
   };
 
-  const sidebarVisible = !isMobile || mobileMenuOpen;
+  // Check if any "more" item is currently active
+  const moreIsActive = moreItems.some(
+    (i) => location === i.href || location.startsWith(i.href + "/")
+  );
+
+  const firstName = user.name.split(" ")[0];
 
   return (
     <div className="min-h-screen bg-background flex flex-col md:flex-row">
-      {/* Mobile Header */}
-      <div className="md:hidden flex items-center justify-between px-4 py-3 border-b border-border bg-card/80 backdrop-blur-sm sticky top-0 z-40">
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="p-2 rounded-xl text-muted-foreground hover:bg-white/10 hover:text-white transition-all"
-          >
-            <Menu className="w-5 h-5" />
-          </button>
-          <Logo size={32} />
-        </div>
-        <div className="flex items-center gap-2">
+
+      {/* ── DESKTOP SIDEBAR (unchanged) ── */}
+      <aside className="hidden md:flex w-64 glass-panel border-r border-y-0 border-l-0 flex-col sticky top-0 h-screen">
+        <div className="p-5 flex items-center justify-between border-b border-white/5">
+          <Logo size={44} />
           <NotificationBell />
-          <Link href="/profile" className={`w-9 h-9 rounded-full bg-gradient-to-tr ${roleGradient[user.role] ?? "from-primary to-accent"} flex items-center justify-center font-bold text-white text-sm shrink-0 overflow-hidden border-2 border-white/20`}>
+        </div>
+
+        <div className="px-4 py-4 flex-1 overflow-y-auto">
+          <Link href="/profile"
+            className="flex items-center gap-3 mb-5 p-3 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all group">
+            <div className={`w-10 h-10 rounded-full bg-gradient-to-tr ${roleGradient[user.role] ?? "from-primary to-accent"} flex items-center justify-center font-bold text-white shrink-0 overflow-hidden`}>
+              {user.avatarUrl
+                ? <img src={user.avatarUrl} alt="avatar" className="w-full h-full object-cover" />
+                : <span>{user.name.split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase()}</span>
+              }
+            </div>
+            <div className="min-w-0">
+              <p className="text-sm font-bold text-white truncate">{user.name}</p>
+              <p className={`text-xs capitalize font-medium ${user.role === "investor" ? "text-yellow-400" : user.role === "admin" ? "text-red-400" : "text-accent"}`}>
+                {user.role === "investor" ? "Sponsor" : user.role}
+              </p>
+            </div>
+            <UserCircle className="w-4 h-4 text-muted-foreground group-hover:text-white ml-auto shrink-0 transition-colors" />
+          </Link>
+
+          <nav className="space-y-0.5">
+            {currentNav.map((item) => {
+              const isActive = location === item.href || location.startsWith(item.href + "/");
+              const isFeed = item.href === "/socialise";
+              return (
+                <Link key={item.href} href={item.href}
+                  className={`flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 group ${
+                    isActive
+                      ? "bg-primary/20 text-primary border border-primary/30 shadow-lg shadow-primary/10"
+                      : "text-muted-foreground hover:bg-white/5 hover:text-white"
+                  } ${isFeed ? "mt-2 border-t border-white/5 pt-4" : ""}`}
+                >
+                  <item.icon className={`w-5 h-5 shrink-0 ${isActive ? "text-accent" : isFeed ? "text-accent/70 group-hover:text-accent" : "group-hover:text-accent transition-colors"}`} />
+                  <span className="font-medium text-sm">{item.label}</span>
+                  {isFeed && !isActive && <ConnectFeedBadge />}
+                </Link>
+              );
+            })}
+          </nav>
+        </div>
+
+        <div className="p-4 border-t border-white/5">
+          <button onClick={handleLogout}
+            className="flex items-center gap-3 px-3 py-3 w-full rounded-xl text-muted-foreground hover:bg-destructive/20 hover:text-destructive hover:border hover:border-destructive/30 transition-all duration-200">
+            <LogOut className="w-5 h-5" />
+            <span className="font-medium text-sm">Logout</span>
+          </button>
+        </div>
+      </aside>
+
+      {/* ── MOBILE TOP HEADER ── */}
+      <div className="md:hidden flex items-center justify-between px-4 py-3 border-b border-white/10 bg-card/90 backdrop-blur-md sticky top-0 z-40">
+        {/* Left: avatar + greeting */}
+        <Link href="/profile" className="flex items-center gap-3">
+          <div className={`w-10 h-10 rounded-full bg-gradient-to-tr ${roleGradient[user.role] ?? "from-primary to-accent"} flex items-center justify-center font-bold text-white shrink-0 overflow-hidden border-2 border-white/20`}>
             {user.avatarUrl
               ? <img src={user.avatarUrl} alt="avatar" className="w-full h-full object-cover" />
               : <span>{user.name.split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase()}</span>
             }
-          </Link>
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground leading-none mb-0.5">Welcome back</p>
+            <p className="text-sm font-bold text-white leading-none">{firstName}</p>
+          </div>
+        </Link>
+
+        {/* Right: notification bell */}
+        <div className="flex items-center gap-2">
+          <NotificationBell />
         </div>
       </div>
 
-      {/* Backdrop overlay for mobile */}
+      {/* ── MORE DRAWER BACKDROP ── */}
       <AnimatePresence>
-        {isMobile && mobileMenuOpen && (
+        {moreOpen && (
           <motion.div
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm md:hidden"
-            onClick={() => setMobileMenuOpen(false)}
+            className="fixed inset-0 z-40 bg-black/70 backdrop-blur-sm md:hidden"
+            onClick={() => setMoreOpen(false)}
           />
         )}
       </AnimatePresence>
 
-      {/* Sidebar */}
+      {/* ── MORE SLIDE-UP DRAWER ── */}
       <AnimatePresence>
-        {sidebarVisible && (
-          <motion.aside
-            key="sidebar"
-            initial={isMobile ? { x: -280 } : false}
-            animate={{ x: 0 }}
-            exit={isMobile ? { x: -280 } : undefined}
+        {moreOpen && (
+          <motion.div
+            initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
             transition={{ type: "spring", stiffness: 300, damping: 30 }}
-            className="fixed md:static inset-y-0 left-0 z-50 w-72 md:w-64 glass-panel border-r border-y-0 border-l-0 flex flex-col"
+            className="fixed bottom-0 left-0 right-0 z-50 md:hidden bg-card border-t border-white/10 rounded-t-3xl pb-safe"
           >
-            <div className="p-5 hidden md:flex items-center justify-between border-b border-white/5">
-              <Logo size={44} />
-              <NotificationBell />
-            </div>
-
-            {/* Mobile sidebar header */}
-            <div className="md:hidden flex items-center justify-between px-5 py-4 border-b border-white/5">
-              <Logo size={36} />
-              <button onClick={() => setMobileMenuOpen(false)} className="p-1.5 rounded-xl text-muted-foreground hover:bg-white/10 hover:text-white transition-all">
-                <X className="w-5 h-5" />
+            {/* Drawer handle */}
+            <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b border-white/5">
+              <span className="text-sm font-semibold text-white">More</span>
+              <button onClick={() => setMoreOpen(false)} className="p-1.5 rounded-full bg-white/10 text-muted-foreground hover:text-white transition-colors">
+                <X className="w-4 h-4" />
               </button>
             </div>
 
-            <div className="px-4 py-4 flex-1 overflow-y-auto">
-              <Link href="/profile" onClick={() => setMobileMenuOpen(false)}
-                className="flex items-center gap-3 mb-5 p-3 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all group">
-                <div className={`w-10 h-10 rounded-full bg-gradient-to-tr ${roleGradient[user.role] ?? "from-primary to-accent"} flex items-center justify-center font-bold text-white shrink-0 overflow-hidden`}>
-                  {user.avatarUrl
-                    ? <img src={user.avatarUrl} alt="avatar" className="w-full h-full object-cover" />
-                    : <span>{user.name.split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase()}</span>
-                  }
-                </div>
-                <div className="min-w-0">
-                  <p className="text-sm font-bold text-white truncate">{user.name}</p>
-                  <p className={`text-xs capitalize font-medium ${user.role === "investor" ? "text-yellow-400" : user.role === "admin" ? "text-red-400" : "text-accent"}`}>{user.role === "investor" ? "Sponsor" : user.role}</p>
-                </div>
-                <UserCircle className="w-4 h-4 text-muted-foreground group-hover:text-white ml-auto shrink-0 transition-colors" />
-              </Link>
-
-              <nav className="space-y-0.5">
-                {currentNav.map((item) => {
+            <div className="px-4 py-3 max-h-[60vh] overflow-y-auto">
+              <div className="grid grid-cols-3 gap-2 mb-4">
+                {moreItems.map((item) => {
                   const isActive = location === item.href || location.startsWith(item.href + "/");
-                  const isFeed = item.href === "/socialise";
                   return (
-                    <Link key={item.href} href={item.href} onClick={() => setMobileMenuOpen(false)}
-                      className={`flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 group ${
+                    <Link key={item.href} href={item.href}
+                      onClick={() => setMoreOpen(false)}
+                      className={`flex flex-col items-center gap-1.5 p-3 rounded-2xl transition-all ${
                         isActive
-                          ? "bg-primary/20 text-primary border border-primary/30 shadow-lg shadow-primary/10"
-                          : "text-muted-foreground hover:bg-white/5 hover:text-white"
-                      } ${isFeed ? "mt-2 border-t border-white/5 pt-4" : ""}`}
+                          ? "bg-primary/20 border border-primary/30"
+                          : "bg-white/5 hover:bg-white/10"
+                      }`}
                     >
-                      <item.icon className={`w-5 h-5 shrink-0 ${isActive ? "text-accent" : isFeed ? "text-accent/70 group-hover:text-accent" : "group-hover:text-accent transition-colors"}`} />
-                      <span className="font-medium text-sm">{item.label}</span>
-                      {isFeed && !isActive && <ConnectFeedBadge />}
+                      <div className={`w-10 h-10 rounded-2xl flex items-center justify-center ${isActive ? "bg-primary/30" : "bg-white/5"}`}>
+                        <item.icon className={`w-5 h-5 ${isActive ? "text-accent" : "text-muted-foreground"}`} />
+                      </div>
+                      <span className={`text-xs font-medium text-center leading-tight ${isActive ? "text-white" : "text-muted-foreground"}`}>
+                        {item.label}
+                      </span>
                     </Link>
                   );
                 })}
-              </nav>
-            </div>
+              </div>
 
-            <div className="p-4 border-t border-white/5">
+              {/* Logout button in drawer */}
               <button onClick={handleLogout}
-                className="flex items-center gap-3 px-3 py-3 w-full rounded-xl text-muted-foreground hover:bg-destructive/20 hover:text-destructive hover:border hover:border-destructive/30 transition-all duration-200">
-                <LogOut className="w-5 h-5" />
-                <span className="font-medium text-sm">Logout</span>
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl bg-destructive/10 border border-destructive/20 text-destructive hover:bg-destructive/20 transition-all">
+                <LogOut className="w-5 h-5 shrink-0" />
+                <span className="font-medium text-sm">Log Out</span>
               </button>
             </div>
-          </motion.aside>
+            {/* Safe area spacer */}
+            <div className="h-4" />
+          </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Main Content */}
+      {/* ── MAIN CONTENT ── */}
       <main className="flex-1 overflow-y-auto relative min-w-0">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-primary/10 via-background to-background -z-10" />
-        <div className="p-4 md:p-8 lg:p-10 max-w-7xl mx-auto">
+        {/* pb-24 on mobile to clear the bottom nav bar */}
+        <div className="p-4 md:p-8 lg:p-10 max-w-7xl mx-auto pb-24 md:pb-10">
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
             {title && <h1 className="text-xl md:text-2xl lg:text-3xl font-bold text-white mb-5">{title}</h1>}
             {children}
           </motion.div>
         </div>
       </main>
+
+      {/* ── MOBILE BOTTOM NAV BAR ── */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-card/95 backdrop-blur-xl border-t border-white/10">
+        <div className="flex items-stretch">
+          {bottomNav.map((item) => {
+            const isActive = location === item.href || location.startsWith(item.href + "/");
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`flex-1 flex flex-col items-center justify-center gap-1 py-2.5 px-1 transition-all relative ${
+                  isActive ? "text-accent" : "text-muted-foreground"
+                }`}
+              >
+                {isActive && (
+                  <motion.div
+                    layoutId="bottomNavIndicator"
+                    className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 rounded-full bg-accent"
+                  />
+                )}
+                <item.icon className={`w-5 h-5 ${isActive ? "text-accent" : ""}`} strokeWidth={isActive ? 2.5 : 1.8} />
+                <span className={`text-[10px] font-medium leading-none ${isActive ? "text-accent" : ""}`}>
+                  {item.label}
+                </span>
+              </Link>
+            );
+          })}
+
+          {/* More button */}
+          <button
+            onClick={() => setMoreOpen(true)}
+            className={`flex-1 flex flex-col items-center justify-center gap-1 py-2.5 px-1 transition-all relative ${
+              moreIsActive ? "text-accent" : "text-muted-foreground"
+            }`}
+          >
+            {moreIsActive && (
+              <motion.div
+                layoutId="bottomNavIndicator"
+                className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 rounded-full bg-accent"
+              />
+            )}
+            <MoreHorizontal className="w-5 h-5" strokeWidth={moreIsActive ? 2.5 : 1.8} />
+            <span className="text-[10px] font-medium leading-none">More</span>
+          </button>
+        </div>
+
+        {/* iOS safe area spacer */}
+        <div className="h-safe-area-inset-bottom" style={{ height: "env(safe-area-inset-bottom, 0px)" }} />
+      </nav>
     </div>
   );
 }
