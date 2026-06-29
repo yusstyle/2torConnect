@@ -11,6 +11,11 @@ function generateCode(name: string, id: number): string {
   return `${clean}${id}`;
 }
 
+function getPublicAppUrl(): string {
+  const configured = process.env.PUBLIC_APP_URL ?? process.env.FRONTEND_URL ?? process.env.APP_URL ?? process.env.CLIENT_URL ?? "https://2torconnect.com";
+  return configured.replace(/\/$/, "");
+}
+
 router.get("/my-code", async (req, res) => {
   try {
     const userId = Number((req as any).user?.id);
@@ -28,7 +33,8 @@ router.get("/my-code", async (req, res) => {
     }
 
     const referrals = await db.select().from(referralsTable).where(eq(referralsTable.referrerId, userId));
-    return res.json({ code, referralCount: referrals.length, referralLink: `https://2torconnect.replit.app/register?ref=${code}` });
+    const publicAppUrl = getPublicAppUrl();
+    return res.json({ code, referralCount: referrals.length, referralLink: `${publicAppUrl}/register?ref=${encodeURIComponent(code)}` });
   } catch (err) {
     return res.status(500).json({ error: "Failed to get referral code" });
   }

@@ -362,7 +362,7 @@ export const CreateSessionBody = zod.object({
   tutorId: zod.number(),
   studentId: zod.number(),
   subject: zod.string(),
-  scheduledAt: zod.date(),
+  scheduledAt: zod.coerce.date(),
   durationMinutes: zod.number().optional(),
   amount: zod.string().optional(),
   notes: zod.string().optional(),
@@ -402,6 +402,8 @@ export const UpdateSessionBody = zod.object({
     .enum(["pending", "confirmed", "completed", "cancelled"])
     .optional(),
   notes: zod.string().optional(),
+  liveUrl: zod.string().url().optional(),
+  amount: zod.string().optional(),
 });
 
 export const UpdateSessionResponse = zod.object({

@@ -1,4 +1,9 @@
 import { pool } from "@workspace/db";
+import fs from "fs/promises";
+
+const args = process.argv.slice(2);
+const dumpSql = args.includes("--dump-sql");
+const dryRun = args.includes("--dry-run");
 
 async function migrate() {
   const steps = [
@@ -17,6 +22,20 @@ async function migrate() {
     { name: "groups table alias (session_participants already covers groups)", q: `SELECT 1` },
   ];
 
+  const queries = steps.map((s) => s.q.trim().replace(/;?$/, ";"));
+
+  if (dumpSql) {
+    const out = queries.join("\n\n");
+    await fs.writeFile("./migrations.sql", out, "utf8");
+    console.log("Wrote ./migrations.sql");
+    return;
+  }
+
+  if (dryRun) {
+    for (const q of queries) console.log(q + "\n");
+    return;
+  }
+
   for (const step of steps) {
     try {
       await pool.query(step.q);
@@ -27,7 +46,6 @@ async function migrate() {
   }
   console.log("Migration complete");
   await pool.end();
-  process.exit(0);
 }
 
 migrate();
