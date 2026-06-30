@@ -1,5 +1,5 @@
 {
   "installCommand": "pnpm install",
   "buildCommand": "pnpm --filter @workspace/web-app build",
-  "outputDirectory": "artifacts/web-app/dist"
+  "outputDirectory": "artifacts/web-app/dist/public"
 }
