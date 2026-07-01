@@ -111,12 +111,11 @@ router.post("/fund", authMiddleware, async (req: any, res) => {
 });
 
 // Verify Monnify payment and credit wallet
-router.post("/verify", authMiddleware, async (req: any, res) => {
+router.post("/verify", authMiddleware, async (req: any, res: any): Promise<any> => {
   try {
     const { transactionReference } = req.body;
     if (!transactionReference) {
-      res.status(400).json({ error: "transactionReference is required" });
-      return;
+      return res.status(400).json({ error: "transactionReference is required" });
     }
 
     // Check if already verified (idempotent)
@@ -161,7 +160,7 @@ router.post("/verify", authMiddleware, async (req: any, res) => {
     }
 
     const balanceInfo = await computeBalance(req.authUser.id, req.authUser.role);
-    res.json({ success: true, ...balanceInfo });
+    return res.json({ success: true, ...balanceInfo });
   } catch (err: any) {
     req.log?.error({ err }, "wallet verify error");
     res.status(500).json({ error: err?.message ?? "Failed to verify payment" });

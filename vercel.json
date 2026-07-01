@@ -1,5 +1,16 @@
 {
+  "version": 2,
   "installCommand": "pnpm install",
-  "buildCommand": "pnpm --filter @workspace/web-app build",
-  "outputDirectory": "artifacts/web-app/dist/public"
+  "buildCommand": "pnpm build",
+  "outputDirectory": "artifacts/web-app/dist/public",
+  "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": "/api/[[...slug]]"
+    },
+    {
+      "source": "/uploads/(.*)",
+      "destination": "/api/[[...slug]]"
+    }
+  ]
 }
