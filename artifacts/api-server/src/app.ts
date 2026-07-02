@@ -14,7 +14,7 @@ const ADMIN_ACCOUNTS = [
   { email: "admin@2torconnect.com", password: "admin@2tor2024", name: "Admin" },
 ];
 
-async function seedAdmins() {
+export async function seedAdmins() {
   for (const account of ADMIN_ACCOUNTS) {
     try {
       const existing = await db.select().from(usersTable).where(eq(usersTable.email, account.email)).limit(1);
@@ -34,8 +34,6 @@ async function seedAdmins() {
     }
   }
 }
-
-seedAdmins();
 
 const app: Express = express();
 
