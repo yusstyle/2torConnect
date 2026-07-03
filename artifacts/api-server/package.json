@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "cross-env NODE_ENV=development tsx ./src/index.ts",
     "build": "tsx ./build.ts",
+    "vercel-build": "pnpm run build",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
@@ -37,3 +38,4 @@
     "tsx": "catalog:"
   }
 }
+
