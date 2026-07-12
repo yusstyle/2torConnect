@@ -8,7 +8,7 @@ import { eq, desc, and, ilike, SQL } from "drizzle-orm";
 
 const router: IRouter = Router();
 
-const UPLOADS_DIR = path.join(process.cwd(), "uploads");
+const UPLOADS_DIR = process.env.VERCEL ? "/tmp/uploads" : path.join(process.cwd(), "uploads");
 if (!fs.existsSync(UPLOADS_DIR)) fs.mkdirSync(UPLOADS_DIR, { recursive: true });
 
 const storage = multer.diskStorage({
@@ -159,3 +159,4 @@ router.delete("/:id", async (req, res) => {
 });
 
 export default router;
+

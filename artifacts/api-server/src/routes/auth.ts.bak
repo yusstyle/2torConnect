@@ -129,10 +129,9 @@ router.post("/register/student", async (req, res) => {
     });
     const token = Buffer.from(JSON.stringify({ id: user.id, role: user.role, email: user.email })).toString("base64");
     res.status(201).json({ user: serializeUser(user), token });
-  } catch (err: any) {
-    console.error(err);
-    console.error("REGISTER ERROR:", err); req.log.error({ err }, "register student error");
-    res.status(400).json({ error: "Registration failed", message: err?.message, cause: err?.cause, stack: err?.stack });
+  } catch (err) {
+    req.log.error({ err }, "register student error");
+    res.status(400).json({ error: "Registration failed", message: String(err) });
   }
 });
 
@@ -190,11 +189,10 @@ router.post("/register/tutor", (req, res) => {
       });
       const token = Buffer.from(JSON.stringify({ id: user.id, role: user.role, email: user.email })).toString("base64");
       res.status(201).json({ user: serializeUser(user), token });
-    } catch (err: any) {
-    console.error(err);
+    } catch (err) {
       if (req.file) fs.unlinkSync(req.file.path);
       req.log.error({ err }, "register tutor error");
-      res.status(400).json({ error: "Registration failed", message: err?.message, cause: err?.cause, stack: err?.stack });
+      res.status(400).json({ error: "Registration failed", message: String(err) });
     }
   });
 });
@@ -229,11 +227,10 @@ router.post("/register/investor", (req, res) => {
       });
       const token = Buffer.from(JSON.stringify({ id: user.id, role: user.role, email: user.email })).toString("base64");
       res.status(201).json({ user: serializeUser(user), token });
-    } catch (err: any) {
-    console.error(err);
+    } catch (err) {
       if (req.file) fs.unlinkSync(req.file.path);
       req.log.error({ err }, "register investor error");
-      res.status(400).json({ error: "Registration failed", message: err?.message, cause: err?.cause, stack: err?.stack });
+      res.status(400).json({ error: "Registration failed", message: String(err) });
     }
   });
 });
@@ -255,10 +252,9 @@ router.post("/login", async (req, res) => {
     await db.update(usersTable).set({ lastLogin: new Date() }).where(eq(usersTable.id, user.id));
     const token = Buffer.from(JSON.stringify({ id: user.id, role: user.role, email: user.email })).toString("base64");
     res.json({ user: serializeUser(user), token });
-  } catch (err: any) {
-    console.error(err);
+  } catch (err) {
     req.log.error({ err }, "login error");
-    res.status(401).json({ error: "Login failed", message: err?.message, cause: err?.cause, stack: err?.stack });
+    res.status(401).json({ error: "Login failed", message: String(err) });
   }
 });
 
@@ -289,8 +285,7 @@ router.post("/send-otp", async (req, res) => {
     const emailConfigured = !!(process.env["SMTP_USER"] && process.env["SMTP_PASS"]);
 
     res.json({ success: true, emailConfigured, emailSent, message: "OTP sent to your email. It expires in 10 minutes." });
-  } catch (err: any) {
-    console.error(err);
+  } catch (err) {
     req.log.error({ err }, "send otp error");
     res.status(500).json({ error: "Failed to send OTP" });
   }
@@ -330,8 +325,7 @@ router.post("/verify-otp", async (req, res) => {
     await db.update(usersTable).set({ lastLogin: new Date() }).where(eq(usersTable.id, user.id));
     const token = Buffer.from(JSON.stringify({ id: user.id, role: user.role, email: user.email })).toString("base64");
     res.json({ success: true, user: serializeUser(user), token });
-  } catch (err: any) {
-    console.error(err);
+  } catch (err) {
     req.log.error({ err }, "verify otp error");
     res.status(500).json({ error: "Failed to verify OTP" });
   }
@@ -357,10 +351,5 @@ router.get("/me", async (req, res) => {
 });
 
 export default router;
-
-
-
-
-
 
 

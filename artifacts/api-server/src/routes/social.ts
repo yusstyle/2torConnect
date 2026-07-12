@@ -9,7 +9,7 @@ import multer from "multer";
 import path from "path";
 import fs from "fs";
 
-const socialUploadDir = path.join(process.cwd(), "uploads", "social");
+const socialUploadDir = path.join(process.env.VERCEL ? "/tmp/uploads" : path.join(process.cwd(), "uploads"), "social");
 if (!fs.existsSync(socialUploadDir)) fs.mkdirSync(socialUploadDir, { recursive: true });
 const socialStorage = multer.diskStorage({
   destination: (_req, _file, cb) => cb(null, socialUploadDir),
@@ -286,3 +286,4 @@ router.get("/users/:userId/stats", authMiddleware, async (req: any, res) => {
 });
 
 export default router;
+

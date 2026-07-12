@@ -29,8 +29,19 @@ function formatEarnings(amount: number): string {
 }
 
 function formatCount(n: number): string {
-  if (n === 0) return "0";
+  if (!Number.isFinite(n) || n <= 0) return "0";
   return `${n.toLocaleString()}+`;
+}
+
+function isPlatformStats(value: unknown): value is PlatformStats {
+  if (!value || typeof value !== "object") return false;
+  const candidate = value as Partial<PlatformStats>;
+  return (
+    typeof candidate.totalStudents === "number" &&
+    typeof candidate.totalTutors === "number" &&
+    typeof candidate.universities === "number" &&
+    typeof candidate.totalRevenue === "number"
+  );
 }
 
 export default function LandingPage() {
@@ -38,8 +49,10 @@ export default function LandingPage() {
 
   useEffect(() => {
     fetch(`${import.meta.env.BASE_URL}api/stats`)
-      .then(r => r.json())
-      .then(setStats)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (isPlatformStats(data)) setStats(data);
+      })
       .catch(() => {});
   }, []);
 
