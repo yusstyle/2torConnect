@@ -4,17 +4,8 @@
   "buildCommand": "pnpm run vercel-build",
   "outputDirectory": "artifacts/web-app/dist/public",
   "rewrites": [
-    {
-      "source": "/api/(.*)",
-      "destination": "/api/[[...slug]]"
-    },
-    {
-      "source": "/uploads/(.*)",
-      "destination": "/api/[[...slug]]"
-    },
-    {
-      "source": "/(.*)",
-      "destination": "/index.html"
-    }
+    { "source": "/api/(.*)", "destination": "/api/[[...slug]]" },
+    { "source": "/uploads/(.*)", "destination": "/api/[[...slug]]" },
+    { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
