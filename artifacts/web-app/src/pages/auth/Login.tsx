@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { Link, useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { Mail, Lock, ArrowRight, Loader2, Eye, EyeOff, ShieldCheck, RefreshCw } from "lucide-react";
@@ -7,6 +7,21 @@ import { useToast } from "@/hooks/use-toast";
 
 const BASE = import.meta.env.BASE_URL?.replace(/\/$/, "") ?? "";
 const SUPER_ADMIN_EMAIL = "admin2-yusstyle@gmail.com";
+
+// The API can fail before it ever reaches Express (e.g. the DB connection
+// throws at boot on Vercel) and return plain text like
+// "Backend failed to start: DATABASE_URL must be set" instead of JSON.
+// res.json() throws on that, which used to get swallowed into a generic
+// "Could not connect to server" toast. This reads the raw text first so we
+// can always show the real reason.
+async function parseApiResponse(res: Response): Promise<any> {
+  const raw = await res.text();
+  try {
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return { error: raw || `Server returned ${res.status} with no readable body.` };
+  }
+}
 
 type Step = "credentials" | "otp";
 
@@ -40,9 +55,9 @@ export default function LoginPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: email.trim(), password }),
       });
-      const data = await res.json();
+      const data = await parseApiResponse(res);
       if (!res.ok) {
-        toast({ variant: "destructive", title: "Login Failed", description: data.error || "Invalid email or password." });
+        toast({ variant: "destructive", title: "Login Failed", description: data.error || `Server error (${res.status}). Please try again.` });
         return;
       }
       if (data.user.role === "admin") {
@@ -56,7 +71,7 @@ export default function LoginPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: email.trim() }),
       });
-      const otpData = otpRes.ok ? await otpRes.json() : null;
+      const otpData = otpRes.ok ? await parseApiResponse(otpRes) : null;
 
       if (otpData?.emailConfigured) {
         toast({ title: "OTP Sent", description: "Check your email for a 6-digit verification code." });
@@ -67,8 +82,8 @@ export default function LoginPage() {
         toast({ title: "Welcome back!", description: `Signed in as ${data.user.name}` });
         setLocation(getRedirectPath(data.user));
       }
-    } catch {
-      toast({ variant: "destructive", title: "Login Failed", description: "Could not connect to server. Please try again." });
+    } catch (err) {
+      toast({ variant: "destructive", title: "Login Failed", description: err instanceof Error ? `Network error: ${err.message}` : "Could not reach the server. Check your connection." });
     } finally {
       setLoading(false);
     }
@@ -83,16 +98,16 @@ export default function LoginPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: email.trim(), code: otp.trim() }),
       });
-      const data = await res.json();
+      const data = await parseApiResponse(res);
       if (!res.ok) {
-        toast({ variant: "destructive", title: "Invalid Code", description: data.error || "The OTP you entered is wrong or expired." });
+        toast({ variant: "destructive", title: "Invalid Code", description: data.error || `The OTP you entered is wrong or expired. (Server error ${res.status})` });
         return;
       }
       setAuthData(data.user, data.token);
       toast({ title: "Verified!", description: `Welcome back, ${data.user.name}` });
       setLocation(getRedirectPath(data.user));
-    } catch {
-      toast({ variant: "destructive", title: "Verification Failed", description: "Could not connect to server." });
+    } catch (err) {
+      toast({ variant: "destructive", title: "Verification Failed", description: err instanceof Error ? `Network error: ${err.message}` : "Could not reach the server." });
     } finally {
       setOtpLoading(false);
     }
@@ -173,7 +188,7 @@ export default function LoginPage() {
                         value={password}
                         onChange={e => setPassword(e.target.value)}
                         className="w-full bg-black/40 border border-white/10 rounded-xl py-3 pl-12 pr-12 text-white placeholder:text-white/30 focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-all"
-                        placeholder="••••••••"
+                        placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
                       />
                       <button
                         type="button"
@@ -190,7 +205,7 @@ export default function LoginPage() {
                     disabled={loading}
                     className="w-full py-4 rounded-xl font-bold text-white bg-gradient-to-r from-primary to-accent hover:opacity-90 transition-all shadow-lg shadow-primary/25 disabled:opacity-50 flex justify-center items-center gap-2 mt-2"
                   >
-                    {loading ? <><Loader2 className="w-5 h-5 animate-spin" /> Signing in…</> : "Sign In"}
+                    {loading ? <><Loader2 className="w-5 h-5 animate-spin" /> Signing inâ€¦</> : "Sign In"}
                   </button>
                 </form>
 
@@ -233,7 +248,7 @@ export default function LoginPage() {
                     disabled={otpLoading || otp.length < 6}
                     className="w-full py-4 rounded-xl font-bold text-white bg-gradient-to-r from-primary to-accent hover:opacity-90 transition-all shadow-lg shadow-primary/25 disabled:opacity-50 flex justify-center items-center gap-2"
                   >
-                    {otpLoading ? <><Loader2 className="w-5 h-5 animate-spin" /> Verifying…</> : <><ShieldCheck className="w-5 h-5" /> Verify & Sign In</>}
+                    {otpLoading ? <><Loader2 className="w-5 h-5 animate-spin" /> Verifyingâ€¦</> : <><ShieldCheck className="w-5 h-5" /> Verify & Sign In</>}
                   </button>
                 </form>
 
@@ -250,7 +265,7 @@ export default function LoginPage() {
                     onClick={() => { setStep("credentials"); setOtp(""); }}
                     className="text-sm text-muted-foreground hover:text-white transition-colors"
                   >
-                    ← Use a different email
+                    â† Use a different email
                   </button>
                 </div>
               </motion.div>
