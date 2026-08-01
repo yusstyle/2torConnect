@@ -1,4 +1,4 @@
-import path from "path";
+﻿import path from "path";
 import { fileURLToPath } from "url";
 import { build as esbuild } from "esbuild";
 import { rm, readFile } from "fs/promises";
@@ -11,7 +11,9 @@ const __dirname = path.dirname(__filename);
 // packages that are not bundle compatible
 const allowlist = [
   "@google/generative-ai",
+  "@vercel/blob",
   "axios",
+  "bcryptjs",
   "connect-pg-simple",
   "cors",
   "date-fns",
