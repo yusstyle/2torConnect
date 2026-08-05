@@ -6,6 +6,7 @@ import bcrypt from "bcryptjs";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
+import { put } from "@vercel/blob";
 import {
   RegisterStudentBody,
   LoginBody,
@@ -20,6 +21,14 @@ function serializeUser(u: any) {
   return { id: u.id, name: u.name, email: u.email, role: u.role, phone: u.phone, status: u.status, avatarUrl: u.avatarUrl ?? null, username: u.username ?? null, createdAt: u.createdAt, lastLogin: u.lastLogin };
 }
 
+// Vercel's serverless filesystem is read-only outside /tmp, and /tmp is wiped
+// between invocations -- writing avatars/ID documents to disk "succeeds" but
+// the file is gone (404) by the time it's requested. We buffer uploads in
+// memory and push them to Vercel Blob storage instead. Locally (no
+// BLOB_READ_WRITE_TOKEN set) we fall back to writing to ./uploads/* so
+// development keeps working without needing a Blob store.
+const useBlobStorage = !!process.env.BLOB_READ_WRITE_TOKEN;
+
 const BASE_UPLOAD_DIR = process.env.VERCEL
   ? "/tmp/uploads"
   : path.join(process.cwd(), "uploads");
@@ -28,19 +37,38 @@ const uploadDir = path.join(BASE_UPLOAD_DIR, "school-ids");
 const investorUploadDir = path.join(BASE_UPLOAD_DIR, "investor-ids");
 const avatarUploadDir = path.join(BASE_UPLOAD_DIR, "avatars");
 
-[uploadDir, investorUploadDir, avatarUploadDir].forEach((dir) => {
-  if (!fs.existsSync(dir)) {
-    fs.mkdirSync(dir, { recursive: true });
-  }
-});
+if (!useBlobStorage) {
+  [uploadDir, investorUploadDir, avatarUploadDir].forEach((dir) => {
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+  });
+}
 
-const avatarStorage = multer.diskStorage({
-  destination: (_req, _file, cb) => cb(null, avatarUploadDir),
-  filename: (req: any, file, cb) => {
-    const ext = path.extname(file.originalname);
-    cb(null, `avatar-${(req as any).authUser?.id ?? "unknown"}-${Date.now()}${ext}`);
-  },
-});
+/**
+ * Persists an in-memory uploaded file (multer memoryStorage) either to
+ * Vercel Blob (production) or to local disk under `localDir` (dev), and
+ * returns the public URL to store on the record.
+ */
+async function persistUpload(
+  file: Express.Multer.File,
+  filename: string,
+  localDir: string,
+  localUrlPrefix: string
+): Promise<string> {
+  if (useBlobStorage) {
+    const blob = await put(filename, file.buffer, {
+      access: "public",
+      contentType: file.mimetype,
+    });
+    return blob.url;
+  }
+  const destPath = path.join(localDir, filename);
+  fs.writeFileSync(destPath, file.buffer);
+  return `${localUrlPrefix}/${filename}`;
+}
+
+const avatarStorage = multer.memoryStorage();
 const uploadAvatar = multer({ storage: avatarStorage, limits: { fileSize: 5 * 1024 * 1024 } }).single("avatar");
 
 function authMiddleware(req: any, res: any, next: any) {
@@ -58,25 +86,21 @@ router.post("/avatar", authMiddleware, (req: any, res) => {
     if (err) { res.status(400).json({ error: "Upload failed", message: err.message }); return; }
     if (!req.file) { res.status(400).json({ error: "No file provided" }); return; }
     try {
-      const avatarUrl = `/api/uploads/avatars/${req.file.filename}`;
+      const ext = path.extname(req.file.originalname) || ".jpg";
+      const filename = `avatar-${req.authUser?.id ?? "unknown"}-${Date.now()}${ext}`;
+      const avatarUrl = await persistUpload(req.file, filename, avatarUploadDir, "/api/uploads/avatars");
       const [user] = await db.update(usersTable).set({ avatarUrl }).where(eq(usersTable.id, req.authUser.id)).returning();
       if (!user) { res.status(404).json({ error: "User not found" }); return; }
       res.json({ avatarUrl, user: serializeUser(user) });
-    } catch (e) {
-      res.status(500).json({ error: "Failed to save avatar" });
+    } catch (e: any) {
+      req.log?.error?.({ err: e }, "avatar upload error");
+      res.status(500).json({ error: "Failed to save avatar", message: e?.message });
     }
   });
 });
 
-const schoolIdStorage = multer.diskStorage({
-  destination: (_req, _file, cb) => cb(null, uploadDir),
-  filename: (_req, file, cb) => {
-    const ext = path.extname(file.originalname);
-    cb(null, `school-id-${Date.now()}${ext}`);
-  },
-});
 const uploadSchoolId = multer({
-  storage: schoolIdStorage,
+  storage: multer.memoryStorage(),
   limits: { fileSize: 10 * 1024 * 1024 },
   fileFilter: (_req, file, cb) => {
     const allowed = [".jpg", ".jpeg", ".png", ".pdf"];
@@ -85,15 +109,8 @@ const uploadSchoolId = multer({
   },
 }).single("schoolIdCard");
 
-const investorIdStorage = multer.diskStorage({
-  destination: (_req, _file, cb) => cb(null, investorUploadDir),
-  filename: (_req, file, cb) => {
-    const ext = path.extname(file.originalname);
-    cb(null, `investor-id-${Date.now()}${ext}`);
-  },
-});
 const uploadInvestorId = multer({
-  storage: investorIdStorage,
+  storage: multer.memoryStorage(),
   limits: { fileSize: 10 * 1024 * 1024 },
   fileFilter: (_req, file, cb) => {
     const allowed = [".jpg", ".jpeg", ".png", ".pdf"];
@@ -158,7 +175,6 @@ router.post("/register/tutor", (req, res) => {
       }
       const existing = await db.select().from(usersTable).where(eq(usersTable.email, body.email)).limit(1);
       if (existing.length > 0) {
-        if (req.file) fs.unlinkSync(req.file.path);
         res.status(400).json({ error: "Email already in use" });
         return;
       }
@@ -175,7 +191,9 @@ router.post("/register/tutor", (req, res) => {
       const subjects = body.subjects
         ? (typeof body.subjects === "string" ? JSON.parse(body.subjects) : body.subjects)
         : null;
-      const schoolIdUrl = req.file ? `/uploads/school-ids/${req.file.filename}` : null;
+      const schoolIdUrl = req.file
+        ? await persistUpload(req.file, `school-id-${user.id}-${Date.now()}${path.extname(req.file.originalname) || ".jpg"}`, uploadDir, "/api/uploads/school-ids")
+        : null;
       await db.insert(tutorsTable).values({
         userId: user.id,
         university: body.university ?? null,
@@ -192,7 +210,6 @@ router.post("/register/tutor", (req, res) => {
       res.status(201).json({ user: serializeUser(user), token });
     } catch (err: any) {
     console.error(err);
-      if (req.file) fs.unlinkSync(req.file.path);
       req.log.error({ err }, "register tutor error");
       res.status(400).json({ error: "Registration failed", message: err?.message, cause: err?.cause, stack: err?.stack });
     }
@@ -209,7 +226,6 @@ router.post("/register/investor", (req, res) => {
       if (!body.businessName?.trim()) { res.status(400).json({ error: "Business name is required" }); return; }
       const existing = await db.select().from(usersTable).where(eq(usersTable.email, body.email)).limit(1);
       if (existing.length > 0) {
-        if (req.file) fs.unlinkSync(req.file.path);
         res.status(400).json({ error: "Email already in use" }); return;
       }
       const passwordHash = await bcrypt.hash(body.password, 10);
@@ -218,7 +234,9 @@ router.post("/register/investor", (req, res) => {
         phone: body.phone ?? null, status: "pending",
         country: body.country ?? null,
       }).returning();
-      const idCardUrl = req.file ? `/uploads/investor-ids/${req.file.filename}` : null;
+      const idCardUrl = req.file
+        ? await persistUpload(req.file, `investor-id-${user.id}-${Date.now()}${path.extname(req.file.originalname) || ".jpg"}`, investorUploadDir, "/api/uploads/investor-ids")
+        : null;
       await db.insert(investorsTable).values({
         userId: user.id,
         businessName: body.businessName,
@@ -231,7 +249,6 @@ router.post("/register/investor", (req, res) => {
       res.status(201).json({ user: serializeUser(user), token });
     } catch (err: any) {
     console.error(err);
-      if (req.file) fs.unlinkSync(req.file.path);
       req.log.error({ err }, "register investor error");
       res.status(400).json({ error: "Registration failed", message: err?.message, cause: err?.cause, stack: err?.stack });
     }
