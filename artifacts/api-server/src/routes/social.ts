@@ -10,15 +10,39 @@ import path from "path";
 import fs from "fs";
 import { put } from "@vercel/blob";
 
+// --- Storage strategy ---
+//
 // Vercel's serverless functions have a read-only filesystem apart from /tmp,
 // and /tmp is wiped between invocations, so writing to disk with multer.diskStorage
-// silently "succeeds" but the file is gone by the time it's requested.
-// We buffer the upload in memory and push it to Vercel Blob storage instead.
-// Locally (no BLOB_READ_WRITE_TOKEN set) we fall back to writing to ./uploads/social
-// so development keeps working without needing a Blob store.
-const socialUploadDir = path.join(process.cwd(), "uploads", "social");
-const useBlobStorage = !!process.env.BLOB_READ_WRITE_TOKEN;
-if (!useBlobStorage && !fs.existsSync(socialUploadDir)) fs.mkdirSync(socialUploadDir, { recursive: true });
+// silently "succeeds" but the file is gone by the time it's requested. We buffer
+// the upload in memory and push it to Vercel Blob storage instead.
+//
+// IMPORTANT: we do NOT gate on process.env.BLOB_READ_WRITE_TOKEN anymore. Vercel's
+// Blob stores default to OIDC authentication now, which means the @vercel/blob SDK
+// can authenticate successfully even when BLOB_READ_WRITE_TOKEN is not set -- that
+// env var is only present as a fallback for some setups, not a reliable signal of
+// whether Blob storage is usable. Instead, we just attempt the Blob upload and only
+// fall back to local disk if that attempt actually fails (e.g. local dev with no
+// Vercel context at all).
+//
+// The local-disk fallback directory is resolved lazily (inside the request handler,
+// not at module load) and uses /tmp when running on Vercel -- process.cwd() is
+// read-only there and mkdirSync-ing into it at import time is what was crashing the
+// entire bundled function before any route could respond.
+
+const isOnVercel = !!process.env.VERCEL;
+
+function getLocalUploadDir() {
+  return isOnVercel
+    ? path.join("/tmp", "uploads", "social")
+    : path.join(process.cwd(), "uploads", "social");
+}
+
+function ensureLocalUploadDir() {
+  const dir = getLocalUploadDir();
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  return dir;
+}
 
 const uploadSocialMedia = multer({
   storage: multer.memoryStorage(),
@@ -167,29 +191,35 @@ router.get("/search/users", authMiddleware, async (req: any, res) => {
   }
 });
 
-// POST /upload — buffers the file in memory, then pushes to Vercel Blob
-// (or writes to local disk in dev when no BLOB_READ_WRITE_TOKEN is set).
+// POST /upload — buffers the file in memory, attempts Vercel Blob (OIDC or
+// static token, whichever is configured), and only falls back to local disk
+// (/tmp on Vercel, ./uploads/social in dev) if that attempt fails.
 router.post("/upload", authMiddleware, (req: any, res) => {
   uploadSocialMedia(req, res, async (err: any) => {
     if (err) { res.status(400).json({ error: "Upload failed", message: err.message }); return; }
     if (!req.file) { res.status(400).json({ error: "No file provided" }); return; }
-    try {
-      const filename = `social-${Date.now()}-${Math.round(Math.random() * 1e9)}${path.extname(req.file.originalname)}`;
 
-      if (useBlobStorage) {
-        const blob = await put(filename, req.file.buffer, {
-          access: "public",
-          contentType: req.file.mimetype,
-        });
-        res.json({ url: blob.url });
-      } else {
-        const destPath = path.join(socialUploadDir, filename);
-        fs.writeFileSync(destPath, req.file.buffer);
-        res.json({ url: `/uploads/social/${filename}` });
-      }
-    } catch (uploadErr: any) {
-      req.log.error({ err: uploadErr }, "social upload error");
-      res.status(500).json({ error: "Upload failed", message: uploadErr?.message });
+    const filename = `social-${Date.now()}-${Math.round(Math.random() * 1e9)}${path.extname(req.file.originalname)}`;
+
+    try {
+      const blob = await put(filename, req.file.buffer, {
+        access: "public",
+        contentType: req.file.mimetype,
+      });
+      res.json({ url: blob.url });
+      return;
+    } catch (blobErr: any) {
+      req.log.warn({ err: blobErr }, "Blob upload failed, falling back to local disk");
+    }
+
+    try {
+      const dir = ensureLocalUploadDir();
+      const destPath = path.join(dir, filename);
+      fs.writeFileSync(destPath, req.file.buffer);
+      res.json({ url: `/uploads/social/${filename}` });
+    } catch (fallbackErr: any) {
+      req.log.error({ err: fallbackErr }, "social upload error (both Blob and local fallback failed)");
+      res.status(500).json({ error: "Upload failed", message: fallbackErr?.message });
     }
   });
 });
