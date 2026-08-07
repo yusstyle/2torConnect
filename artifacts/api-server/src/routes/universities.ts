@@ -1,4 +1,4 @@
-import { Router, type IRouter } from "express";
+﻿import { Router, type IRouter } from "express";
 import { db } from "@workspace/db";
 import { studentsTable, tutorsTable, usersTable, sessionsTable, transactionsTable } from "@workspace/db";
 import { sql, eq, or, count, and } from "drizzle-orm";
@@ -21,7 +21,7 @@ interface UniMeta {
 }
 
 const KNOWN_UNIS: Record<string, UniMeta> = {
-  // ── Nigeria ──
+  // â”€â”€ Nigeria â”€â”€
   "university of lagos": { name: "University of Lagos", acronym: "UNILAG", location: "Lagos", country: "Nigeria", type: "Federal", established: 1962, website: "https://unilag.edu.ng", color: "from-blue-500 to-cyan-400" },
   "unilag": { name: "University of Lagos", acronym: "UNILAG", location: "Lagos", country: "Nigeria", type: "Federal", established: 1962, website: "https://unilag.edu.ng", color: "from-blue-500 to-cyan-400" },
   "university of ibadan": { name: "University of Ibadan", acronym: "UI", location: "Ibadan", country: "Nigeria", type: "Federal", established: 1948, website: "https://ui.edu.ng", color: "from-purple-500 to-indigo-400" },
@@ -43,7 +43,7 @@ const KNOWN_UNIS: Record<string, UniMeta> = {
   "bayero university kano": { name: "Bayero University Kano", acronym: "BUK", location: "Kano", country: "Nigeria", type: "Federal", established: 1975, website: "https://buk.edu.ng", color: "from-orange-500 to-red-400" },
   "federal university dutse": { name: "Federal University Dutse", acronym: "FUD", location: "Dutse", country: "Nigeria", type: "Federal", established: 2011, website: "https://fud.edu.ng", color: "from-emerald-500 to-green-400" },
 
-  // ── USA ──
+  // â”€â”€ USA â”€â”€
   "harvard university": { name: "Harvard University", acronym: "Harvard", location: "Cambridge, MA", country: "USA", type: "Private", established: 1636, website: "https://harvard.edu", color: "from-red-600 to-red-400" },
   "massachusetts institute of technology": { name: "Massachusetts Institute of Technology", acronym: "MIT", location: "Cambridge, MA", country: "USA", type: "Private", established: 1861, website: "https://mit.edu", color: "from-gray-600 to-red-500" },
   "mit": { name: "Massachusetts Institute of Technology", acronym: "MIT", location: "Cambridge, MA", country: "USA", type: "Private", established: 1861, website: "https://mit.edu", color: "from-gray-600 to-red-500" },
@@ -59,7 +59,7 @@ const KNOWN_UNIS: Record<string, UniMeta> = {
   "university of texas austin": { name: "University of Texas at Austin", acronym: "UT Austin", location: "Austin, TX", country: "USA", type: "Public", established: 1883, website: "https://utexas.edu", color: "from-orange-600 to-yellow-400" },
   "university of washington": { name: "University of Washington", acronym: "UW", location: "Seattle, WA", country: "USA", type: "Public", established: 1861, website: "https://washington.edu", color: "from-purple-600 to-purple-400" },
 
-  // ── UK ──
+  // â”€â”€ UK â”€â”€
   "university of oxford": { name: "University of Oxford", acronym: "Oxford", location: "Oxford", country: "UK", type: "Public", established: 1096, website: "https://ox.ac.uk", color: "from-blue-700 to-indigo-500" },
   "oxford": { name: "University of Oxford", acronym: "Oxford", location: "Oxford", country: "UK", type: "Public", established: 1096, website: "https://ox.ac.uk", color: "from-blue-700 to-indigo-500" },
   "university of cambridge": { name: "University of Cambridge", acronym: "Cambridge", location: "Cambridge", country: "UK", type: "Public", established: 1209, website: "https://cam.ac.uk", color: "from-cyan-600 to-blue-400" },
@@ -71,24 +71,24 @@ const KNOWN_UNIS: Record<string, UniMeta> = {
   "university of manchester": { name: "University of Manchester", acronym: "UoM", location: "Manchester", country: "UK", type: "Public", established: 1824, website: "https://manchester.ac.uk", color: "from-yellow-500 to-amber-400" },
   "king's college london": { name: "King's College London", acronym: "KCL", location: "London", country: "UK", type: "Public", established: 1829, website: "https://kcl.ac.uk", color: "from-red-600 to-red-400" },
 
-  // ── Canada ──
+  // â”€â”€ Canada â”€â”€
   "university of toronto": { name: "University of Toronto", acronym: "UofT", location: "Toronto", country: "Canada", type: "Public", established: 1827, website: "https://utoronto.ca", color: "from-blue-700 to-blue-500" },
   "mcgill university": { name: "McGill University", acronym: "McGill", location: "Montreal", country: "Canada", type: "Public", established: 1821, website: "https://mcgill.ca", color: "from-red-600 to-red-400" },
   "university of british columbia": { name: "University of British Columbia", acronym: "UBC", location: "Vancouver", country: "Canada", type: "Public", established: 1908, website: "https://ubc.ca", color: "from-blue-600 to-teal-400" },
   "university of waterloo": { name: "University of Waterloo", acronym: "UWaterloo", location: "Waterloo", country: "Canada", type: "Public", established: 1957, website: "https://uwaterloo.ca", color: "from-yellow-500 to-amber-400" },
 
-  // ── Australia ──
+  // â”€â”€ Australia â”€â”€
   "australian national university": { name: "Australian National University", acronym: "ANU", location: "Canberra", country: "Australia", type: "Public", established: 1946, website: "https://anu.edu.au", color: "from-yellow-500 to-orange-400" },
   "university of melbourne": { name: "University of Melbourne", acronym: "UniMelb", location: "Melbourne", country: "Australia", type: "Public", established: 1853, website: "https://unimelb.edu.au", color: "from-blue-700 to-blue-500" },
   "university of sydney": { name: "University of Sydney", acronym: "USYD", location: "Sydney", country: "Australia", type: "Public", established: 1850, website: "https://sydney.edu.au", color: "from-red-600 to-orange-400" },
 
-  // ── Europe ──
+  // â”€â”€ Europe â”€â”€
   "eth zurich": { name: "ETH Zurich", acronym: "ETH", location: "Zurich", country: "Switzerland", type: "Public", established: 1855, website: "https://ethz.ch", color: "from-blue-600 to-cyan-400" },
   "technical university of munich": { name: "Technical University of Munich", acronym: "TUM", location: "Munich", country: "Germany", type: "Public", established: 1868, website: "https://tum.de", color: "from-blue-700 to-blue-500" },
   "sorbonne university": { name: "Sorbonne University", acronym: "Sorbonne", location: "Paris", country: "France", type: "Public", established: 1257, website: "https://sorbonne-universite.fr", color: "from-blue-600 to-indigo-400" },
   "delft university of technology": { name: "Delft University of Technology", acronym: "TU Delft", location: "Delft", country: "Netherlands", type: "Public", established: 1842, website: "https://tudelft.nl", color: "from-sky-600 to-blue-400" },
 
-  // ── Africa ──
+  // â”€â”€ Africa â”€â”€
   "university of cape town": { name: "University of Cape Town", acronym: "UCT", location: "Cape Town", country: "South Africa", type: "Public", established: 1829, website: "https://uct.ac.za", color: "from-blue-700 to-indigo-500" },
   "university of the witwatersrand": { name: "University of the Witwatersrand", acronym: "Wits", location: "Johannesburg", country: "South Africa", type: "Public", established: 1896, website: "https://wits.ac.za", color: "from-blue-600 to-sky-400" },
   "university of ghana": { name: "University of Ghana", acronym: "UG", location: "Accra", country: "Ghana", type: "Public", established: 1948, website: "https://ug.edu.gh", color: "from-green-600 to-yellow-400" },
@@ -98,7 +98,7 @@ const KNOWN_UNIS: Record<string, UniMeta> = {
   "university of dar es salaam": { name: "University of Dar es Salaam", acronym: "UDSM", location: "Dar es Salaam", country: "Tanzania", type: "Public", established: 1961, website: "https://udsm.ac.tz", color: "from-green-600 to-teal-400" },
   "addis ababa university": { name: "Addis Ababa University", acronym: "AAU", location: "Addis Ababa", country: "Ethiopia", type: "Public", established: 1950, website: "https://aau.edu.et", color: "from-green-600 to-yellow-400" },
 
-  // ── Asia ──
+  // â”€â”€ Asia â”€â”€
   "national university of singapore": { name: "National University of Singapore", acronym: "NUS", location: "Singapore", country: "Singapore", type: "Public", established: 1905, website: "https://nus.edu.sg", color: "from-blue-700 to-indigo-500" },
   "nus": { name: "National University of Singapore", acronym: "NUS", location: "Singapore", country: "Singapore", type: "Public", established: 1905, website: "https://nus.edu.sg", color: "from-blue-700 to-indigo-500" },
   "peking university": { name: "Peking University", acronym: "PKU", location: "Beijing", country: "China", type: "Public", established: 1898, website: "https://pku.edu.cn", color: "from-red-600 to-red-400" },
@@ -108,7 +108,7 @@ const KNOWN_UNIS: Record<string, UniMeta> = {
   "indian institute of technology delhi": { name: "IIT Delhi", acronym: "IITD", location: "New Delhi", country: "India", type: "Public", established: 1961, website: "https://iitd.ac.in", color: "from-orange-500 to-yellow-400" },
   "university of delhi": { name: "University of Delhi", acronym: "DU", location: "New Delhi", country: "India", type: "Public", established: 1922, website: "https://du.ac.in", color: "from-blue-600 to-indigo-400" },
 
-  // ── Middle East ──
+  // â”€â”€ Middle East â”€â”€
   "american university of beirut": { name: "American University of Beirut", acronym: "AUB", location: "Beirut", country: "Lebanon", type: "Private", established: 1866, website: "https://aub.edu.lb", color: "from-red-600 to-red-400" },
   "king abdulaziz university": { name: "King Abdulaziz University", acronym: "KAU", location: "Jeddah", country: "Saudi Arabia", type: "Public", established: 1967, website: "https://kau.edu.sa", color: "from-green-600 to-teal-400" },
 };
@@ -240,22 +240,51 @@ router.get("/info", async (req, res) => {
 });
 
 router.get("/search", async (req, res) => {
-  try {
-    const q = String(req.query.q ?? "").trim();
-    if (!q) { res.json({ universities: [] }); return; }
-    const url = `http://universities.hipolabs.com/search?name=${encodeURIComponent(q)}&limit=15`;
-    const response = await fetch(url, { signal: AbortSignal.timeout(5000) });
-    if (!response.ok) throw new Error("Upstream failed");
-    const data = await response.json() as Array<{ name: string; country: string; "state-province": string | null; domains: string[]; web_pages: string[] }>;
-    const results = data.slice(0, 15).map(u => ({
-      name: u.name,
-      country: u.country,
-      domain: u.domains?.[0] ?? null,
-    }));
-    res.json({ universities: results });
-  } catch {
-    res.json({ universities: [] });
+  const q = String(req.query.q ?? "").trim();
+  if (!q) { res.json({ universities: [] }); return; }
+  const qNorm = normalize(q);
+
+  // Local KNOWN_UNIS match first â€” this is what actually catches acronyms
+  // like "FUD", "UNILAG", "ABU" etc. The external Hipolabs API only does a
+  // substring match against a school's FULL official name, so a search for
+  // "fud" never matches "Federal University Dutse" (the letters "fud" don't
+  // appear in that string). That's why acronym searches were coming up empty
+  // even though "federal university dutse" is a key in KNOWN_UNIS below.
+  const localMatches = new Map<string, { name: string; country: string; domain: string | null }>();
+  for (const [key, meta] of Object.entries(KNOWN_UNIS)) {
+    if (key.includes(qNorm) || normalize(meta.acronym).includes(qNorm)) {
+      localMatches.set(meta.name, { name: meta.name, country: meta.country, domain: null });
+    }
   }
+
+  let externalResults: Array<{ name: string; country: string; domain: string | null }> = [];
+  try {
+    const url = `https://universities.hipolabs.com/search?name=${encodeURIComponent(q)}&limit=15`;
+    const response = await fetch(url, { signal: AbortSignal.timeout(5000) });
+    if (response.ok) {
+      const data = await response.json() as Array<{ name: string; country: string; domains: string[] }>;
+      externalResults = data.slice(0, 15).map(u => ({
+        name: u.name,
+        country: u.country,
+        domain: u.domains?.[0] ?? null,
+      }));
+    }
+  } catch {
+    // external lookup failed/timed out â€” local matches (if any) still get returned below
+  }
+
+  // Local matches first (they're the curated, known-good entries), then
+  // external results, deduped by normalized name.
+  const seen = new Set<string>();
+  const merged: Array<{ name: string; country: string; domain: string | null }> = [];
+  for (const u of [...localMatches.values(), ...externalResults]) {
+    const k = normalize(u.name);
+    if (seen.has(k)) continue;
+    seen.add(k);
+    merged.push(u);
+  }
+
+  res.json({ universities: merged.slice(0, 15) });
 });
 
 router.get("/top-performers/:universityName", async (req, res) => {
@@ -363,7 +392,7 @@ router.post("/sponsor", authMiddleware, async (req: any, res) => {
         userId: recipient.userId,
         type: "bonus",
         amount: perPerson.toFixed(2),
-        description: `Sponsorship from investor — ${universityName} program`,
+        description: `Sponsorship from investor â€” ${universityName} program`,
         status: "completed",
       });
     }
