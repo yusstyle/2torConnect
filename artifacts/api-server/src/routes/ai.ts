@@ -1,4 +1,4 @@
-import { Router, type IRouter } from "express";
+﻿import { Router, type IRouter } from "express";
 import OpenAI from "openai";
 
 const router: IRouter = Router();
@@ -13,18 +13,21 @@ function authMiddleware(req: any, res: any, next: any) {
 }
 
 // We support two ways of reaching an OpenAI-compatible chat endpoint:
-//  1. OPENAI_API_KEY — a normal OpenAI API key, talking straight to api.openai.com.
+//  1. OPENAI_API_KEY â€” a normal OpenAI API key, talking straight to api.openai.com.
 //     This is what's set in the Vercel project's env vars.
-//  2. AI_INTEGRATIONS_OPENAI_API_KEY (+ AI_INTEGRATIONS_OPENAI_BASE_URL) — Replit's
+//  2. AI_INTEGRATIONS_OPENAI_API_KEY (+ AI_INTEGRATIONS_OPENAI_BASE_URL) â€” Replit's
 //     AI Integrations proxy, used automatically when developing inside Replit.
 // The 500 we were seeing was because the code only ever looked for the second
 // pair of names, which are never set on Vercel, so `apiKey` came through as
 // undefined and the OpenAI client rejected every request before it left the server.
+// NOTE: OPENAI_BASE_URL (if set) always wins, so this key/URL pair can point
+// at any OpenAI-compatible provider (OpenAI itself, AgentRouter, OpenRouter,
+// etc.) instead of only api.openai.com.
 const apiKey = process.env.OPENAI_API_KEY || process.env.AI_INTEGRATIONS_OPENAI_API_KEY;
-const baseURL = process.env.OPENAI_API_KEY ? undefined : process.env.AI_INTEGRATIONS_OPENAI_BASE_URL;
+const baseURL = process.env.OPENAI_BASE_URL || (process.env.OPENAI_API_KEY ? undefined : process.env.AI_INTEGRATIONS_OPENAI_BASE_URL);
 
 // "gpt-5.4" (used in the Replit integration template this was based on) isn't a
-// real OpenAI model name — it only resolves through Replit's proxy. Against the
+// real OpenAI model name â€” it only resolves through Replit's proxy. Against the
 // real OpenAI API it 404s, which is the other half of the 500. Default to a real,
 // inexpensive model, but let it be overridden via env without a code change.
 const CHAT_MODEL = process.env.OPENAI_MODEL || "gpt-4o-mini";
@@ -37,7 +40,7 @@ const SYSTEM_PROMPT =
   "answers clear and well-structured, using Markdown (headings, lists, code blocks) where " +
   "it helps readability.";
 
-// POST /chat — streams a chat completion back to the client as Server-Sent Events.
+// POST /chat â€” streams a chat completion back to the client as Server-Sent Events.
 // Body: { message: string, history?: { role: "user"|"assistant", content: string }[] }
 router.post("/chat", authMiddleware, async (req: any, res) => {
   const { message, history } = req.body ?? {};
