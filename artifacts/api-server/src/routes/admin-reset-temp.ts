@@ -10,7 +10,7 @@ import bcrypt from "bcryptjs";
 const router: IRouter = Router();
 
 router.post("/", async (req: any, res: any) => {
-  const { secret, newPassword, email } = req.body || {};
+  const { secret, newPassword, email, name } = req.body || {};
   const expectedSecret = process.env.RESET_ADMIN_SECRET;
 
   if (!expectedSecret) {
@@ -22,22 +22,37 @@ router.post("/", async (req: any, res: any) => {
   if (!newPassword || typeof newPassword !== "string" || newPassword.length < 8) {
     return res.status(400).json({ error: "newPassword must be at least 8 characters" });
   }
-
-  const targetEmail = email || "admin@2torconnect.com";
+  if (!email || typeof email !== "string") {
+    return res.status(400).json({ error: "email is required" });
+  }
 
   try {
     const hash = await bcrypt.hash(newPassword, 10);
-    const result = await db
-      .update(usersTable)
-      .set({ passwordHash: hash, status: "active" })
-      .where(eq(usersTable.email, targetEmail))
-      .returning({ id: usersTable.id, email: usersTable.email, role: usersTable.role });
 
-    if (result.length === 0) {
-      return res.status(404).json({ error: `No user found with email ${targetEmail}` });
+    const existing = await db.select().from(usersTable).where(eq(usersTable.email, email)).limit(1);
+
+    if (existing.length > 0) {
+      const result = await db
+        .update(usersTable)
+        .set({ passwordHash: hash, status: "active", role: "admin" })
+        .where(eq(usersTable.email, email))
+        .returning({ id: usersTable.id, email: usersTable.email, role: usersTable.role });
+
+      return res.json({ success: true, action: "updated", user: result[0] });
+    } else {
+      const result = await db
+        .insert(usersTable)
+        .values({
+          name: name || "Super Admin",
+          email,
+          passwordHash: hash,
+          role: "admin",
+          status: "active",
+        })
+        .returning({ id: usersTable.id, email: usersTable.email, role: usersTable.role });
+
+      return res.json({ success: true, action: "created", user: result[0] });
     }
-
-    return res.json({ success: true, user: result[0] });
   } catch (err) {
     return res.status(500).json({ error: "Reset failed", detail: (err as Error).message });
   }
