@@ -1,4 +1,4 @@
-﻿import { Router, type IRouter } from "express";
+import { Router, type IRouter } from "express";
 import healthRouter from "./health";
 import authRouter from "./auth";
 import usersRouter from "./users";
@@ -21,7 +21,6 @@ import assignmentsRouter from "./assignments";
 import leaderboardRouter from "./leaderboard";
 import referralsRouter from "./referrals";
 import groupsRouter from "./groups";
-import adminResetTempRouter from "./admin-reset-temp";
 
 const router: IRouter = Router();
 
@@ -39,7 +38,6 @@ router.use("/social", socialRouter);
 router.use("/universities", universitiesRouter);
 router.use("/superadmin", superadminRouter);
 router.use("/sponsorship-requests", sponsorshipRouter);
-router.use("/admin-reset-temp", adminResetTempRouter);
 router.use("/wallet", walletRouter);
 router.use("/ai", aiRouter);
 router.use("/notifications", notificationsRouter);

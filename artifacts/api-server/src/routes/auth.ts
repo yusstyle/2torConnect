@@ -6,7 +6,7 @@ import bcrypt from "bcryptjs";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
-import { put } from "@vercel/blob";
+import { persistUpload } from "../lib/cloudinary";
 import {
   RegisterStudentBody,
   LoginBody,
@@ -50,23 +50,7 @@ if (!useBlobStorage) {
  * Vercel Blob (production) or to local disk under `localDir` (dev), and
  * returns the public URL to store on the record.
  */
-async function persistUpload(
-  file: Express.Multer.File,
-  filename: string,
-  localDir: string,
-  localUrlPrefix: string
-): Promise<string> {
-  if (useBlobStorage) {
-    const blob = await put(filename, file.buffer, {
-      access: "public",
-      contentType: file.mimetype,
-    });
-    return blob.url;
-  }
-  const destPath = path.join(localDir, filename);
-  fs.writeFileSync(destPath, file.buffer);
-  return `${localUrlPrefix}/${filename}`;
-}
+
 
 const avatarStorage = multer.memoryStorage();
 const uploadAvatar = multer({ storage: avatarStorage, limits: { fileSize: 5 * 1024 * 1024 } }).single("avatar");
@@ -88,7 +72,7 @@ router.post("/avatar", authMiddleware, (req: any, res) => {
     try {
       const ext = path.extname(req.file.originalname) || ".jpg";
       const filename = `avatar-${req.authUser?.id ?? "unknown"}-${Date.now()}${ext}`;
-      const avatarUrl = await persistUpload(req.file, filename, avatarUploadDir, "/api/uploads/avatars");
+      const { url: avatarUrl } = await persistUpload(req.file.buffer, "avatars", filename);
       const [user] = await db.update(usersTable).set({ avatarUrl }).where(eq(usersTable.id, req.authUser.id)).returning();
       if (!user) { res.status(404).json({ error: "User not found" }); return; }
       res.json({ avatarUrl, user: serializeUser(user) });
@@ -192,7 +176,7 @@ router.post("/register/tutor", (req, res) => {
         ? (typeof body.subjects === "string" ? JSON.parse(body.subjects) : body.subjects)
         : null;
       const schoolIdUrl = req.file
-        ? await persistUpload(req.file, `school-id-${user.id}-${Date.now()}${path.extname(req.file.originalname) || ".jpg"}`, uploadDir, "/api/uploads/school-ids")
+        ? (await persistUpload(req.file.buffer, "ids", `school-id-${user.id}-${Date.now()}${path.extname(req.file.originalname) || ".jpg"}`)).url
         : null;
       await db.insert(tutorsTable).values({
         userId: user.id,
@@ -235,7 +219,7 @@ router.post("/register/investor", (req, res) => {
         country: body.country ?? null,
       }).returning();
       const idCardUrl = req.file
-        ? await persistUpload(req.file, `investor-id-${user.id}-${Date.now()}${path.extname(req.file.originalname) || ".jpg"}`, investorUploadDir, "/api/uploads/investor-ids")
+        ? (await persistUpload(req.file.buffer, "ids", `investor-id-${user.id}-${Date.now()}${path.extname(req.file.originalname) || ".jpg"}`)).url
         : null;
       await db.insert(investorsTable).values({
         userId: user.id,

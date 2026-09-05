@@ -8,7 +8,7 @@ import { eq, desc, and, sql, count, or, ilike, inArray } from "drizzle-orm";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
-import { put } from "@vercel/blob";
+import { persistUpload } from "../lib/cloudinary";
 
 // --- Storage strategy ---
 //
@@ -202,11 +202,8 @@ router.post("/upload", authMiddleware, (req: any, res) => {
     const filename = `social-${Date.now()}-${Math.round(Math.random() * 1e9)}${path.extname(req.file.originalname)}`;
 
     try {
-      const blob = await put(filename, req.file.buffer, {
-        access: "public",
-        contentType: req.file.mimetype,
-      });
-      res.json({ url: blob.url });
+      const { url } = await persistUpload(req.file.buffer, "social", filename);
+      res.json({ url });
       return;
     } catch (blobErr: any) {
       req.log.warn({ err: blobErr }, "Blob upload failed, falling back to local disk");
