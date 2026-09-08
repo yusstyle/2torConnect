@@ -88,6 +88,7 @@ export function DashboardLayout({ children, role: roleProp, title }: DashboardLa
     ],
     investor: [
       { label: "Dashboard", href: "/investor/dashboard", icon: LayoutDashboard },
+      { label: "Student Requests", href: "/investor/student-requests", icon: HandCoins },
       { label: "Sponsor a University", href: "/investor/universities", icon: GraduationCap },
       { label: "Leaderboard", href: "/leaderboard", icon: Trophy },
       { label: "Refer & Earn", href: "/referral", icon: Gift },
@@ -121,6 +122,7 @@ export function DashboardLayout({ children, role: roleProp, title }: DashboardLa
     ],
     investor: [
       { label: "Home", href: "/investor/dashboard", icon: LayoutDashboard },
+      { label: "Requests", href: "/investor/student-requests", icon: HandCoins },
       { label: "Sponsor", href: "/investor/universities", icon: GraduationCap },
       { label: "Messages", href: "/messages", icon: MessageSquare },
       { label: "Feed", href: "/socialise", icon: Globe },
@@ -156,7 +158,7 @@ export function DashboardLayout({ children, role: roleProp, title }: DashboardLa
   return (
     <div className="min-h-screen bg-background flex flex-col md:flex-row">
 
-      {/* ── DESKTOP SIDEBAR (unchanged) ── */}
+      {/* Ã¢â€â‚¬Ã¢â€â‚¬ DESKTOP SIDEBAR (unchanged) Ã¢â€â‚¬Ã¢â€â‚¬ */}
       <aside className="hidden md:flex w-64 glass-panel border-r border-y-0 border-l-0 flex-col sticky top-0 h-screen">
         <div className="p-5 flex items-center justify-between border-b border-white/5">
           <Logo size={44} />
@@ -211,7 +213,7 @@ export function DashboardLayout({ children, role: roleProp, title }: DashboardLa
         </div>
       </aside>
 
-      {/* ── MOBILE TOP HEADER ── */}
+      {/* Ã¢â€â‚¬Ã¢â€â‚¬ MOBILE TOP HEADER Ã¢â€â‚¬Ã¢â€â‚¬ */}
       <div className="md:hidden flex items-center justify-between px-4 py-3 border-b border-white/10 bg-card/90 backdrop-blur-md sticky top-0 z-40">
         {/* Left: avatar + greeting */}
         <Link href="/profile" className="flex items-center gap-3">
@@ -233,7 +235,7 @@ export function DashboardLayout({ children, role: roleProp, title }: DashboardLa
         </div>
       </div>
 
-      {/* ── MORE DRAWER BACKDROP ── */}
+      {/* Ã¢â€â‚¬Ã¢â€â‚¬ MORE DRAWER BACKDROP Ã¢â€â‚¬Ã¢â€â‚¬ */}
       <AnimatePresence>
         {moreOpen && (
           <motion.div
@@ -244,7 +246,7 @@ export function DashboardLayout({ children, role: roleProp, title }: DashboardLa
         )}
       </AnimatePresence>
 
-      {/* ── MORE SLIDE-UP DRAWER ── */}
+      {/* Ã¢â€â‚¬Ã¢â€â‚¬ MORE SLIDE-UP DRAWER Ã¢â€â‚¬Ã¢â€â‚¬ */}
       <AnimatePresence>
         {moreOpen && (
           <motion.div
@@ -297,7 +299,7 @@ export function DashboardLayout({ children, role: roleProp, title }: DashboardLa
         )}
       </AnimatePresence>
 
-      {/* ── MAIN CONTENT ── */}
+      {/* Ã¢â€â‚¬Ã¢â€â‚¬ MAIN CONTENT Ã¢â€â‚¬Ã¢â€â‚¬ */}
       <main className="flex-1 overflow-y-auto relative min-w-0">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-primary/10 via-background to-background -z-10" />
         {/* pb-24 on mobile to clear the bottom nav bar */}
@@ -309,7 +311,7 @@ export function DashboardLayout({ children, role: roleProp, title }: DashboardLa
         </div>
       </main>
 
-      {/* ── MOBILE BOTTOM NAV BAR ── */}
+      {/* Ã¢â€â‚¬Ã¢â€â‚¬ MOBILE BOTTOM NAV BAR Ã¢â€â‚¬Ã¢â€â‚¬ */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-card/95 backdrop-blur-xl border-t border-white/10">
         <div className="flex items-stretch">
           {bottomNav.map((item) => {
