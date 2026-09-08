@@ -85,7 +85,9 @@ router.post("/avatar", authMiddleware, (req: any, res) => {
 
 const uploadSchoolId = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 10 * 1024 * 1024 },
+  // Raised from 10MB: modern phone camera photos routinely exceed 10MB,
+  // which was rejecting valid ID photos immediately on selection.
+  limits: { fileSize: 20 * 1024 * 1024 },
   fileFilter: (_req, file, cb) => {
     const allowed = [".jpg", ".jpeg", ".png", ".pdf"];
     const ext = path.extname(file.originalname).toLowerCase();
@@ -95,7 +97,9 @@ const uploadSchoolId = multer({
 
 const uploadInvestorId = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 10 * 1024 * 1024 },
+  // Raised from 10MB: modern phone camera photos routinely exceed 10MB,
+  // which was rejecting valid ID photos immediately on selection.
+  limits: { fileSize: 20 * 1024 * 1024 },
   fileFilter: (_req, file, cb) => {
     const allowed = [".jpg", ".jpeg", ".png", ".pdf"];
     const ext = path.extname(file.originalname).toLowerCase();
