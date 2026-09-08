@@ -53,8 +53,8 @@ export default function RegisterTutorPage() {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > 10 * 1024 * 1024) {
-      toast({ variant: "destructive", title: "File too large", description: "School ID must be under 10MB" });
+    if (file.size > 20 * 1024 * 1024) {
+      toast({ variant: "destructive", title: "File too large", description: "School ID must be under 20MB" });
       return;
     }
     setSchoolIdFile(file);
@@ -173,7 +173,7 @@ export default function RegisterTutorPage() {
                     i === step ? "bg-gradient-to-tr from-primary to-accent text-white shadow-md shadow-primary/30" :
                     "bg-white/10 text-muted-foreground"
                   }`}>
-                    {i < step ? "✓" : i + 1}
+                    {i < step ? "Ã¢Å“â€œ" : i + 1}
                   </div>
                   <span className={`text-xs font-medium hidden sm:block ${i === step ? "text-white" : "text-muted-foreground"}`}>{label}</span>
                   {i < steps.length - 1 && (
@@ -186,7 +186,7 @@ export default function RegisterTutorPage() {
 
           <form onSubmit={handleSubmit}>
             <AnimatePresence mode="wait">
-              {/* Step 0 — Personal Info */}
+              {/* Step 0 Ã¢â‚¬â€ Personal Info */}
               {step === 0 && (
                 <motion.div key="step0" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-4">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -220,7 +220,7 @@ export default function RegisterTutorPage() {
                       <Globe className="absolute left-3.5 top-3.5 w-4 h-4 text-muted-foreground pointer-events-none" />
                       <select value={form.country} onChange={set("country")}
                         className="w-full bg-black/40 border border-white/10 rounded-xl py-3 pl-11 pr-4 text-white focus:outline-none focus:border-primary transition-all appearance-none">
-                        <option value="">Select country…</option>
+                        <option value="">Select countryÃ¢â‚¬Â¦</option>
                         {COUNTRIES.map(c => <option key={c} value={c} className="bg-gray-900">{c}</option>)}
                       </select>
                     </div>
@@ -245,7 +245,7 @@ export default function RegisterTutorPage() {
                 </motion.div>
               )}
 
-              {/* Step 1 — Academic Details */}
+              {/* Step 1 Ã¢â‚¬â€ Academic Details */}
               {step === 1 && (
                 <motion.div key="step1" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-4">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -255,7 +255,7 @@ export default function RegisterTutorPage() {
                         value={form.university}
                         onChange={val => setForm(f => ({ ...f, university: val }))}
                         required
-                        placeholder="Search or type your university…"
+                        placeholder="Search or type your universityÃ¢â‚¬Â¦"
                       />
                     </div>
                     <div className="space-y-1">
@@ -326,13 +326,13 @@ export default function RegisterTutorPage() {
                 </motion.div>
               )}
 
-              {/* Step 2 — Documents */}
+              {/* Step 2 Ã¢â‚¬â€ Documents */}
               {step === 2 && (
                 <motion.div key="step2" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-5">
                   <div className="p-4 rounded-2xl bg-blue-500/10 border border-blue-500/20 flex gap-3">
                     <AlertCircle className="w-5 h-5 text-blue-400 shrink-0 mt-0.5" />
                     <p className="text-sm text-blue-300">
-                      Your school ID card and CGPA are required for verification. Our team reviews all applications within 24–48 hours.
+                      Your school ID card and CGPA are required for verification. Our team reviews all applications within 24Ã¢â‚¬â€œ48 hours.
                     </p>
                   </div>
 

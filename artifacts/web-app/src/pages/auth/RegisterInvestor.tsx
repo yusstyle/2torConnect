@@ -13,7 +13,7 @@ const COUNTRIES = [
   "Azerbaijan","Bahamas","Bahrain","Bangladesh","Barbados","Belarus","Belgium","Belize","Benin","Bhutan",
   "Bolivia","Bosnia and Herzegovina","Botswana","Brazil","Brunei","Bulgaria","Burkina Faso","Burundi","Cabo Verde","Cambodia",
   "Cameroon","Canada","Central African Republic","Chad","Chile","China","Colombia","Comoros","Congo (Brazzaville)","Congo (Kinshasa)",
-  "Costa Rica","Côte d'Ivoire","Croatia","Cuba","Cyprus","Czech Republic","Denmark","Djibouti","Dominica","Dominican Republic",
+  "Costa Rica","CÃƒÂ´te d'Ivoire","Croatia","Cuba","Cyprus","Czech Republic","Denmark","Djibouti","Dominica","Dominican Republic",
   "Ecuador","Egypt","El Salvador","Equatorial Guinea","Eritrea","Estonia","Eswatini","Ethiopia","Fiji","Finland",
   "France","Gabon","Gambia","Georgia","Germany","Ghana","Greece","Grenada","Guatemala","Guinea",
   "Guinea-Bissau","Guyana","Haiti","Honduras","Hungary","Iceland","India","Indonesia","Iran","Iraq",
@@ -23,7 +23,7 @@ const COUNTRIES = [
   "Micronesia","Moldova","Monaco","Mongolia","Montenegro","Morocco","Mozambique","Myanmar","Namibia","Nauru",
   "Nepal","Netherlands","New Zealand","Nicaragua","Niger","Nigeria","North Korea","North Macedonia","Norway","Oman",
   "Pakistan","Palau","Palestine","Panama","Papua New Guinea","Paraguay","Peru","Philippines","Poland","Portugal",
-  "Qatar","Romania","Russia","Rwanda","Saint Kitts and Nevis","Saint Lucia","Saint Vincent and the Grenadines","Samoa","San Marino","São Tomé and Príncipe",
+  "Qatar","Romania","Russia","Rwanda","Saint Kitts and Nevis","Saint Lucia","Saint Vincent and the Grenadines","Samoa","San Marino","SÃƒÂ£o TomÃƒÂ© and PrÃƒÂ­ncipe",
   "Saudi Arabia","Senegal","Serbia","Seychelles","Sierra Leone","Singapore","Slovakia","Slovenia","Solomon Islands","Somalia",
   "South Africa","South Korea","South Sudan","Spain","Sri Lanka","Sudan","Suriname","Sweden","Switzerland","Syria",
   "Taiwan","Tajikistan","Tanzania","Thailand","Timor-Leste","Togo","Tonga","Trinidad and Tobago","Tunisia","Turkey",
@@ -54,8 +54,8 @@ export default function RegisterInvestorPage() {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > 10 * 1024 * 1024) {
-      toast({ variant: "destructive", title: "File too large", description: "ID card must be under 10MB" }); return;
+    if (file.size > 20 * 1024 * 1024) {
+      toast({ variant: "destructive", title: "File too large", description: "ID card must be under 20MB" }); return;
     }
     setIdCardFile(file);
     if (file.type.startsWith("image/")) {
@@ -140,7 +140,7 @@ export default function RegisterInvestorPage() {
                     i < step ? "bg-green-500 text-white" :
                     i === step ? "bg-gradient-to-tr from-yellow-500 to-orange-400 text-white" :
                     "bg-white/10 text-muted-foreground"
-                  }`}>{i < step ? "✓" : i + 1}</div>
+                  }`}>{i < step ? "Ã¢Å“â€œ" : i + 1}</div>
                   <span className={`text-xs font-medium hidden sm:block ${i === step ? "text-white" : "text-muted-foreground"}`}>{label}</span>
                   {i < steps.length - 1 && <div className={`flex-1 h-px mx-1 ${i < step ? "bg-green-500/50" : "bg-white/10"}`} />}
                 </div>

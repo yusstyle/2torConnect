@@ -1,4 +1,4 @@
-﻿import { v2 as cloudinary } from "cloudinary";
+import { v2 as cloudinary } from "cloudinary";
 
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -27,7 +27,7 @@ export async function persistUpload(
 ): Promise<PersistedUpload> {
   const uploadOptions: Record<string, unknown> = {
     folder: `2torconnect/${folder}`,
-    resource_type: "image",
+    resource_type: "auto", // auto-detects image/video/raw so videos are no longer rejected
   };
 
   if (filename) {
