@@ -368,16 +368,47 @@ export default function SocialisePage() {
 
   const handlePost = async () => {
     if (!content.trim() && !mediaFile) { toast({ variant: "destructive", title: "Write something first!" }); return; }
+    if (mediaFile && mediaFile.size > 100 * 1024 * 1024) {
+      toast({ variant: "destructive", title: "File too large", description: "Max size is 100MB." });
+      return;
+    }
     setCreating(true);
     try {
       let mediaUrl: string | null = null;
       let mediaType: string | null = null;
+
       if (mediaFile) {
+        // Videos (and anything else) go straight to Cloudinary from the browser.
+        // Vercel serverless functions hard-cap request bodies at 4.5MB, so routing
+        // large files through our own API route silently fails once a video
+        // crosses that line -- this bypasses our server entirely for the upload.
+        const sigRes = await fetch(`${BASE}/api/social/upload-signature`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!sigRes.ok) throw new Error("Could not prepare upload");
+        const sig = await sigRes.json();
+
         const fd = new FormData();
         fd.append("file", mediaFile);
-        const uploadRes = await fetch(`${BASE}/api/social/upload`, { method: "POST", headers: { Authorization: `Bearer ${token}` }, body: fd });
-        if (uploadRes.ok) { const d = await uploadRes.json(); mediaUrl = d.url; mediaType = mediaFile.type; }
+        fd.append("api_key", sig.apiKey);
+        fd.append("timestamp", String(sig.timestamp));
+        fd.append("signature", sig.signature);
+        fd.append("folder", sig.folder);
+
+        const resourceType = mediaFile.type.startsWith("video") ? "video" : "image";
+        const cloudRes = await fetch(
+          `https://api.cloudinary.com/v1_1/${sig.cloudName}/${resourceType}/upload`,
+          { method: "POST", body: fd }
+        );
+        const cloudData = await cloudRes.json();
+        if (!cloudRes.ok || !cloudData.secure_url) {
+          throw new Error(cloudData.error?.message || "Media upload failed");
+        }
+        mediaUrl = cloudData.secure_url;
+        mediaType = mediaFile.type;
       }
+
       const res = await fetch(`${BASE}/api/social/posts`, {
         method: "POST", headers: { ...headers, "Content-Type": "application/json" },
         body: JSON.stringify({ content: content.trim() || null, mediaUrl, mediaType, type: postType }),

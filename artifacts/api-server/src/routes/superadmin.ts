@@ -6,7 +6,7 @@ import bcrypt from "bcryptjs";
 
 const router: IRouter = Router();
 
-const SUPER_ADMIN_EMAIL = "admin2-yusstyle@gmail.com";
+const SUPER_ADMIN_EMAIL = "yusstyle13@gmail.com";
 
 function requireSuperAdmin(req: any, res: any, next: any) {
   const auth = req.headers.authorization;

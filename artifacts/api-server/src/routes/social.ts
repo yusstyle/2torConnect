@@ -9,6 +9,7 @@ import multer from "multer";
 import path from "path";
 import fs from "fs";
 import { persistUpload } from "../lib/cloudinary";
+import crypto from "crypto";
 
 // --- Storage strategy ---
 //
@@ -194,6 +195,34 @@ router.get("/search/users", authMiddleware, async (req: any, res) => {
 // POST /upload — buffers the file in memory, attempts Vercel Blob (OIDC or
 // static token, whichever is configured), and only falls back to local disk
 // (/tmp on Vercel, ./uploads/social in dev) if that attempt fails.
+// POST /upload-signature -- returns a signed payload so the browser can upload
+// large files (video) DIRECTLY to Cloudinary, skipping this server entirely.
+// This is required for anything over ~4.5MB: Vercel serverless functions hard-cap
+// request bodies at 4.5MB regardless of multer's own limit, so routing big files
+// through /upload silently fails once a video crosses that line.
+router.post("/upload-signature", authMiddleware, (req: any, res) => {
+  try {
+    const timestamp = Math.round(Date.now() / 1000);
+    const folder = "2torconnect/social";
+    const paramsToSign = `folder=${folder}&timestamp=${timestamp}`;
+    const signature = crypto
+      .createHash("sha1")
+      .update(paramsToSign + process.env.CLOUDINARY_API_SECRET)
+      .digest("hex");
+
+    res.json({
+      timestamp,
+      signature,
+      apiKey: process.env.CLOUDINARY_API_KEY,
+      cloudName: process.env.CLOUDINARY_CLOUD_NAME,
+      folder,
+    });
+  } catch (err) {
+    req.log.error({ err }, "upload signature error");
+    res.status(500).json({ error: "Failed to generate upload signature" });
+  }
+});
+
 router.post("/upload", authMiddleware, (req: any, res) => {
   uploadSocialMedia(req, res, async (err: any) => {
     if (err) { res.status(400).json({ error: "Upload failed", message: err.message }); return; }
