@@ -1,10 +1,11 @@
 import { useState, useRef, useEffect, useCallback } from "react";
+import { useLocation } from "wouter";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { useAuthStore } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Heart, MessageCircle, Share2, Image, Video, Loader2,
+  Heart, MessageCircle, MessageSquare, Share2, Image, Video, Loader2,
   Send, X, Feather, Film, Radio, MoreHorizontal, Trash2, UserPlus, UserCheck, Users,
   Search, Sparkles, AtSign,
 } from "lucide-react";
@@ -62,12 +63,13 @@ function Avatar({ name, avatarUrl, role, size = "md" }: { name: string; avatarUr
   );
 }
 
-function PostCard({ post, currentUserId, onLike, onDelete, onComment, onFollow }: {
+function PostCard({ post, currentUserId, onLike, onDelete, onComment, onFollow, onMessage }: {
   post: Post; currentUserId: number;
   onLike: (id: number) => void;
   onDelete: (id: number) => void;
   onComment: (id: number) => void;
   onFollow: (userId: number) => void;
+  onMessage: (userId: number, name: string) => void;
 }) {
   const [showMenu, setShowMenu] = useState(false);
   const isOwn = post.userId === currentUserId;
@@ -147,6 +149,11 @@ function PostCard({ post, currentUserId, onLike, onDelete, onComment, onFollow }
           <MessageCircle className="w-4 h-4" />
           <span>{post.commentCount}</span>
         </button>
+        {!isOwn && (
+          <button onClick={() => onMessage(post.userId, post.authorName)} title="Message" className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-accent transition-all">
+            <MessageSquare className="w-4 h-4" />
+          </button>
+        )}
         <button className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-primary transition-all ml-auto">
           <Share2 className="w-4 h-4" />
         </button>
@@ -451,6 +458,11 @@ export default function SocialisePage() {
     }
   };
 
+  const [, setLocation] = useLocation();
+  const handleMessage = (userId: number, name: string) => {
+    setLocation(`/messages?with=${userId}&name=${encodeURIComponent(name)}`);
+  };
+
   const handleFollowFromSearch = (_userId: number, isFollowing: boolean) => {
     if (isFollowing) setMyStats(s => ({ ...s, following: s.following + 1 }));
     else setMyStats(s => ({ ...s, following: Math.max(0, s.following - 1) }));
@@ -607,7 +619,7 @@ export default function SocialisePage() {
                 <PostCard key={post.id} post={post} currentUserId={user?.id ?? 0}
                   onLike={handleLike} onDelete={handleDelete}
                   onComment={id => setCommentPostId(id)}
-                  onFollow={handleFollow} />
+                  onFollow={handleFollow} onMessage={handleMessage} />
               ))}
             </AnimatePresence>
           </div>
