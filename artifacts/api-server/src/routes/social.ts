@@ -2,7 +2,7 @@ import { Router, type IRouter } from "express";
 import { db } from "@workspace/db";
 import {
   socialPostsTable, socialLikesTable, socialCommentsTable,
-  socialFollowsTable, usersTable
+  socialFollowsTable, usersTable, tutorsTable, investorsTable
 } from "@workspace/db";
 import { eq, desc, and, sql, count, or, ilike, inArray } from "drizzle-orm";
 import multer from "multer";
@@ -89,12 +89,22 @@ async function enrichPost(post: any, currentUserId?: number) {
     }
   }
 
+  let authorIsVerified = false;
+  if (user?.role === "tutor") {
+    const [t] = await db.select({ v: tutorsTable.isVerified }).from(tutorsTable).where(eq(tutorsTable.userId, post.userId)).limit(1);
+    authorIsVerified = !!t?.v;
+  } else if (user?.role === "investor") {
+    const [i] = await db.select({ v: investorsTable.isVerified }).from(investorsTable).where(eq(investorsTable.userId, post.userId)).limit(1);
+    authorIsVerified = !!i?.v;
+  }
+
   return {
     ...post,
     authorName: user?.name ?? "Unknown",
     authorUsername: user?.username ?? null,
     authorRole: user?.role ?? "student",
     authorAvatarUrl: user?.avatarUrl ?? null,
+    authorIsVerified,
     liked,
     isFollowing,
     authorFollowerCount: Number(followerCount),

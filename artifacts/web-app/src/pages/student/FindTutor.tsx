@@ -4,6 +4,7 @@ import DashboardLayout from "@/components/layout/DashboardLayout";
 import { useCreateSession } from "@workspace/api-client-react";
 import { useAuthStore } from "@/lib/auth";
 import { Search, Star, BookOpen, MessageSquare, Loader2, Filter, X, ChevronDown } from "lucide-react";
+import { VerifiedBadge } from "@/components/VerifiedBadge";
 import { useToast } from "@/hooks/use-toast";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -13,7 +14,7 @@ const API = `${BASE}/api`;
 interface Tutor {
   id: number; userId: number; name: string; university?: string; department?: string;
   subjects?: string[]; rating?: string; hourlyRate?: string; aboutYou?: string;
-  avatarUrl?: string; totalSessions?: number;
+  avatarUrl?: string; totalSessions?: number; isVerified?: boolean;
 }
 
 function StarDisplay({ rating, size = "sm" }: { rating?: string | number | null; size?: "sm" | "md" }) {
@@ -220,7 +221,10 @@ function TutorCard({ tutor, onBook, onMessage, onReview }: { tutor: Tutor; onBoo
               }
             </div>
             <div>
-              <h3 className="text-base font-bold text-white leading-tight">{tutor.name}</h3>
+              <h3 className="text-base font-bold text-white leading-tight flex items-center gap-1">
+                {tutor.name}
+                {tutor.isVerified && <VerifiedBadge />}
+              </h3>
               <p className="text-xs text-muted-foreground">{tutor.university || "University Student"}</p>
               {tutor.department && <p className="text-xs text-accent/80">{tutor.department}</p>}
             </div>

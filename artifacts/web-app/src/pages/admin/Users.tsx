@@ -2,9 +2,10 @@ import { useState } from "react";
 import { useListUsers, useUpdateUser } from "@workspace/api-client-react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { format } from "date-fns";
-import { Search, Loader2, CheckCircle, XCircle, Clock, FileImage, X, Eye } from "lucide-react";
+import { Search, Loader2, CheckCircle, XCircle, Clock, FileImage, X, Eye, BadgeCheck } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuthStore } from "@/lib/auth";
+import { VerifiedBadge } from "@/components/VerifiedBadge";
 
 const BASE = import.meta.env.BASE_URL?.replace(/\/$/, "") ?? "";
 
@@ -55,6 +56,25 @@ export default function AdminUsersPage() {
   const rejectUser = (id: number) => updateMutation.mutate({ id, data: { status: "rejected" } });
   const suspendUser = (id: number) => updateMutation.mutate({ id, data: { status: "suspended" } });
 
+  const [verifyingId, setVerifyingId] = useState<number | null>(null);
+  const toggleVerify = async (id: number, next: boolean) => {
+    setVerifyingId(id);
+    try {
+      const res = await fetch(`${BASE}/api/users/${id}/verify`, {
+        method: "PATCH",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ isVerified: next }),
+      });
+      if (!res.ok) throw new Error();
+      toast({ title: next ? "User verified" : "Verification removed" });
+      refetch();
+    } catch {
+      toast({ variant: "destructive", title: "Failed to update verification" });
+    } finally {
+      setVerifyingId(null);
+    }
+  };
+
   return (
     <DashboardLayout role="admin" title="User Management">
       <div className="space-y-4">
@@ -97,6 +117,7 @@ export default function AdminUsersPage() {
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1 flex-wrap">
                         <span className="text-white font-medium">{user.name}</span>
+                        {user.isVerified && <VerifiedBadge />}
                         <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${roleColors[user.role] ?? ""}`}>{user.role}</span>
                         <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${statusColors[user.status] ?? ""}`}>{user.status}</span>
                         {user.country && <span className="px-2 py-0.5 rounded-full text-xs bg-white/5 text-muted-foreground">{user.country}</span>}
@@ -105,6 +126,16 @@ export default function AdminUsersPage() {
                       {user.university && <p className="text-xs text-accent/70 mt-0.5">{user.university}</p>}
                     </div>
                     <div className="flex gap-2 flex-wrap">
+                      {(user.role === "tutor" || user.role === "investor") && (
+                        <button
+                          onClick={() => toggleVerify(user.id, !user.isVerified)}
+                          disabled={verifyingId === user.id}
+                          className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors disabled:opacity-50 ${
+                            user.isVerified ? "bg-blue-500/10 text-blue-400 hover:bg-blue-500/20" : "bg-white/5 text-white/60 hover:bg-white/10"
+                          }`}>
+                          <BadgeCheck className="w-3.5 h-3.5" /> {user.isVerified ? "Verified" : "Verify"}
+                        </button>
+                      )}
                       {hasDoc && (
                         <button
                           onClick={() => setDocUser({ id: user.id, name: user.name, role: user.role, documentUrl: user.documentUrl })}

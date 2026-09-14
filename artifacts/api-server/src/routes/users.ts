@@ -55,6 +55,7 @@ router.get("/", async (req, res) => {
           level: s?.admissionType ?? t?.level ?? null,
           subjects: t?.subjects ?? null,
           aboutYou: t?.aboutYou ?? null,
+          isVerified: t?.isVerified ?? inv?.isVerified ?? null,
           documentUrl,
         };
       }),
@@ -144,6 +145,30 @@ router.patch("/:id/bank-details", async (req, res) => {
   } catch (err) {
     req.log.error({ err }, "update bank details error");
     res.status(500).json({ error: "Failed to update bank details" });
+  }
+});
+
+router.patch("/:id/verify", async (req, res) => {
+  try {
+    const userId = Number(req.params.id);
+    const { isVerified } = req.body;
+    const [user] = await db.select().from(usersTable).where(eq(usersTable.id, userId)).limit(1);
+    if (!user) { res.status(404).json({ error: "User not found" }); return; }
+
+    if (user.role === "tutor") {
+      const [updated] = await db.update(tutorsTable).set({ isVerified: !!isVerified }).where(eq(tutorsTable.userId, userId)).returning();
+      if (!updated) { res.status(404).json({ error: "Tutor profile not found" }); return; }
+      res.json({ isVerified: updated.isVerified });
+    } else if (user.role === "investor") {
+      const [updated] = await db.update(investorsTable).set({ isVerified: !!isVerified }).where(eq(investorsTable.userId, userId)).returning();
+      if (!updated) { res.status(404).json({ error: "Investor profile not found" }); return; }
+      res.json({ isVerified: updated.isVerified });
+    } else {
+      res.status(400).json({ error: "Only tutors and investors can be verified" });
+    }
+  } catch (err) {
+    req.log.error({ err }, "verify user error");
+    res.status(500).json({ error: "Failed to update verification status" });
   }
 });
 

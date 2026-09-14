@@ -10,6 +10,7 @@ import {
   Search, Sparkles, AtSign,
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
+import { VerifiedBadge } from "@/components/VerifiedBadge";
 
 type PostType = "tweet" | "post" | "reel" | "video";
 type FeedMode = "foryou" | "following";
@@ -18,7 +19,7 @@ interface Post {
   id: number; userId: number; content: string | null; mediaUrl: string | null;
   mediaType: string | null; type: PostType; likeCount: number; commentCount: number;
   createdAt: string; authorName: string; authorUsername: string | null;
-  authorRole: string; authorAvatarUrl?: string | null;
+  authorRole: string; authorAvatarUrl?: string | null; authorIsVerified?: boolean;
   liked: boolean; isFollowing: boolean; authorFollowerCount: number;
 }
 
@@ -82,6 +83,7 @@ function PostCard({ post, currentUserId, onLike, onDelete, onComment, onFollow, 
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5 flex-wrap">
             <span className="text-white font-bold text-sm">{post.authorName}</span>
+            {post.authorIsVerified && <VerifiedBadge />}
             {post.authorUsername && (
               <span className="text-muted-foreground text-xs">@{post.authorUsername}</span>
             )}
