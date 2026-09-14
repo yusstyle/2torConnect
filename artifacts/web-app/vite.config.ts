@@ -1,5 +1,6 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
+import { VitePWA } from "vite-plugin-pwa";
 import tailwindcss from "@tailwindcss/vite";
 import path from "path";
 import runtimeErrorOverlay from "@replit/vite-plugin-runtime-error-modal";
@@ -14,6 +15,25 @@ export default defineConfig({
     react(),
     tailwindcss(),
     runtimeErrorOverlay(),
+    VitePWA({
+      registerType: "autoUpdate",
+      manifest: false,
+      workbox: {
+        navigateFallback: "/index.html",
+        runtimeCaching: [
+          {
+            urlPattern: /^\/api\//,
+            handler: "NetworkFirst",
+            options: { cacheName: "api-cache", networkTimeoutSeconds: 5 },
+          },
+          {
+            urlPattern: /\.(png|jpg|jpeg|svg|mp4)$/,
+            handler: "CacheFirst",
+            options: { cacheName: "media-cache" },
+          },
+        ],
+      },
+    }),
     ...(isMainDevServer &&
     process.env.NODE_ENV !== "production" &&
     process.env.REPL_ID !== undefined
