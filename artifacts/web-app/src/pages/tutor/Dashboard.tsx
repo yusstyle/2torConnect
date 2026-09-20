@@ -48,8 +48,15 @@ export default function TutorDashboardPage() {
         setSavedRate(rate);
         toast({ title: "Rate saved!", description: `Your session price is set to ₦${Number(rate).toLocaleString()}` });
       } else {
-        toast({ variant: "destructive", title: "Failed to save rate" });
+        let detail = `Server responded ${res.status}`;
+        try {
+          const body = await res.json();
+          if (body?.error) detail = body.error;
+        } catch {}
+        toast({ variant: "destructive", title: "Failed to save rate", description: detail });
       }
+    } catch (err: any) {
+      toast({ variant: "destructive", title: "Failed to save rate", description: err?.message || "Network error -- check your connection" });
     } finally {
       setSavingRate(false);
     }
