@@ -27,7 +27,7 @@ export default function TutorDashboardPage() {
   const [savingRate, setSavingRate] = useState(false);
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
+    const token = useAuthStore.getState().token;
     fetch(`${BASE}/tutors/me`, { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.ok ? r.json() : null)
       .then(data => { if (data?.hourlyRate) { setSavedRate(data.hourlyRate); setRate(data.hourlyRate); } })
@@ -38,7 +38,7 @@ export default function TutorDashboardPage() {
     if (!rate || isNaN(Number(rate))) return;
     setSavingRate(true);
     try {
-      const token = localStorage.getItem("token");
+      const token = useAuthStore.getState().token;
       const res = await fetch(`${BASE}/tutors/me/rate`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
