@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useListUsers, useUpdateUser } from "@workspace/api-client-react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { format } from "date-fns";
-import { Search, Loader2, CheckCircle, XCircle, Clock, FileImage, X, Eye, BadgeCheck } from "lucide-react";
+import { Search, Loader2, CheckCircle, XCircle, Clock, FileImage, X, Eye, BadgeCheck, Mail, Send } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuthStore } from "@/lib/auth";
 import { VerifiedBadge } from "@/components/VerifiedBadge";
@@ -37,6 +37,35 @@ export default function AdminUsersPage() {
   const [roleFilter, setRoleFilter] = useState("");
   const [page, setPage] = useState(1);
   const [docUser, setDocUser] = useState<DocUser | null>(null);
+  const [composeTarget, setComposeTarget] = useState<{ type: "single"; id: number; name: string } | { type: "all" } | null>(null);
+  const [subject, setSubject] = useState("");
+  const [message, setMessage] = useState("");
+  const [sending, setSending] = useState(false);
+
+  const sendMessage = async () => {
+    if (!composeTarget || !subject.trim() || !message.trim()) return;
+    setSending(true);
+    try {
+      const res = await fetch(`${BASE}/api/admin/send-email`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          recipientType: composeTarget.type,
+          userId: composeTarget.type === "single" ? composeTarget.id : undefined,
+          subject: subject.trim(),
+          message: message.trim(),
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error || "Failed to send");
+      toast({ title: "Message sent", description: `Delivered to ${data.sent} recipient${data.sent === 1 ? "" : "s"}${data.failed ? `, ${data.failed} failed` : ""}` });
+      setComposeTarget(null); setSubject(""); setMessage("");
+    } catch (err: any) {
+      toast({ variant: "destructive", title: "Failed to send message", description: err?.message });
+    } finally {
+      setSending(false);
+    }
+  };
 
   const { data, isLoading, refetch } = useListUsers(
     { search: search || undefined, role: (roleFilter as any) || undefined, page, limit: 20 }
@@ -102,6 +131,11 @@ export default function AdminUsersPage() {
         <div className="glass-panel rounded-2xl overflow-hidden">
           <div className="p-4 border-b border-white/5 flex items-center justify-between">
             <span className="text-sm text-muted-foreground">{total} total users</span>
+            <button
+              onClick={() => setComposeTarget({ type: "all" })}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-accent/10 text-accent hover:bg-accent/20 text-xs font-medium transition-colors">
+              <Mail className="w-3.5 h-3.5" /> Message All Users
+            </button>
           </div>
 
           {isLoading ? (
@@ -143,6 +177,11 @@ export default function AdminUsersPage() {
                           <Eye className="w-3.5 h-3.5" /> View ID
                         </button>
                       )}
+                      <button
+                        onClick={() => setComposeTarget({ type: "single", id: user.id, name: user.name })}
+                        className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-white/5 text-white/70 hover:bg-white/10 text-xs font-medium transition-colors">
+                        <Mail className="w-3.5 h-3.5" /> Message
+                      </button>
                       {user.status !== "active" && (
                         <button onClick={() => activateUser(user.id)}
                           disabled={updateMutation.isPending}
@@ -239,6 +278,62 @@ export default function AdminUsersPage() {
                 disabled={updateMutation.isPending}
                 className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-red-500/10 text-red-400 hover:bg-red-500/20 font-bold text-sm transition-all disabled:opacity-50">
                 <XCircle className="w-4 h-4" /> Reject User
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Compose message modal */}
+      {composeTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" onClick={() => !sending && setComposeTarget(null)}>
+          <div className="w-full max-w-lg bg-[#0f1117] border border-white/10 rounded-3xl overflow-hidden shadow-2xl" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between p-5 border-b border-white/10">
+              <div>
+                <p className="text-white font-bold">
+                  {composeTarget.type === "all" ? "Message All Users" : `Message ${composeTarget.name}`}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {composeTarget.type === "all" ? "This will email every registered user." : "This will email just this one user."}
+                </p>
+              </div>
+              <button onClick={() => !sending && setComposeTarget(null)} className="p-1.5 rounded-lg hover:bg-white/10 text-muted-foreground">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-5 space-y-4">
+              <div>
+                <label className="text-xs text-muted-foreground mb-1.5 block">Subject</label>
+                <input
+                  value={subject}
+                  onChange={e => setSubject(e.target.value)}
+                  placeholder="e.g. Important update"
+                  className="w-full bg-black/40 border border-white/10 rounded-xl py-2.5 px-4 text-white placeholder:text-white/30 focus:outline-none focus:border-accent transition-all"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground mb-1.5 block">Message</label>
+                <textarea
+                  value={message}
+                  onChange={e => setMessage(e.target.value)}
+                  placeholder="Write your message..."
+                  rows={6}
+                  className="w-full bg-black/40 border border-white/10 rounded-xl py-2.5 px-4 text-white placeholder:text-white/30 focus:outline-none focus:border-accent transition-all resize-none"
+                />
+              </div>
+            </div>
+            <div className="flex gap-3 p-5 border-t border-white/10">
+              <button
+                onClick={() => setComposeTarget(null)}
+                disabled={sending}
+                className="flex-1 py-3 rounded-xl bg-white/5 text-white/70 hover:bg-white/10 font-bold text-sm transition-all disabled:opacity-50">
+                Cancel
+              </button>
+              <button
+                onClick={sendMessage}
+                disabled={sending || !subject.trim() || !message.trim()}
+                className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-accent text-white hover:opacity-90 font-bold text-sm transition-all disabled:opacity-50">
+                {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                {sending ? "Sending..." : "Send"}
               </button>
             </div>
           </div>

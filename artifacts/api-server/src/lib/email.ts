@@ -71,3 +71,30 @@ export async function sendNewAdminEmail(to: string, name: string, password: stri
     console.error("Admin email send failed:", err);
   }
 }
+export async function sendCustomEmail(to: string, subject: string, message: string): Promise<boolean> {
+  const transporter = createTransporter();
+
+  if (!transporter) {
+    console.log(`[DEV] Email to ${to} — ${subject}: ${message}`);
+    return true;
+  }
+
+  try {
+    await transporter.sendMail({
+      from: `"${FROM_NAME}" <${SMTP_USER}>`,
+      to,
+      subject,
+      html: `
+        <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px;background:#0f0f1b;border-radius:16px;color:#fff">
+          <h2 style="color:#a855f7;margin-bottom:8px">2torConnect</h2>
+          <div style="color:#ddd;font-size:15px;line-height:1.6;white-space:pre-wrap">${message}</div>
+          <p style="color:#666;font-size:12px;margin-top:24px">This message was sent to you by the 2torConnect team.</p>
+        </div>
+      `,
+    });
+    return true;
+  } catch (err) {
+    console.error("Custom email send failed:", err);
+    return false;
+  }
+}
