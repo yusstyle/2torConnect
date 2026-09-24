@@ -63,14 +63,14 @@ function requireAdmin(req: any, res: any, next: any) {
 // POST /admin/send-email -- send a message to one user or to everyone
 router.post("/send-email", requireAdmin, async (req: any, res) => {
   try {
-    const { recipientType, userId, subject, message } = req.body;
+    const { recipientType, userId, subject, message, mediaUrl, mediaType } = req.body;
     if (!subject || !message) { res.status(400).json({ error: "Subject and message are required" }); return; }
 
     if (recipientType === "single") {
       if (!userId) { res.status(400).json({ error: "userId is required for a single recipient" }); return; }
       const [user] = await db.select().from(usersTable).where(eq(usersTable.id, Number(userId))).limit(1);
       if (!user) { res.status(404).json({ error: "User not found" }); return; }
-      const ok = await sendCustomEmail(user.email, subject, message);
+      const ok = await sendCustomEmail(user.email, subject, message, mediaUrl, mediaType);
       res.json({ sent: ok ? 1 : 0, failed: ok ? 0 : 1 });
       return;
     }
@@ -81,7 +81,7 @@ router.post("/send-email", requireAdmin, async (req: any, res) => {
       const BATCH_SIZE = 25;
       for (let i = 0; i < users.length; i += BATCH_SIZE) {
         const batch = users.slice(i, i + BATCH_SIZE);
-        const results = await Promise.all(batch.map(u => sendCustomEmail(u.email, subject, message)));
+        const results = await Promise.all(batch.map(u => sendCustomEmail(u.email, subject, message, mediaUrl, mediaType)));
         sent += results.filter(Boolean).length;
         failed += results.filter(r => !r).length;
       }

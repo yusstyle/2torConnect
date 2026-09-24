@@ -71,11 +71,11 @@ export async function sendNewAdminEmail(to: string, name: string, password: stri
     console.error("Admin email send failed:", err);
   }
 }
-export async function sendCustomEmail(to: string, subject: string, message: string): Promise<boolean> {
+export async function sendCustomEmail(to: string, subject: string, message: string, mediaUrl?: string | null, mediaType?: string | null): Promise<boolean> {
   const transporter = createTransporter();
 
   if (!transporter) {
-    console.log(`[DEV] Email to ${to} — ${subject}: ${message}`);
+    console.log(`[DEV] Email to ${to} — ${subject}: ${message}${mediaUrl ? ` (media: ${mediaUrl})` : ""}`);
     return true;
   }
 
@@ -88,6 +88,8 @@ export async function sendCustomEmail(to: string, subject: string, message: stri
         <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px;background:#0f0f1b;border-radius:16px;color:#fff">
           <h2 style="color:#a855f7;margin-bottom:8px">2torConnect</h2>
           <div style="color:#ddd;font-size:15px;line-height:1.6;white-space:pre-wrap">${message}</div>
+          ${mediaUrl && mediaType?.startsWith("image") ? `<img src="${mediaUrl}" alt="" style="max-width:100%;border-radius:12px;margin-top:16px;display:block" />` : ""}
+          ${mediaUrl && mediaType?.startsWith("video") ? `<a href="${mediaUrl}" style="display:block;margin-top:16px;padding:16px;background:#1a1a2e;border-radius:12px;color:#a855f7;text-decoration:none;text-align:center;font-weight:bold">&#9654; Watch attached video</a>` : ""}
           <p style="color:#666;font-size:12px;margin-top:24px">This message was sent to you by the 2torConnect team.</p>
         </div>
       `,

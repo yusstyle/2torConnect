@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useListUsers, useUpdateUser } from "@workspace/api-client-react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { format } from "date-fns";
-import { Search, Loader2, CheckCircle, XCircle, Clock, FileImage, X, Eye, BadgeCheck, Mail, Send } from "lucide-react";
+import { Search, Loader2, CheckCircle, XCircle, Clock, FileImage, X, Eye, BadgeCheck, Mail, Send, Paperclip } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuthStore } from "@/lib/auth";
 import { VerifiedBadge } from "@/components/VerifiedBadge";
@@ -41,11 +41,54 @@ export default function AdminUsersPage() {
   const [subject, setSubject] = useState("");
   const [message, setMessage] = useState("");
   const [sending, setSending] = useState(false);
+  const [mediaFile, setMediaFile] = useState<File | null>(null);
+  const [mediaPreview, setMediaPreview] = useState<string | null>(null);
+  const [uploadingMedia, setUploadingMedia] = useState(false);
+
+  const handleMediaChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setMediaFile(file);
+    setMediaPreview(URL.createObjectURL(file));
+  };
 
   const sendMessage = async () => {
     if (!composeTarget || !subject.trim() || !message.trim()) return;
     setSending(true);
     try {
+      let mediaUrl: string | null = null;
+      let mediaType: string | null = null;
+
+      if (mediaFile) {
+        setUploadingMedia(true);
+        const sigRes = await fetch(`${BASE}/api/social/upload-signature`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!sigRes.ok) throw new Error("Could not prepare media upload");
+        const sig = await sigRes.json();
+
+        const fd = new FormData();
+        fd.append("file", mediaFile);
+        fd.append("api_key", sig.apiKey);
+        fd.append("timestamp", String(sig.timestamp));
+        fd.append("signature", sig.signature);
+        fd.append("folder", sig.folder);
+
+        const resourceType = mediaFile.type.startsWith("video") ? "video" : "image";
+        const cloudRes = await fetch(
+          `https://api.cloudinary.com/v1_1/${sig.cloudName}/${resourceType}/upload`,
+          { method: "POST", body: fd }
+        );
+        const cloudData = await cloudRes.json();
+        setUploadingMedia(false);
+        if (!cloudRes.ok || !cloudData.secure_url) {
+          throw new Error(cloudData.error?.message || "Media upload failed");
+        }
+        mediaUrl = cloudData.secure_url;
+        mediaType = mediaFile.type;
+      }
+
       const res = await fetch(`${BASE}/api/admin/send-email`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
@@ -54,16 +97,19 @@ export default function AdminUsersPage() {
           userId: composeTarget.type === "single" ? composeTarget.id : undefined,
           subject: subject.trim(),
           message: message.trim(),
+          mediaUrl,
+          mediaType,
         }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error || "Failed to send");
       toast({ title: "Message sent", description: `Delivered to ${data.sent} recipient${data.sent === 1 ? "" : "s"}${data.failed ? `, ${data.failed} failed` : ""}` });
-      setComposeTarget(null); setSubject(""); setMessage("");
+      setComposeTarget(null); setSubject(""); setMessage(""); setMediaFile(null); setMediaPreview(null);
     } catch (err: any) {
       toast({ variant: "destructive", title: "Failed to send message", description: err?.message });
     } finally {
       setSending(false);
+      setUploadingMedia(false);
     }
   };
 
@@ -102,6 +148,11 @@ export default function AdminUsersPage() {
     } finally {
       setVerifyingId(null);
     }
+  };
+
+  const getDocUrl = (url: string | null) => {
+    if (!url) return "";
+    return url.startsWith("http") ? url : `/api`;
   };
 
   return (
@@ -246,7 +297,7 @@ export default function AdminUsersPage() {
                     <FileImage className="w-16 h-16 text-muted-foreground" />
                     <p className="text-muted-foreground text-sm">PDF document uploaded</p>
                     <a
-                      href={`${BASE}/api${docUser.documentUrl}`}
+                      href={getDocUrl(docUser.documentUrl)}
                       target="_blank"
                       rel="noreferrer"
                       className="px-5 py-2.5 rounded-xl bg-primary text-white font-bold text-sm hover:opacity-90 transition-all"
@@ -256,7 +307,7 @@ export default function AdminUsersPage() {
                   </div>
                 ) : (
                   <img
-                    src={`${BASE}/api${docUser.documentUrl}`}
+                    src={getDocUrl(docUser.documentUrl)}
                     alt="ID Document"
                     className="w-full rounded-2xl object-contain max-h-96"
                     onError={e => { (e.target as HTMLImageElement).src = ""; }}
@@ -320,6 +371,28 @@ export default function AdminUsersPage() {
                   className="w-full bg-black/40 border border-white/10 rounded-xl py-2.5 px-4 text-white placeholder:text-white/30 focus:outline-none focus:border-accent transition-all resize-none"
                 />
               </div>
+              <div>
+                <label className="text-xs text-muted-foreground mb-1.5 block">Attach image or video (optional)</label>
+                {mediaPreview ? (
+                  <div className="relative rounded-xl overflow-hidden border border-white/10">
+                    {mediaFile?.type.startsWith("video") ? (
+                      <video src={mediaPreview} className="w-full max-h-48 object-cover" controls />
+                    ) : (
+                      <img src={mediaPreview} className="w-full max-h-48 object-cover" alt="" />
+                    )}
+                    <button
+                      onClick={() => { setMediaFile(null); setMediaPreview(null); }}
+                      className="absolute top-2 right-2 p-1.5 rounded-lg bg-black/60 hover:bg-black/80 text-white">
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                ) : (
+                  <label className="flex items-center justify-center gap-2 py-3 rounded-xl bg-black/40 border border-dashed border-white/20 text-white/50 hover:text-white/80 hover:border-white/40 cursor-pointer transition-all text-sm">
+                    <Paperclip className="w-4 h-4" /> Choose image or video
+                    <input type="file" accept="image/*,video/*" className="hidden" onChange={handleMediaChange} />
+                  </label>
+                )}
+              </div>
             </div>
             <div className="flex gap-3 p-5 border-t border-white/10">
               <button
@@ -333,7 +406,7 @@ export default function AdminUsersPage() {
                 disabled={sending || !subject.trim() || !message.trim()}
                 className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-accent text-white hover:opacity-90 font-bold text-sm transition-all disabled:opacity-50">
                 {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                {sending ? "Sending..." : "Send"}
+                {uploadingMedia ? "Uploading..." : sending ? "Sending..." : "Send"}
               </button>
             </div>
           </div>
