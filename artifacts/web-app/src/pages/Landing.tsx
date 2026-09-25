@@ -571,6 +571,7 @@ export default function LandingPage() {
             <div>
               <h4 className="text-white font-semibold mb-4 text-sm uppercase tracking-wider">Support</h4>
               <ul className="space-y-3 text-white/50 text-sm">
+                <li><a href="/about" className="hover:text-white transition-colors">About the Founder</a></li>
                 {["Help Center", "Contact Us", "Privacy Policy", "Terms of Service"].map(l => (
                   <li key={l}><a href="#" className="hover:text-white transition-colors">{l}</a></li>
                 ))}

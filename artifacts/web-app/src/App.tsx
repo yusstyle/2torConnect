@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 
 import LandingPage from "@/pages/Landing";
+import AboutPage from "@/pages/About";
 import LoginPage from "@/pages/auth/Login";
 import RegisterChoicePage from "@/pages/auth/Register";
 import RegisterStudentPage from "@/pages/auth/RegisterStudent";
@@ -65,6 +66,7 @@ function Router() {
   return (
     <Switch>
       <Route path="/" component={LandingPage} />
+      <Route path="/about" component={AboutPage} />
       <Route path="/login" component={LoginPage} />
       <Route path="/register" component={RegisterChoicePage} />
       <Route path="/register/student" component={RegisterStudentPage} />
