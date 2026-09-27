@@ -5,7 +5,7 @@ import { Logo } from "@/components/Logo";
 import {
   BookOpen, Users, Star, ArrowRight, ShieldCheck, Zap, CheckCircle,
   TrendingUp, Clock, MessageSquare, Award, Target, GraduationCap,
-  Banknote, Calendar, ChevronRight, HandCoins, Video, Globe2, Heart
+  Banknote, Calendar, ChevronRight, ChevronDown, HandCoins, Video, Globe2, Heart
 } from "lucide-react";
 
 const fadeUp = (delay = 0) => ({
@@ -502,7 +502,7 @@ export default function LandingPage() {
                 className="glass-panel rounded-2xl p-6 group cursor-pointer">
                 <summary className="text-white font-semibold flex items-center justify-between list-none">
                   {faq.q}
-                  <ChevronRight className="w-5 h-5 text-muted-foreground group-open:rotate-90 transition-transform" />
+                  <ChevronDown className="w-5 h-5 text-muted-foreground group-open:rotate-180 transition-transform" />
                 </summary>
                 <p className="text-white/60 mt-4 leading-relaxed text-sm">{faq.a}</p>
               </motion.details>

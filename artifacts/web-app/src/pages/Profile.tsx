@@ -83,6 +83,14 @@ export default function ProfilePage() {
   };
 
   const handleSave = async () => {
+    const trimmedPhone = phone.trim();
+    if (trimmedPhone) {
+      const digitCount = (trimmedPhone.match(/\d/g) || []).length;
+      if (!/^[\d\s+\-()]+$/.test(trimmedPhone) || digitCount < 7) {
+        toast({ variant: "destructive", title: "Invalid phone number", description: "Use digits only (spaces, +, - and () are fine)." });
+        return;
+      }
+    }
     setSaving(true);
     try {
       const res = await fetch(`${BASE}/api/users/${user.id}`, {

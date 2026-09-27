@@ -115,7 +115,7 @@ router.post("/register/student", async (req, res) => {
       res.status(400).json({ error: "Email already in use" });
       return;
     }
-    const passwordHash = await bcrypt.hash(body.password, 10);
+    const passwordHash = await bcrypt.hash(body.password.trim(), 10);
     const [user] = await db.insert(usersTable).values({
       name: body.name,
       email: body.email,
@@ -166,7 +166,7 @@ router.post("/register/tutor", (req, res) => {
         res.status(400).json({ error: "Email already in use" });
         return;
       }
-      const passwordHash = await bcrypt.hash(body.password, 10);
+      const passwordHash = await bcrypt.hash(body.password.trim(), 10);
       const [user] = await db.insert(usersTable).values({
         name: body.name,
         email: body.email,
@@ -216,7 +216,7 @@ router.post("/register/investor", (req, res) => {
       if (existing.length > 0) {
         res.status(400).json({ error: "Email already in use" }); return;
       }
-      const passwordHash = await bcrypt.hash(body.password, 10);
+      const passwordHash = await bcrypt.hash(body.password.trim(), 10);
       const [user] = await db.insert(usersTable).values({
         name: body.name, email: body.email, passwordHash, role: "investor",
         phone: body.phone ?? null, status: "pending",
@@ -253,7 +253,7 @@ router.post("/login", async (req, res) => {
     if (!user) {
       res.status(401).json({ error: "Invalid email or password" }); return;
     }
-    const valid = await bcrypt.compare(password, user.passwordHash);
+    const valid = await bcrypt.compare(password.trim(), user.passwordHash);
     if (!valid) {
       res.status(401).json({ error: "Invalid email or password" }); return;
     }
