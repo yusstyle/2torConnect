@@ -38,6 +38,7 @@ export default function FindTutorPage() {
   const [subject, setSubject] = useState("");
   const [minRating, setMinRating] = useState("");
   const [maxPrice, setMaxPrice] = useState("");
+  const [university, setUniversity] = useState("");
   const [showFilters, setShowFilters] = useState(false);
 
   const [tutors, setTutors] = useState<Tutor[]>([]);
@@ -55,6 +56,7 @@ export default function FindTutorPage() {
       if (subject) params.set("subject", subject);
       if (minRating) params.set("minRating", minRating);
       if (maxPrice) params.set("maxPrice", maxPrice);
+      if (university) params.set("university", university);
       const r = await fetch(`${API}/tutors?${params}`, { headers });
       const d = await r.json();
       setTutors(d?.tutors ?? []);
@@ -64,9 +66,9 @@ export default function FindTutorPage() {
   useEffect(() => {
     const id = setTimeout(load, 300);
     return () => clearTimeout(id);
-  }, [search, subject, minRating, maxPrice]);
+  }, [search, subject, minRating, maxPrice, university]);
 
-  const hasFilters = !!(subject || minRating || maxPrice);
+  const hasFilters = !!(subject || minRating || maxPrice || university);
 
   const handleMessage = (userId: number, name: string) => {
     setLocation(`/messages?with=${userId}&name=${encodeURIComponent(name)}`);
@@ -105,7 +107,7 @@ export default function FindTutorPage() {
               exit={{ height: 0, opacity: 0 }}
               className="overflow-hidden"
             >
-              <div className="glass-panel rounded-2xl p-4 grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="glass-panel rounded-2xl p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div>
                   <label className="block text-xs text-white/60 mb-1.5">Subject</label>
                   <input
@@ -114,6 +116,22 @@ export default function FindTutorPage() {
                     placeholder="e.g. Mathematics"
                     className="w-full bg-black/40 border border-white/10 rounded-xl py-2.5 px-3 text-white focus:border-accent focus:outline-none text-sm"
                   />
+                </div>
+                <div>
+                  <label className="block text-xs text-white/60 mb-1.5">University</label>
+                  <div className="relative">
+                    <select
+                      value={university}
+                      onChange={e => setUniversity(e.target.value)}
+                      className="w-full bg-black/40 border border-white/10 rounded-xl py-2.5 pl-3 pr-9 text-white focus:border-accent focus:outline-none text-sm appearance-none"
+                    >
+                      <option value="">Any university</option>
+                      {[...new Set(tutors.map(t => t.university).filter((u): u is string => !!u))].sort().map(u => (
+                        <option key={u} value={u}>{u}</option>
+                      ))}
+                    </select>
+                    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40 pointer-events-none" />
+                  </div>
                 </div>
                 <div>
                   <label className="block text-xs text-white/60 mb-1.5">Min Rating</label>

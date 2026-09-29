@@ -185,6 +185,11 @@ export default function LandingPage() {
             ))}
           </motion.div>
         </div>
+
+        <div className="lg:hidden absolute bottom-6 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1 text-white/40 animate-bounce">
+          <span className="text-xs font-medium tracking-wide">Scroll to explore</span>
+          <ChevronDown className="w-5 h-5" />
+        </div>
       </section>
 
       {/* ── Stats bar (mobile) ── */}

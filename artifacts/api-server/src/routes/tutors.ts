@@ -35,7 +35,7 @@ router.get("/", async (req, res) => {
     const page = Number(req.query.page) || 1;
     const limit = Number(req.query.limit) || 20;
     const offset = (page - 1) * limit;
-    const { subject, status, search, minRating, maxPrice } = req.query;
+    const { subject, status, search, minRating, maxPrice, university } = req.query;
 
     const userConditions = [];
     if (status) userConditions.push(eq(usersTable.status, status as any));
@@ -64,6 +64,7 @@ router.get("/", async (req, res) => {
       .filter(r => !subject || (r.tutor.subjects ?? []).some(s => s.toLowerCase().includes((subject as string).toLowerCase())))
       .filter(r => !minRating || Number(r.tutor.rating ?? 0) >= Number(minRating))
       .filter(r => !maxPrice || Number(r.tutor.hourlyRate ?? 99999) <= Number(maxPrice))
+      .filter(r => !university || (r.tutor.university ?? "").toLowerCase().includes((university as string).toLowerCase()))
       .slice(0, limit)
       .map(r => buildTutorProfile(r.tutor, r.user));
 
