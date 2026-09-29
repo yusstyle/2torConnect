@@ -88,7 +88,7 @@ export default function LandingPage() {
 
       {/* ── Navbar ── */}
       <nav className="sticky top-0 z-50 border-b border-white/5 backdrop-blur-xl bg-background/80">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex justify-between items-center">
           <Logo size={42} />
           <div className="hidden md:flex items-center gap-8 text-sm font-medium text-muted-foreground">
             <a href="#how-it-works" className="hover:text-white transition-colors">How it Works</a>
@@ -97,11 +97,11 @@ export default function LandingPage() {
             <a href="#for-investors" className="hover:text-white transition-colors">For Investors</a>
             <a href="#features" className="hover:text-white transition-colors">Features</a>
           </div>
-          <div className="flex items-center gap-2">
-            <Link href="/login" className="px-3 py-2 text-sm font-semibold text-white/80 hover:text-white transition-colors whitespace-nowrap">
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+            <Link href="/login" className="px-2 py-2 sm:px-3 text-sm font-semibold text-white/80 hover:text-white transition-colors whitespace-nowrap">
               Sign In
             </Link>
-            <Link href="/register" className="px-4 py-2.5 rounded-xl text-sm font-bold bg-gradient-to-r from-primary to-accent text-white hover:opacity-90 hover:shadow-lg hover:shadow-accent/30 transition-all duration-300 whitespace-nowrap">
+            <Link href="/register" className="px-3 py-2 sm:px-4 sm:py-2.5 rounded-xl text-sm font-bold bg-gradient-to-r from-primary to-accent text-white hover:opacity-90 hover:shadow-lg hover:shadow-accent/30 transition-all duration-300 whitespace-nowrap">
               <span className="hidden sm:inline">Get Started Free</span>
               <span className="sm:hidden">Join Free</span>
             </Link>
@@ -215,7 +215,7 @@ export default function LandingPage() {
               { step: "03", icon: Calendar, title: "Book & Learn", desc: "Pick a time slot that works, make a secure payment, and start your session. It's that easy." },
             ].map((item, i) => (
               <motion.div key={item.step} {...fadeUp(i * 0.15)} className="glass-panel rounded-3xl p-8 relative overflow-hidden group hover:border-accent/40 transition-all duration-300">
-                <div className="absolute top-4 right-6 text-6xl font-extrabold text-white/5 font-display group-hover:text-white/8 transition-colors">{item.step}</div>
+                <div className="absolute top-4 right-6 text-6xl font-extrabold text-white/15 font-display group-hover:text-white/25 transition-colors">{item.step}</div>
                 <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary/30 to-accent/20 flex items-center justify-center mb-6">
                   <item.icon className="w-7 h-7 text-accent" />
                 </div>

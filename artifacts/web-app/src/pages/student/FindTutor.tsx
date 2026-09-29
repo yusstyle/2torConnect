@@ -117,29 +117,35 @@ export default function FindTutorPage() {
                 </div>
                 <div>
                   <label className="block text-xs text-white/60 mb-1.5">Min Rating</label>
-                  <select
-                    value={minRating}
-                    onChange={e => setMinRating(e.target.value)}
-                    className="w-full bg-black/40 border border-white/10 rounded-xl py-2.5 px-3 text-white focus:border-accent focus:outline-none text-sm appearance-none"
-                  >
-                    <option value="">Any rating</option>
-                    <option value="4.5">4.5+ ⭐</option>
-                    <option value="4">4.0+ ⭐</option>
-                    <option value="3">3.0+ ⭐</option>
-                  </select>
+                  <div className="relative">
+                    <select
+                      value={minRating}
+                      onChange={e => setMinRating(e.target.value)}
+                      className="w-full bg-black/40 border border-white/10 rounded-xl py-2.5 pl-3 pr-9 text-white focus:border-accent focus:outline-none text-sm appearance-none"
+                    >
+                      <option value="">Any rating</option>
+                      <option value="4.5">4.5+ ⭐</option>
+                      <option value="4">4.0+ ⭐</option>
+                      <option value="3">3.0+ ⭐</option>
+                    </select>
+                    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40 pointer-events-none" />
+                  </div>
                 </div>
                 <div>
                   <label className="block text-xs text-white/60 mb-1.5">Max Price (₦/hr)</label>
-                  <select
-                    value={maxPrice}
-                    onChange={e => setMaxPrice(e.target.value)}
-                    className="w-full bg-black/40 border border-white/10 rounded-xl py-2.5 px-3 text-white focus:border-accent focus:outline-none text-sm appearance-none"
-                  >
-                    <option value="">Any price</option>
-                    <option value="1000">Up to ₦1,000</option>
-                    <option value="2000">Up to ₦2,000</option>
-                    <option value="5000">Up to ₦5,000</option>
-                  </select>
+                  <div className="relative">
+                    <select
+                      value={maxPrice}
+                      onChange={e => setMaxPrice(e.target.value)}
+                      className="w-full bg-black/40 border border-white/10 rounded-xl py-2.5 pl-3 pr-9 text-white focus:border-accent focus:outline-none text-sm appearance-none"
+                    >
+                      <option value="">Any price</option>
+                      <option value="1000">Up to ₦1,000</option>
+                      <option value="2000">Up to ₦2,000</option>
+                      <option value="5000">Up to ₦5,000</option>
+                    </select>
+                    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40 pointer-events-none" />
+                  </div>
                 </div>
                 {hasFilters && (
                   <button
@@ -221,7 +227,7 @@ function TutorCard({ tutor, onBook, onMessage, onReview }: { tutor: Tutor; onBoo
               }
             </div>
             <div>
-              <h3 className="text-base font-bold text-white leading-tight flex items-center gap-1">
+              <h3 className="text-lg font-extrabold text-white leading-tight flex items-center gap-1.5">
                 {tutor.name}
                 {tutor.isVerified && <VerifiedBadge />}
               </h3>
