@@ -2,6 +2,7 @@ import { Link } from "wouter";
 import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
 import { Logo } from "@/components/Logo";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import {
   BookOpen, Users, Star, ArrowRight, ShieldCheck, Zap, CheckCircle,
   TrendingUp, Clock, MessageSquare, Award, Target, GraduationCap,
@@ -98,6 +99,7 @@ export default function LandingPage() {
             <a href="#features" className="hover:text-white transition-colors">Features</a>
           </div>
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+            <ThemeToggle />
             <Link href="/login" className="px-2 py-2 sm:px-3 text-sm font-semibold text-white/80 hover:text-white transition-colors whitespace-nowrap">
               Sign In
             </Link>

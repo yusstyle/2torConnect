@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import NotificationBell from "@/components/NotificationBell";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 interface NavItem {
   label: string;
@@ -207,7 +208,10 @@ export function DashboardLayout({ children, role: roleProp, title }: DashboardLa
       <aside className="hidden md:flex w-64 glass-panel border-r border-y-0 border-l-0 flex-col sticky top-0 h-screen">
         <div className="p-5 flex items-center justify-between border-b border-white/5">
           <Logo size={44} />
-          <NotificationBell />
+          <div className="flex items-center gap-1">
+            <ThemeToggle />
+            <NotificationBell />
+          </div>
         </div>
 
         <div className="px-4 py-4 flex-1 overflow-y-auto">
@@ -274,8 +278,9 @@ export function DashboardLayout({ children, role: roleProp, title }: DashboardLa
           </div>
         </Link>
 
-        {/* Right: notification bell */}
-        <div className="flex items-center gap-2">
+        {/* Right: theme toggle + notification bell */}
+        <div className="flex items-center gap-1">
+          <ThemeToggle />
           <NotificationBell />
         </div>
       </div>
