@@ -1,4 +1,4 @@
-import { ReactNode, useEffect, useState } from "react";
+import { ReactNode, useEffect, useState, useRef } from "react";
 import { Link, useLocation } from "wouter";
 import { useAuthStore } from "@/lib/auth";
 import { Logo } from "@/components/Logo";
@@ -46,6 +46,11 @@ export function DashboardLayout({ children, role: roleProp, title }: DashboardLa
   const { user, logout } = useAuthStore();
   const [location, setLocation] = useLocation();
   const [moreOpen, setMoreOpen] = useState(false);
+  const [dragX, setDragX] = useState(0);
+  const [dragging, setDragging] = useState(false);
+  const [slideDir, setSlideDir] = useState(0);
+  const touchStartRef = useRef<{ x: number; y: number } | null>(null);
+  const lockedAxisRef = useRef<"x" | "y" | null>(null);
   const isMobile = useIsMobile();
 
   if (!user) { setLocation("/login"); return null; }
@@ -154,6 +159,46 @@ export function DashboardLayout({ children, role: roleProp, title }: DashboardLa
   );
 
   const firstName = user.name.split(" ")[0];
+
+  const currentTabIndex = bottomNav.findIndex(
+    (i) => location === i.href || location.startsWith(i.href + "/")
+  );
+  const swipeEnabled = isMobile && currentTabIndex !== -1 && !moreOpen;
+
+  const onContentTouchStart = (e: React.TouchEvent) => {
+    if (!swipeEnabled) return;
+    touchStartRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+    lockedAxisRef.current = null;
+    setDragging(true);
+  };
+  const onContentTouchMove = (e: React.TouchEvent) => {
+    if (!swipeEnabled || !touchStartRef.current) return;
+    const dx = e.touches[0].clientX - touchStartRef.current.x;
+    const dy = e.touches[0].clientY - touchStartRef.current.y;
+    if (lockedAxisRef.current === null && (Math.abs(dx) > 6 || Math.abs(dy) > 6)) {
+      lockedAxisRef.current = Math.abs(dx) > Math.abs(dy) ? "x" : "y";
+    }
+    if (lockedAxisRef.current !== "x") return;
+    const atStart = currentTabIndex === 0 && dx > 0;
+    const atEnd = currentTabIndex === bottomNav.length - 1 && dx < 0;
+    setDragX((atStart || atEnd) ? dx * 0.3 : dx);
+  };
+  const onContentTouchEnd = () => {
+    if (swipeEnabled && lockedAxisRef.current === "x") {
+      const threshold = 80;
+      if (dragX < -threshold && currentTabIndex < bottomNav.length - 1) {
+        setSlideDir(1);
+        setLocation(bottomNav[currentTabIndex + 1].href);
+      } else if (dragX > threshold && currentTabIndex > 0) {
+        setSlideDir(-1);
+        setLocation(bottomNav[currentTabIndex - 1].href);
+      }
+    }
+    setDragging(false);
+    setDragX(0);
+    touchStartRef.current = null;
+    lockedAxisRef.current = null;
+  };
 
   return (
     <div className="min-h-screen bg-background flex flex-col md:flex-row">
@@ -300,14 +345,30 @@ export function DashboardLayout({ children, role: roleProp, title }: DashboardLa
       </AnimatePresence>
 
       {/* Ã¢â€â‚¬Ã¢â€â‚¬ MAIN CONTENT Ã¢â€â‚¬Ã¢â€â‚¬ */}
-      <main className="flex-1 overflow-y-auto relative min-w-0">
+      <main className="flex-1 overflow-y-auto overflow-x-hidden relative min-w-0">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-primary/10 via-background to-background -z-10" />
         {/* pb-24 on mobile to clear the bottom nav bar */}
         <div className="p-4 md:p-8 lg:p-10 max-w-7xl mx-auto pb-24 md:pb-10">
-          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
-            {title && <h1 className="text-xl md:text-2xl lg:text-3xl font-bold text-white mb-5">{title}</h1>}
-            {children}
-          </motion.div>
+          <AnimatePresence mode="wait" custom={slideDir}>
+            <motion.div
+              key={location}
+              custom={slideDir}
+              variants={{
+                enter: (dir: number) => ({ x: dir > 0 ? 32 : dir < 0 ? -32 : 0, opacity: 0 }),
+                center: { x: 0, opacity: 1 },
+              }}
+              initial="enter"
+              animate="center"
+              transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+              style={dragging ? { transform: `translateX(${dragX}px)` } : undefined}
+              onTouchStart={onContentTouchStart}
+              onTouchMove={onContentTouchMove}
+              onTouchEnd={onContentTouchEnd}
+            >
+              {title && <h1 className="text-xl md:text-2xl lg:text-3xl font-bold text-white mb-5">{title}</h1>}
+              {children}
+            </motion.div>
+          </AnimatePresence>
         </div>
       </main>
 
