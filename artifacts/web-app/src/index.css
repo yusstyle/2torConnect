@@ -150,3 +150,119 @@
     box-shadow: 0 0 30px hsl(var(--accent) / 0.2);
   }
 }
+
+/* Light-mode overrides for hardcoded dark-theme utility classes.
+   These remap Tailwind's literal white/black utilities (used throughout
+   the app before light mode existed) to theme-aware colors, without
+   touching any component file. Un-layered on purpose: in Tailwind's
+   cascade, rules outside @layer beat anything inside @layer utilities
+   regardless of selector specificity, so these reliably win over the
+   generated utility classes whenever .light is active. */
+.light .text-white {
+  color: hsl(var(--foreground));
+}
+.light .text-white\/90 {
+  color: hsl(var(--foreground) / 90%);
+}
+.light .text-white\/80 {
+  color: hsl(var(--foreground) / 80%);
+}
+.light .text-white\/70 {
+  color: hsl(var(--foreground) / 70%);
+}
+.light .text-white\/60 {
+  color: hsl(var(--foreground) / 60%);
+}
+.light .text-white\/50 {
+  color: hsl(var(--foreground) / 50%);
+}
+.light .text-white\/40 {
+  color: hsl(var(--foreground) / 40%);
+}
+.light .text-white\/30 {
+  color: hsl(var(--foreground) / 30%);
+}
+.light .text-white\/25 {
+  color: hsl(var(--foreground) / 25%);
+}
+.light .text-white\/20 {
+  color: hsl(var(--foreground) / 20%);
+}
+.light .text-white\/15 {
+  color: hsl(var(--foreground) / 15%);
+}
+.light .bg-white\/2 {
+  background-color: hsl(var(--foreground) / 2%);
+}
+.light .bg-white\/3 {
+  background-color: hsl(var(--foreground) / 3%);
+}
+.light .bg-white\/5 {
+  background-color: hsl(var(--foreground) / 5%);
+}
+.light .bg-white\/8 {
+  background-color: hsl(var(--foreground) / 8%);
+}
+.light .bg-white\/10 {
+  background-color: hsl(var(--foreground) / 10%);
+}
+.light .bg-white\/15 {
+  background-color: hsl(var(--foreground) / 15%);
+}
+.light .bg-white\/20 {
+  background-color: hsl(var(--foreground) / 20%);
+}
+.light .bg-white\/90 {
+  background-color: hsl(var(--foreground) / 90%);
+}
+.light .bg-white {
+  background-color: hsl(var(--foreground) / 90%);
+}
+.light .border-white\/5 {
+  border-color: hsl(var(--border));
+}
+.light .border-white\/10 {
+  border-color: hsl(var(--border));
+}
+.light .border-white\/15 {
+  border-color: hsl(var(--border));
+}
+.light .border-white\/20 {
+  border-color: hsl(var(--border));
+}
+.light .border-white\/30 {
+  border-color: hsl(var(--border));
+}
+.light .border-white\/40 {
+  border-color: hsl(var(--border));
+}
+.light .divide-white\/5 > :not([hidden]) ~ :not([hidden]) {
+  border-color: hsl(var(--border));
+}
+.light .bg-black\/20 {
+  background-color: hsl(var(--muted));
+}
+.light .bg-black\/30 {
+  background-color: hsl(var(--muted));
+}
+.light .bg-black\/40 {
+  background-color: hsl(var(--muted));
+}
+.light .bg-black\/50 {
+  background-color: hsl(var(--muted));
+}
+.light .bg-black\/60 {
+  background-color: hsl(var(--muted));
+}
+.light .bg-black\/70 {
+  background-color: hsl(var(--muted));
+}
+.light .bg-black\/80 {
+  background-color: hsl(var(--muted));
+}
+.light .placeholder\:text-white\/20::placeholder {
+  color: hsl(var(--muted-foreground));
+}
+.light .placeholder\:text-white\/30::placeholder {
+  color: hsl(var(--muted-foreground));
+}
