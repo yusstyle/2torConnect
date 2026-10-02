@@ -266,3 +266,22 @@
 .light .placeholder\:text-white\/30::placeholder {
   color: hsl(var(--muted-foreground));
 }
+
+/* Photo section overlays: keep a dark scrim over these specific hero/section
+   photos in both themes, instead of following --background (which would
+   wash them out to near-white in light mode). */
+.light .hero-photo-overlay-h {
+  background-image: linear-gradient(to right, hsl(230 25% 6%), hsl(230 25% 6% / 0.9), hsl(230 25% 6% / 0.5));
+}
+.light .hero-photo-overlay-v {
+  background-image: linear-gradient(to top, hsl(230 25% 6%), transparent, hsl(230 25% 6% / 0.6));
+}
+.light .section-photo-overlay-h-r {
+  background-image: linear-gradient(to right, hsl(230 25% 6%), hsl(230 25% 6% / 0.95), hsl(230 25% 6% / 0.6));
+}
+.light .section-photo-overlay-h-l {
+  background-image: linear-gradient(to left, hsl(230 25% 6%), hsl(230 25% 6% / 0.95), hsl(230 25% 6% / 0.6));
+}
+.light .section-photo-overlay-v {
+  background-image: linear-gradient(to bottom, hsl(230 25% 6%), transparent, hsl(230 25% 6%));
+}

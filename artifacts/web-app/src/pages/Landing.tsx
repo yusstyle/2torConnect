@@ -118,8 +118,8 @@ export default function LandingPage() {
           className="absolute inset-0 bg-cover bg-center bg-no-repeat"
           style={{ backgroundImage: `url(${import.meta.env.BASE_URL}images/students-group.jpg)` }}
         />
-        <div className="absolute inset-0 bg-gradient-to-r from-background via-background/90 to-background/50" />
-        <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-background/60" />
+        <div className="absolute inset-0 bg-gradient-to-r from-background via-background/90 to-background/50 hero-photo-overlay-h" />
+        <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-background/60 hero-photo-overlay-v" />
         {/* Glow orbs */}
         <div className="absolute top-1/3 left-1/4 w-96 h-96 bg-primary/20 rounded-full blur-3xl" />
         <div className="absolute bottom-1/4 right-1/4 w-64 h-64 bg-accent/10 rounded-full blur-3xl" />
@@ -240,8 +240,8 @@ export default function LandingPage() {
           className="absolute inset-0 bg-cover bg-center"
           style={{ backgroundImage: `url(${import.meta.env.BASE_URL}images/student-bg.jpg)` }}
         />
-        <div className="absolute inset-0 bg-gradient-to-r from-background via-background/95 to-background/60" />
-        <div className="absolute inset-0 bg-gradient-to-b from-background via-transparent to-background" />
+        <div className="absolute inset-0 bg-gradient-to-r from-background via-background/95 to-background/60 section-photo-overlay-h-r" />
+        <div className="absolute inset-0 bg-gradient-to-b from-background via-transparent to-background section-photo-overlay-v" />
 
         <div className="relative z-10 max-w-7xl mx-auto px-6 grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
           <motion.div {...fadeUp()}>
@@ -308,8 +308,8 @@ export default function LandingPage() {
           className="absolute inset-0 bg-cover bg-center bg-right"
           style={{ backgroundImage: `url(${import.meta.env.BASE_URL}images/tutor-bg.jpg)` }}
         />
-        <div className="absolute inset-0 bg-gradient-to-l from-background via-background/95 to-background/60" />
-        <div className="absolute inset-0 bg-gradient-to-b from-background via-transparent to-background" />
+        <div className="absolute inset-0 bg-gradient-to-l from-background via-background/95 to-background/60 section-photo-overlay-h-l" />
+        <div className="absolute inset-0 bg-gradient-to-b from-background via-transparent to-background section-photo-overlay-v" />
 
         <div className="relative z-10 max-w-7xl mx-auto px-6 grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
           {/* Earning cards on left */}
