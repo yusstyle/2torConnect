@@ -271,17 +271,17 @@
    photos in both themes, instead of following --background (which would
    wash them out to near-white in light mode). */
 .light .hero-photo-overlay-h {
-  background-image: linear-gradient(to right, hsl(230 25% 6%), hsl(230 25% 6% / 0.9), hsl(230 25% 6% / 0.5));
+  background-image: linear-gradient(to right, hsl(220 20% 98%), hsl(220 20% 98% / 0.9), hsl(220 20% 98% / 0.5));
 }
 .light .hero-photo-overlay-v {
-  background-image: linear-gradient(to top, hsl(230 25% 6%), transparent, hsl(230 25% 6% / 0.6));
+  background-image: linear-gradient(to top, hsl(220 20% 98%), transparent, hsl(220 20% 98% / 0.6));
 }
 .light .section-photo-overlay-h-r {
-  background-image: linear-gradient(to right, hsl(230 25% 6%), hsl(230 25% 6% / 0.95), hsl(230 25% 6% / 0.6));
+  background-image: linear-gradient(to right, hsl(220 20% 98%), hsl(220 20% 98% / 0.95), hsl(220 20% 98% / 0.6));
 }
 .light .section-photo-overlay-h-l {
-  background-image: linear-gradient(to left, hsl(230 25% 6%), hsl(230 25% 6% / 0.95), hsl(230 25% 6% / 0.6));
+  background-image: linear-gradient(to left, hsl(220 20% 98%), hsl(220 20% 98% / 0.95), hsl(220 20% 98% / 0.6));
 }
 .light .section-photo-overlay-v {
-  background-image: linear-gradient(to bottom, hsl(230 25% 6%), transparent, hsl(230 25% 6%));
+  background-image: linear-gradient(to bottom, hsl(220 20% 98%), transparent, hsl(220 20% 98%));
 }
