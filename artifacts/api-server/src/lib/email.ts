@@ -2,10 +2,23 @@ import nodemailer from "nodemailer";
 
 const SMTP_USER = process.env["SMTP_USER"] ?? "";
 const SMTP_PASS = process.env["SMTP_PASS"] ?? "";
+const SMTP_HOST = process.env["SMTP_HOST"] ?? "";
+const SMTP_PORT = process.env["SMTP_PORT"] ?? "587";
+const EMAIL_FROM = process.env["EMAIL_FROM"] || SMTP_USER;
 const FROM_NAME = "2torConnect";
 
 function createTransporter() {
   if (!SMTP_USER || !SMTP_PASS) return null;
+  if (SMTP_HOST) {
+    // Generic SMTP (Amazon SES, or any other provider)
+    return nodemailer.createTransport({
+      host: SMTP_HOST,
+      port: Number(SMTP_PORT),
+      secure: Number(SMTP_PORT) === 465,
+      auth: { user: SMTP_USER, pass: SMTP_PASS },
+    });
+  }
+  // Fallback: current Gmail setup, unchanged
   return nodemailer.createTransport({
     service: "gmail",
     auth: { user: SMTP_USER, pass: SMTP_PASS },
@@ -22,7 +35,7 @@ export async function sendOtpEmail(to: string, otp: string): Promise<boolean> {
 
   try {
     await transporter.sendMail({
-      from: `"${FROM_NAME}" <${SMTP_USER}>`,
+      from: `"${FROM_NAME}" <${EMAIL_FROM}>`,
       to,
       subject: "Your 2torConnect Verification Code",
       html: `
@@ -52,7 +65,7 @@ export async function sendNewAdminEmail(to: string, name: string, password: stri
   }
   try {
     await transporter.sendMail({
-      from: `"${FROM_NAME}" <${SMTP_USER}>`,
+      from: `"${FROM_NAME}" <${EMAIL_FROM}>`,
       to,
       subject: "Your 2torConnect Admin Account",
       html: `
@@ -81,7 +94,7 @@ export async function sendCustomEmail(to: string, subject: string, message: stri
 
   try {
     await transporter.sendMail({
-      from: `"${FROM_NAME}" <${SMTP_USER}>`,
+      from: `"${FROM_NAME}" <${EMAIL_FROM}>`,
       to,
       subject,
       html: `
