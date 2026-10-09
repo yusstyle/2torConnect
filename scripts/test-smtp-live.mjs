@@ -1,4 +1,9 @@
-import nodemailer from "nodemailer";
+let nodemailer;
+try {
+  nodemailer = (await import("nodemailer")).default;
+} catch {
+  nodemailer = (await import("../artifacts/api-server/node_modules/nodemailer/lib/nodemailer.js")).default;
+}
 
 /**
  * Standalone SMTP test script for Smartweb Business Email / Mailhostbox.
