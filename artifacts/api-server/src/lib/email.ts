@@ -1,28 +1,55 @@
 import nodemailer from "nodemailer";
 
-const SMTP_USER = process.env["SMTP_USER"] ?? "";
-const SMTP_PASS = process.env["SMTP_PASS"] ?? "";
-const SMTP_HOST = process.env["SMTP_HOST"] ?? "";
-const SMTP_PORT = process.env["SMTP_PORT"] ?? "587";
-const EMAIL_FROM = process.env["EMAIL_FROM"] || SMTP_USER;
 const FROM_NAME = "2torConnect";
+const DEFAULT_FROM = "support@2torconnect.com";
+
+function getFromAddress(): string {
+  const fromEmail = process.env["EMAIL_FROM"] || process.env["SMTP_USER"] || DEFAULT_FROM;
+  return `"${FROM_NAME}" <${fromEmail}>`;
+}
 
 function createTransporter() {
-  if (!SMTP_USER || !SMTP_PASS) return null;
-  if (SMTP_HOST) {
-    // Generic SMTP (Amazon SES, or any other provider)
+  const user = process.env["SMTP_USER"] ?? "";
+  const pass = process.env["SMTP_PASS"] ?? "";
+  const host = process.env["SMTP_HOST"] ?? "";
+  const port = Number(process.env["SMTP_PORT"] ?? "587");
+  const secure = process.env["SMTP_SECURE"]
+    ? process.env["SMTP_SECURE"] === "true"
+    : port === 465;
+
+  if (!user || !pass) return null;
+
+  if (host) {
     return nodemailer.createTransport({
-      host: SMTP_HOST,
-      port: Number(SMTP_PORT),
-      secure: Number(SMTP_PORT) === 465,
-      auth: { user: SMTP_USER, pass: SMTP_PASS },
+      host,
+      port,
+      secure,
+      requireTLS: !secure && port === 587,
+      auth: { user, pass },
+      tls: {
+        rejectUnauthorized: true,
+      },
     });
   }
+
   // Fallback: current Gmail setup, unchanged
   return nodemailer.createTransport({
     service: "gmail",
-    auth: { user: SMTP_USER, pass: SMTP_PASS },
+    auth: { user, pass },
   });
+}
+
+export async function verifyEmailTransporter(): Promise<{ ok: boolean; message: string }> {
+  const transporter = createTransporter();
+  if (!transporter) {
+    return { ok: false, message: "SMTP credentials not configured (SMTP_USER / SMTP_PASS missing)" };
+  }
+  try {
+    await transporter.verify();
+    return { ok: true, message: "SMTP connection verified successfully" };
+  } catch (err: any) {
+    return { ok: false, message: err?.message || String(err) };
+  }
 }
 
 export async function sendOtpEmail(to: string, otp: string): Promise<boolean> {
@@ -35,7 +62,7 @@ export async function sendOtpEmail(to: string, otp: string): Promise<boolean> {
 
   try {
     await transporter.sendMail({
-      from: `"${FROM_NAME}" <${EMAIL_FROM}>`,
+      from: getFromAddress(),
       to,
       subject: "Your 2torConnect Verification Code",
       html: `
@@ -51,8 +78,8 @@ export async function sendOtpEmail(to: string, otp: string): Promise<boolean> {
       `,
     });
     return true;
-  } catch (err) {
-    console.error("Email send failed:", err);
+  } catch (err: any) {
+    console.error("Email send failed:", err?.message || err, err);
     return false;
   }
 }
@@ -65,7 +92,7 @@ export async function sendNewAdminEmail(to: string, name: string, password: stri
   }
   try {
     await transporter.sendMail({
-      from: `"${FROM_NAME}" <${EMAIL_FROM}>`,
+      from: getFromAddress(),
       to,
       subject: "Your 2torConnect Admin Account",
       html: `
@@ -80,8 +107,8 @@ export async function sendNewAdminEmail(to: string, name: string, password: stri
         </div>
       `,
     });
-  } catch (err) {
-    console.error("Admin email send failed:", err);
+  } catch (err: any) {
+    console.error("Admin email send failed:", err?.message || err, err);
   }
 }
 export async function sendCustomEmail(to: string, subject: string, message: string, mediaUrl?: string | null, mediaType?: string | null): Promise<boolean> {
@@ -94,7 +121,7 @@ export async function sendCustomEmail(to: string, subject: string, message: stri
 
   try {
     await transporter.sendMail({
-      from: `"${FROM_NAME}" <${EMAIL_FROM}>`,
+      from: getFromAddress(),
       to,
       subject,
       html: `
@@ -108,8 +135,8 @@ export async function sendCustomEmail(to: string, subject: string, message: stri
       `,
     });
     return true;
-  } catch (err) {
-    console.error("Custom email send failed:", err);
+  } catch (err: any) {
+    console.error("Custom email send failed:", err?.message || err, err);
     return false;
   }
 }
