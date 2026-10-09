@@ -4,17 +4,17 @@ const FROM_NAME = "2torConnect";
 const DEFAULT_FROM = "support@2torconnect.com";
 
 function getFromAddress(): string {
-  const fromEmail = process.env["EMAIL_FROM"] || process.env["SMTP_USER"] || DEFAULT_FROM;
+  const fromEmail = (process.env["EMAIL_FROM"] || process.env["SMTP_USER"] || DEFAULT_FROM).trim();
   return `"${FROM_NAME}" <${fromEmail}>`;
 }
 
 function createTransporter() {
-  const user = process.env["SMTP_USER"] ?? "";
-  const pass = process.env["SMTP_PASS"] ?? "";
-  const host = process.env["SMTP_HOST"] ?? "";
-  const port = Number(process.env["SMTP_PORT"] ?? "587");
+  const user = (process.env["SMTP_USER"] ?? "").trim();
+  const pass = (process.env["SMTP_PASS"] ?? "").trim();
+  const host = (process.env["SMTP_HOST"] ?? "").trim();
+  const port = Number((process.env["SMTP_PORT"] ?? "587").trim());
   const secure = process.env["SMTP_SECURE"]
-    ? process.env["SMTP_SECURE"] === "true"
+    ? process.env["SMTP_SECURE"].trim() === "true"
     : port === 465;
 
   if (!user || !pass) return null;
