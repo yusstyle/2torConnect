@@ -11,12 +11,12 @@ $ErrorActionPreference = "Stop"
 
 Write-Host ""
 Write-Host "=== Test Smartweb Business Email SMTP Delivery ===" -ForegroundColor Cyan
-Write-Host "Host: us2.smtp.mailhostbox.com:587 (STARTTLS)" -ForegroundColor DarkGray
+Write-Host "Host: us3.smtp.mailhostbox.com:587 (STARTTLS)" -ForegroundColor DarkGray
 Write-Host "Sender: support@2torconnect.com" -ForegroundColor DarkGray
 Write-Host ""
 
 $smtpUser = "support@2torconnect.com"
-$smtpHost = "us2.smtp.mailhostbox.com"
+$smtpHost = "us3.smtp.mailhostbox.com"
 $smtpPort = "587"
 
 $toEmail = Read-Host "Enter an email address to receive the test email (e.g. your personal Gmail)"

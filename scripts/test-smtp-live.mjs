@@ -11,7 +11,7 @@ try {
  * Does NOT persist or commit secrets.
  */
 async function main() {
-  const host = process.env.TEST_SMTP_HOST || "us2.smtp.mailhostbox.com";
+  const host = process.env.TEST_SMTP_HOST || "us3.smtp.mailhostbox.com";
   const port = Number(process.env.TEST_SMTP_PORT || "587");
   const user = process.env.TEST_SMTP_USER || "support@2torconnect.com";
   const pass = process.env.TEST_SMTP_PASS;

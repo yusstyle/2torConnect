@@ -14,7 +14,7 @@ Write-Host ""
 Write-Host "=== Configure Smartweb SMTP on Vercel Production ===" -ForegroundColor Cyan
 Write-Host ""
 Write-Host "This script will configure the following Vercel Production environment variables:" -ForegroundColor Yellow
-Write-Host "  SMTP_HOST  = us2.smtp.mailhostbox.com"
+Write-Host "  SMTP_HOST  = us3.smtp.mailhostbox.com"
 Write-Host "  SMTP_PORT  = 587"
 Write-Host "  SMTP_USER  = support@2torconnect.com"
 Write-Host "  EMAIL_FROM = support@2torconnect.com"
@@ -54,7 +54,7 @@ function Set-VercelEnv($name, $value) {
     $value | Invoke-Expression "$vercelCmd env add $name production" | Out-Null
 }
 
-Set-VercelEnv "SMTP_HOST" "us2.smtp.mailhostbox.com"
+Set-VercelEnv "SMTP_HOST" "us3.smtp.mailhostbox.com"
 Set-VercelEnv "SMTP_PORT" "587"
 Set-VercelEnv "SMTP_USER" "support@2torconnect.com"
 Set-VercelEnv "EMAIL_FROM" "support@2torconnect.com"
