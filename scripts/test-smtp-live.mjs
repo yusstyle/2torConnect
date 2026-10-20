@@ -25,9 +25,9 @@ async function main() {
   }
 
   const candidateHosts = [
+    "us2.smtp.mailhostbox.com",
     "us3.smtp.mailhostbox.com",
     "smtp.mailhostbox.com",
-    "us2.smtp.mailhostbox.com",
   ];
 
   const candidateUsers = [
