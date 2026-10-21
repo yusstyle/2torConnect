@@ -38,43 +38,83 @@ function TypingDots() {
 function ChatImage({ src, alt }: { src?: string; alt?: string }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const [retryKey, setRetryKey] = useState(0);
+
+  const isCompleteUrl = Boolean(
+    src &&
+    (src.startsWith("http://") || src.startsWith("https://")) &&
+    (src.includes("?") || src.length > 40)
+  );
+
+  useEffect(() => {
+    if (isCompleteUrl) {
+      setError(false);
+      setLoading(true);
+    }
+  }, [src, isCompleteUrl, retryKey]);
+
+  if (!isCompleteUrl) {
+    return (
+      <div className="my-3 rounded-2xl overflow-hidden border border-white/10 bg-black/40 shadow-lg h-56 flex flex-col items-center justify-center gap-2 text-muted-foreground animate-pulse bg-white/5">
+        <Loader2 className="w-5 h-5 animate-spin text-accent" />
+        <span className="text-xs font-medium">Rendering high-quality image...</span>
+      </div>
+    );
+  }
+
+  // Ensure high-quality FLUX model is used
+  let enhancedSrc = src || "";
+  if (enhancedSrc.includes("image.pollinations.ai") && !enhancedSrc.includes("model=")) {
+    enhancedSrc += enhancedSrc.includes("?") ? "&model=flux&nologo=true" : "?model=flux&nologo=true";
+  }
 
   return (
     <div className="my-3 rounded-2xl overflow-hidden border border-white/10 bg-black/40 shadow-lg">
       {loading && !error && (
-        <div className="h-56 flex flex-col items-center justify-center gap-2 text-muted-foreground animate-pulse bg-white/5">
-          <Loader2 className="w-5 h-5 animate-spin text-accent" />
-          <span className="text-xs font-medium">Generating visual diagram...</span>
+        <div className="h-64 flex flex-col items-center justify-center gap-2 text-muted-foreground animate-pulse bg-white/5">
+          <Loader2 className="w-6 h-6 animate-spin text-accent" />
+          <span className="text-xs font-medium">Generating high-definition illustration (FLUX quality)...</span>
         </div>
       )}
       <img
-        src={src}
-        alt={alt}
+        key={`${enhancedSrc}-${retryKey}`}
+        src={enhancedSrc}
+        alt={alt || "Educational illustration"}
         loading="lazy"
         onLoad={() => setLoading(false)}
         onError={() => {
           setLoading(false);
           setError(true);
         }}
-        className={`w-full h-auto max-h-[460px] object-contain rounded-2xl transition-all duration-300 hover:scale-[1.01] ${
+        className={`w-full h-auto max-h-[500px] object-cover rounded-2xl transition-all duration-300 hover:scale-[1.01] ${
           loading ? "hidden" : "block"
         }`}
       />
       {error && (
-        <div className="h-28 flex items-center justify-center text-xs text-muted-foreground bg-white/5">
-          Visual illustration preview unavailable
+        <div className="h-32 flex flex-col items-center justify-center gap-2 text-xs text-muted-foreground bg-white/5 p-4 text-center">
+          <span>Failed to load preview</span>
+          <button
+            onClick={() => {
+              setError(false);
+              setLoading(true);
+              setRetryKey(k => k + 1);
+            }}
+            className="px-3 py-1 rounded-lg bg-accent/20 hover:bg-accent/30 text-accent font-medium text-xs transition-colors flex items-center gap-1"
+          >
+            <RotateCcw className="w-3 h-3" /> Retry Generation
+          </button>
         </div>
       )}
-      {alt && !error && (
-        <div className="flex items-center justify-between text-xs text-muted-foreground py-2 px-3.5 bg-white/5 border-t border-white/5">
+      {alt && !error && !loading && (
+        <div className="flex items-center justify-between text-xs text-muted-foreground py-2.5 px-3.5 bg-white/5 border-t border-white/5">
           <span className="font-medium text-white/80 truncate mr-2">{alt}</span>
           <a
-            href={src}
+            href={enhancedSrc}
             target="_blank"
             rel="noopener noreferrer"
             className="text-accent hover:underline flex items-center gap-1 font-medium shrink-0"
           >
-            <ExternalLink className="w-3.5 h-3.5" /> Full view
+            <ExternalLink className="w-3.5 h-3.5" /> Full HD View
           </a>
         </div>
       )}
