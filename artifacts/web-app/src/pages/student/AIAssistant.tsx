@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { useAuthStore } from "@/lib/auth";
-import { Bot, Send, Trash2, Loader2, User, Sparkles, BookOpen, Code2, Calculator, PenLine, RotateCcw, Image as ImageIcon, ExternalLink } from "lucide-react";
+import { Bot, Send, Trash2, Loader2, User, Sparkles, BookOpen, Code2, Calculator, PenLine, RotateCcw, Image as ImageIcon, ExternalLink, Download, Maximize2, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import ReactMarkdown from "react-markdown";
 
@@ -39,6 +39,7 @@ function ChatImage({ src, alt }: { src?: string; alt?: string }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [retryKey, setRetryKey] = useState(0);
+  const [isZoomed, setIsZoomed] = useState(false);
 
   const isCompleteUrl = Boolean(
     src &&
@@ -57,7 +58,7 @@ function ChatImage({ src, alt }: { src?: string; alt?: string }) {
     return (
       <div className="my-3 rounded-2xl overflow-hidden border border-white/10 bg-black/40 shadow-lg h-56 flex flex-col items-center justify-center gap-2 text-muted-foreground animate-pulse bg-white/5">
         <Loader2 className="w-5 h-5 animate-spin text-accent" />
-        <span className="text-xs font-medium">Rendering high-quality image...</span>
+        <span className="text-xs font-medium">Generating high-definition illustration...</span>
       </div>
     );
   }
@@ -68,31 +69,86 @@ function ChatImage({ src, alt }: { src?: string; alt?: string }) {
     enhancedSrc += enhancedSrc.includes("?") ? "&model=flux&nologo=true" : "?model=flux&nologo=true";
   }
 
+  const handleDownloadCleanImage = (imageSrc: string, filename: string) => {
+    try {
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      img.onload = () => {
+        try {
+          const canvas = document.createElement("canvas");
+          // Clip away the bottom 42px watermark
+          const cropBottom = 42;
+          const targetHeight = Math.max(img.naturalHeight - cropBottom, 100);
+          canvas.width = img.naturalWidth;
+          canvas.height = targetHeight;
+          const ctx = canvas.getContext("2d");
+          if (ctx) {
+            ctx.drawImage(img, 0, 0, img.naturalWidth, targetHeight, 0, 0, img.naturalWidth, targetHeight);
+            const a = document.createElement("a");
+            a.href = canvas.toDataURL("image/jpeg", 0.95);
+            a.download = `${filename.replace(/[^a-zA-Z0-9_-]/g, "_") || "2torconnect-image"}.jpg`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            return;
+          }
+        } catch (e) {
+          console.warn("Canvas crop fallback:", e);
+        }
+        window.open(imageSrc, "_blank");
+      };
+      img.onerror = () => {
+        window.open(imageSrc, "_blank");
+      };
+      img.src = imageSrc;
+    } catch {
+      window.open(imageSrc, "_blank");
+    }
+  };
+
   return (
     <div className="my-3 rounded-2xl overflow-hidden border border-white/10 bg-black/40 shadow-lg">
       {loading && !error && (
         <div className="h-64 flex flex-col items-center justify-center gap-2 text-muted-foreground animate-pulse bg-white/5">
           <Loader2 className="w-6 h-6 animate-spin text-accent" />
-          <span className="text-xs font-medium">Generating high-definition illustration (FLUX quality)...</span>
+          <span className="text-xs font-medium">Rendering clean HD image...</span>
         </div>
       )}
-      <img
-        key={`${enhancedSrc}-${retryKey}`}
-        src={enhancedSrc}
-        alt={alt || "Educational illustration"}
-        loading="lazy"
-        onLoad={() => setLoading(false)}
-        onError={() => {
-          setLoading(false);
-          setError(true);
-        }}
-        className={`w-full h-auto max-h-[500px] object-cover rounded-2xl transition-all duration-300 hover:scale-[1.01] ${
-          loading ? "hidden" : "block"
-        }`}
-      />
+      <div
+        className="relative overflow-hidden rounded-t-2xl cursor-pointer group"
+        style={{ marginBottom: loading ? "0px" : "-42px" }}
+        onClick={() => !loading && !error && setIsZoomed(true)}
+      >
+        <img
+          key={`${enhancedSrc}-${retryKey}`}
+          src={enhancedSrc}
+          alt={alt || "Educational illustration"}
+          loading="lazy"
+          onLoad={() => setLoading(false)}
+          onError={() => {
+            setLoading(false);
+            setError(true);
+          }}
+          className={`w-full h-auto max-h-[500px] object-cover transition-all duration-300 group-hover:scale-[1.01] ${
+            loading ? "hidden" : "block"
+          }`}
+          style={{ clipPath: "inset(0 0 42px 0)" }}
+        />
+        {/* Sleek branded watermark cover to guarantee 100% clean visual */}
+        {!loading && !error && (
+          <div className="absolute bottom-12 right-3 px-2.5 py-1 rounded-xl bg-black/85 backdrop-blur-md border border-white/10 text-[11px] font-semibold text-white/90 shadow-lg flex items-center gap-1.5 pointer-events-none">
+            <Sparkles className="w-3 h-3 text-accent" /> 2torConnect AI
+          </div>
+        )}
+        {!loading && !error && (
+          <div className="absolute top-3 right-3 px-2 py-1 rounded-lg bg-black/60 backdrop-blur-sm text-[10px] text-white/80 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
+            <Maximize2 className="w-3 h-3" /> Fullscreen
+          </div>
+        )}
+      </div>
       {error && (
         <div className="h-32 flex flex-col items-center justify-center gap-2 text-xs text-muted-foreground bg-white/5 p-4 text-center">
-          <span>Failed to load preview</span>
+          <span>Failed to load image</span>
           <button
             onClick={() => {
               setError(false);
@@ -108,16 +164,68 @@ function ChatImage({ src, alt }: { src?: string; alt?: string }) {
       {alt && !error && !loading && (
         <div className="flex items-center justify-between text-xs text-muted-foreground py-2.5 px-3.5 bg-white/5 border-t border-white/5">
           <span className="font-medium text-white/80 truncate mr-2">{alt}</span>
-          <a
-            href={enhancedSrc}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-accent hover:underline flex items-center gap-1 font-medium shrink-0"
-          >
-            <ExternalLink className="w-3.5 h-3.5" /> Full HD View
-          </a>
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              onClick={() => setIsZoomed(true)}
+              className="text-white/70 hover:text-white flex items-center gap-1 font-medium hover:bg-white/10 px-2 py-1 rounded-lg transition-colors text-xs"
+              title="Expand view"
+            >
+              <Maximize2 className="w-3.5 h-3.5" /> Fullscreen
+            </button>
+            <button
+              onClick={() => handleDownloadCleanImage(enhancedSrc, alt || "2torconnect-image")}
+              className="text-white/90 hover:text-white flex items-center gap-1 font-medium hover:bg-white/10 px-2.5 py-1 rounded-lg transition-colors bg-white/5 border border-white/10 text-xs"
+              title="Download watermark-free image"
+            >
+              <Download className="w-3.5 h-3.5 text-accent" /> Save Clean Image
+            </button>
+          </div>
         </div>
       )}
+
+      {/* Watermark-Free Lightbox Modal */}
+      <AnimatePresence>
+        {isZoomed && (
+          <div
+            className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex flex-col items-center justify-center p-4"
+            onClick={() => setIsZoomed(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="relative max-w-4xl max-h-[90vh] w-full flex flex-col items-center"
+              onClick={e => e.stopPropagation()}
+            >
+              <div className="relative overflow-hidden rounded-2xl shadow-2xl border border-white/10 bg-black" style={{ marginBottom: "-42px" }}>
+                <img
+                  src={enhancedSrc}
+                  alt={alt || "High Definition Image"}
+                  className="max-h-[75vh] w-auto object-contain rounded-2xl"
+                  style={{ clipPath: "inset(0 0 42px 0)" }}
+                />
+                <div className="absolute bottom-12 right-4 px-3 py-1.5 rounded-xl bg-black/85 backdrop-blur-md border border-white/10 text-xs font-semibold text-white/90 shadow-lg flex items-center gap-1.5 pointer-events-none">
+                  <Sparkles className="w-3.5 h-3.5 text-accent" /> 2torConnect AI
+                </div>
+              </div>
+              <div className="mt-14 flex items-center gap-3">
+                <button
+                  onClick={() => handleDownloadCleanImage(enhancedSrc, alt || "2torconnect-image")}
+                  className="px-4 py-2 rounded-xl bg-accent text-white font-medium text-xs flex items-center gap-2 hover:bg-accent/90 shadow-lg transition-all"
+                >
+                  <Download className="w-4 h-4" /> Download Clean HD
+                </button>
+                <button
+                  onClick={() => setIsZoomed(false)}
+                  className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white font-medium text-xs flex items-center gap-2 transition-all"
+                >
+                  <X className="w-4 h-4" /> Close
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
