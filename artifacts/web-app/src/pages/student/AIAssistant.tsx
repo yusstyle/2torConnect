@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { useAuthStore } from "@/lib/auth";
-import { Bot, Send, Trash2, Loader2, User, Sparkles, BookOpen, Code2, Calculator, PenLine, RotateCcw } from "lucide-react";
+import { Bot, Send, Trash2, Loader2, User, Sparkles, BookOpen, Code2, Calculator, PenLine, RotateCcw, Image as ImageIcon, ExternalLink } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import ReactMarkdown from "react-markdown";
 
@@ -16,8 +16,8 @@ interface Message {
 
 const QUICK_PROMPTS = [
   { icon: Calculator, label: "Solve a maths problem", prompt: "Help me solve this maths problem step by step: " },
+  { icon: ImageIcon, label: "Draw an educational diagram", prompt: "Draw a detailed educational diagram showing: " },
   { icon: BookOpen, label: "Summarise a topic", prompt: "Give me a clear summary of: " },
-  { icon: PenLine, label: "Write an essay outline", prompt: "Help me create an essay outline for: " },
   { icon: Code2, label: "Explain code", prompt: "Explain this code to me: " },
 ];
 
@@ -32,6 +32,53 @@ function TypingDots() {
         />
       ))}
     </span>
+  );
+}
+
+function ChatImage({ src, alt }: { src?: string; alt?: string }) {
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+
+  return (
+    <div className="my-3 rounded-2xl overflow-hidden border border-white/10 bg-black/40 shadow-lg">
+      {loading && !error && (
+        <div className="h-56 flex flex-col items-center justify-center gap-2 text-muted-foreground animate-pulse bg-white/5">
+          <Loader2 className="w-5 h-5 animate-spin text-accent" />
+          <span className="text-xs font-medium">Generating visual diagram...</span>
+        </div>
+      )}
+      <img
+        src={src}
+        alt={alt}
+        loading="lazy"
+        onLoad={() => setLoading(false)}
+        onError={() => {
+          setLoading(false);
+          setError(true);
+        }}
+        className={`w-full h-auto max-h-[460px] object-contain rounded-2xl transition-all duration-300 hover:scale-[1.01] ${
+          loading ? "hidden" : "block"
+        }`}
+      />
+      {error && (
+        <div className="h-28 flex items-center justify-center text-xs text-muted-foreground bg-white/5">
+          Visual illustration preview unavailable
+        </div>
+      )}
+      {alt && !error && (
+        <div className="flex items-center justify-between text-xs text-muted-foreground py-2 px-3.5 bg-white/5 border-t border-white/5">
+          <span className="font-medium text-white/80 truncate mr-2">{alt}</span>
+          <a
+            href={src}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-accent hover:underline flex items-center gap-1 font-medium shrink-0"
+          >
+            <ExternalLink className="w-3.5 h-3.5" /> Full view
+          </a>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -50,7 +97,7 @@ function MessageBubble({ msg }: { msg: Message }) {
       }`}>
         {isUser ? <User className="w-4 h-4 text-white" /> : <Bot className="w-4 h-4 text-accent" />}
       </div>
-      <div className={`max-w-[80%] rounded-2xl px-4 py-3 text-sm leading-relaxed ${
+      <div className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-relaxed ${
         isUser
           ? "bg-gradient-to-br from-primary to-accent text-white rounded-tr-sm"
           : "bg-white/5 border border-white/10 text-foreground rounded-tl-sm"
@@ -66,7 +113,13 @@ function MessageBubble({ msg }: { msg: Message }) {
             prose-pre:bg-black/40 prose-pre:border prose-pre:border-white/10 prose-pre:rounded-xl
             prose-ul:text-foreground prose-ol:text-foreground prose-li:text-foreground
             prose-blockquote:border-l-accent prose-blockquote:text-muted-foreground">
-            <ReactMarkdown>{msg.content}</ReactMarkdown>
+            <ReactMarkdown
+              components={{
+                img: ({ node, ...props }) => <ChatImage src={props.src} alt={props.alt} />,
+              }}
+            >
+              {msg.content}
+            </ReactMarkdown>
           </div>
         )}
       </div>
@@ -279,7 +332,7 @@ export default function AIAssistantPage() {
             </button>
           </div>
           <p className="text-[10px] text-muted-foreground mt-2 px-1">
-            Press Enter to send · Shift+Enter for new line · Powered by Replit AI (charges to your credits)
+            Press Enter to send · Shift+Enter for new line · Powered by 2torAssist AI (Visual Diagrams & Step-by-Step Study Partner)
           </p>
         </div>
 
