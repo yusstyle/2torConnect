@@ -3,18 +3,15 @@ import { db } from "@workspace/db";
 import { messagesTable, usersTable } from "@workspace/db";
 import { eq, or, and, sql } from "drizzle-orm";
 import { SendMessageBody } from "@workspace/api-zod";
+import { verifyToken } from "../lib/jwt";
 
 const router: IRouter = Router();
 
 function getCurrentUserId(req: any): number | null {
   const auth = req.headers.authorization;
   if (!auth?.startsWith("Bearer ")) return null;
-  try {
-    const payload = JSON.parse(Buffer.from(auth.slice(7), "base64").toString());
-    return payload.id;
-  } catch {
-    return null;
-  }
+  const payload = verifyToken(auth);
+  return payload ? payload.id : null;
 }
 
 router.get("/conversations", async (req, res) => {

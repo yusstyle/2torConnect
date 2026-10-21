@@ -1,11 +1,12 @@
 import { Router, type IRouter } from "express";
 import { db } from "@workspace/db";
-import { usersTable, tutorsTable, studentsTable, transactionsTable, sessionsTable, reviewsTable } from "@workspace/db";
-import { eq, count, sum, desc } from "drizzle-orm";
+import { usersTable, tutorsTable, transactionsTable, sessionsTable } from "@workspace/db";
+import { eq, count, sum } from "drizzle-orm";
 import { sql } from "drizzle-orm";
 
 const router: IRouter = Router();
 
+// GET /stats - Public platform aggregate metrics (counts and growth trends only; no user PII)
 router.get("/", async (req, res) => {
   try {
     const [studentsResult] = await db.select({ value: count() }).from(usersTable).where(eq(usersTable.role, "student"));
@@ -20,12 +21,6 @@ router.get("/", async (req, res) => {
         SELECT university FROM students WHERE university IS NOT NULL
       ) u`
     );
-
-    const recentUsers = await db
-      .select({ id: usersTable.id, name: usersTable.name, role: usersTable.role, status: usersTable.status, createdAt: usersTable.createdAt })
-      .from(usersTable)
-      .orderBy(desc(usersTable.createdAt))
-      .limit(8);
 
     // Monthly signups for the last 7 months
     const monthlySignups = await db.execute(sql`
@@ -81,12 +76,12 @@ router.get("/", async (req, res) => {
     const chartData = Object.values(monthMap);
 
     res.json({
-      totalStudents: Number(studentsResult.value),
-      totalTutors: Number(tutorsResult.value),
-      totalSessions: Number(sessionsResult.value),
-      totalRevenue: Number(earningsResult.value ?? 0),
-      universities: Number((combined.rows[0] as any).value),
-      recentUsers,
+      totalStudents: Number(studentsResult?.value ?? 0),
+      totalTutors: Number(tutorsResult?.value ?? 0),
+      totalSessions: Number(sessionsResult?.value ?? 0),
+      totalRevenue: Number(earningsResult?.value ?? 0),
+      universities: Number((combined.rows[0] as any)?.value ?? 0),
+      recentUsers: [], // Intentionally empty to prevent user enumeration
       chartData,
       roleBreakdown: (roleBreakdown.rows as any[]).map(r => ({ role: r.role, count: Number(r.count) })),
     });

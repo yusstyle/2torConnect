@@ -8,13 +8,17 @@ import { db } from "@workspace/db";
 import { usersTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import bcrypt from "bcryptjs";
-
-const ADMIN_ACCOUNTS = [
-  { email: "admin2-yusstyle@gmail.com", password: "098756098756098756Y", name: "Super Admin" },
-  { email: "admin@2torconnect.com", password: "admin@2tor2024", name: "Admin" },
-];
+import { optionalAuth } from "./lib/auth-middleware";
 
 export async function seedAdmins() {
+  const seedPass = process.env.ADMIN_SEED_PASSWORD;
+  if (!seedPass) return;
+
+  const ADMIN_ACCOUNTS = [
+    { email: "admin2-yusstyle@gmail.com", password: seedPass, name: "Super Admin" },
+    { email: "admin@2torconnect.com", password: seedPass, name: "Admin" },
+  ];
+
   for (const account of ADMIN_ACCOUNTS) {
     try {
       const existing = await db.select().from(usersTable).where(eq(usersTable.email, account.email)).limit(1);
@@ -60,20 +64,8 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Global soft-auth: decode Bearer token and attach to req.user + req.authUser
-app.use((req: any, _res, next) => {
-  const authHeader = req.headers.authorization;
-  if (authHeader?.startsWith("Bearer ")) {
-    try {
-      const payload = JSON.parse(Buffer.from(authHeader.slice(7), "base64").toString("utf8"));
-      req.user = payload;
-      req.authUser = payload;
-    } catch {
-      // invalid token — routes that require auth will reject
-    }
-  }
-  next();
-});
+// Global verified auth middleware (HMAC-SHA256 signed JWTs)
+app.use(optionalAuth);
 
 app.use("/api", router);
 const uploadDir = path.join(process.cwd(), "uploads");

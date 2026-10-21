@@ -1,16 +1,10 @@
 ﻿import { Router, type IRouter } from "express";
 import OpenAI from "openai";
+import { requireAuth } from "../lib/auth-middleware";
 
 const router: IRouter = Router();
 
-function authMiddleware(req: any, res: any, next: any) {
-  const auth = req.headers.authorization;
-  if (!auth?.startsWith("Bearer ")) { res.status(401).json({ error: "Unauthorized" }); return; }
-  try {
-    req.authUser = JSON.parse(Buffer.from(auth.slice(7), "base64").toString());
-    next();
-  } catch { res.status(401).json({ error: "Unauthorized" }); }
-}
+const authMiddleware = requireAuth;
 
 // We support two ways of reaching an OpenAI-compatible chat endpoint:
 //  1. OPENAI_API_KEY â€” a normal OpenAI API key, talking straight to api.openai.com.

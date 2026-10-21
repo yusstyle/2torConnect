@@ -2,10 +2,12 @@ import { Router, type IRouter } from "express";
 import { db } from "@workspace/db";
 import { transactionsTable, usersTable } from "@workspace/db";
 import { eq, and, count } from "drizzle-orm";
+import { requireAuth } from "../lib/auth-middleware";
 
 const router: IRouter = Router();
 
-router.get("/", async (req, res) => {
+// GET /transactions - Protected: users only see their own transactions; admins see all
+router.get("/", requireAuth, async (req: any, res) => {
   try {
     const page = Number(req.query.page) || 1;
     const limit = Number(req.query.limit) || 20;
@@ -13,7 +15,11 @@ router.get("/", async (req, res) => {
     const { userId, type, status } = req.query;
 
     const conditions = [];
-    if (userId) conditions.push(eq(transactionsTable.userId, Number(userId)));
+    if (req.user?.role !== "admin") {
+      conditions.push(eq(transactionsTable.userId, req.user.id));
+    } else {
+      if (userId) conditions.push(eq(transactionsTable.userId, Number(userId)));
+    }
     if (type) conditions.push(eq(transactionsTable.type, type as any));
     if (status) conditions.push(eq(transactionsTable.status, status as any));
 

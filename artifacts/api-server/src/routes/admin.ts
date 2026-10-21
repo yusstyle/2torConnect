@@ -1,12 +1,14 @@
 import { Router, type IRouter } from "express";
 import { db } from "@workspace/db";
-import { usersTable, sessionsTable, transactionsTable, tutorsTable } from "@workspace/db";
+import { usersTable, sessionsTable, transactionsTable } from "@workspace/db";
 import { eq, count, sql } from "drizzle-orm";
 import { sendCustomEmail } from "../lib/email";
+import { requireAdmin } from "../lib/auth-middleware";
 
 const router: IRouter = Router();
 
-router.get("/stats", async (req, res) => {
+// GET /admin/stats - strictly protected: Admin access only
+router.get("/stats", requireAdmin, async (req, res) => {
   try {
     const [{ total: totalUsers }] = await db.select({ total: count() }).from(usersTable);
     const [{ total: totalStudents }] = await db.select({ total: count() }).from(usersTable).where(eq(usersTable.role, "student"));
@@ -46,19 +48,6 @@ router.get("/stats", async (req, res) => {
     res.status(500).json({ error: "Failed to get admin stats" });
   }
 });
-
-function requireAdmin(req: any, res: any, next: any) {
-  const auth = req.headers.authorization;
-  if (!auth?.startsWith("Bearer ")) { res.status(401).json({ error: "Unauthorized" }); return; }
-  try {
-    const payload = JSON.parse(Buffer.from(auth.slice(7), "base64").toString("utf8"));
-    if (payload.role !== "admin") { res.status(403).json({ error: "Forbidden: Admin only" }); return; }
-    req.authUser = payload;
-    next();
-  } catch {
-    res.status(401).json({ error: "Unauthorized" });
-  }
-}
 
 // POST /admin/send-email -- send a message to one user or to everyone
 router.post("/send-email", requireAdmin, async (req: any, res) => {

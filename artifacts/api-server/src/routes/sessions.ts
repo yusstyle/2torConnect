@@ -1,8 +1,9 @@
 import { Router, type IRouter } from "express";
 import { db } from "@workspace/db";
 import { sessionsTable, transactionsTable, usersTable } from "@workspace/db";
-import { eq, and, count } from "drizzle-orm";
+import { eq, and, count, or } from "drizzle-orm";
 import { CreateSessionBody, UpdateSessionBody } from "@workspace/api-zod";
+import { requireAuth } from "../lib/auth-middleware";
 
 const router: IRouter = Router();
 
@@ -16,7 +17,8 @@ async function enrichSession(session: typeof sessionsTable.$inferSelect) {
   };
 }
 
-router.get("/", async (req, res) => {
+// GET /sessions - Protected: users only see their own sessions; admins see all
+router.get("/", requireAuth, async (req: any, res) => {
   try {
     const page = Number(req.query.page) || 1;
     const limit = Number(req.query.limit) || 20;
@@ -24,8 +26,15 @@ router.get("/", async (req, res) => {
     const { tutorId, studentId, status } = req.query;
 
     const conditions = [];
-    if (tutorId) conditions.push(eq(sessionsTable.tutorId, Number(tutorId)));
-    if (studentId) conditions.push(eq(sessionsTable.studentId, Number(studentId)));
+    if (req.user?.role !== "admin") {
+      conditions.push(or(
+        eq(sessionsTable.tutorId, req.user.id),
+        eq(sessionsTable.studentId, req.user.id)
+      )!);
+    } else {
+      if (tutorId) conditions.push(eq(sessionsTable.tutorId, Number(tutorId)));
+      if (studentId) conditions.push(eq(sessionsTable.studentId, Number(studentId)));
+    }
     if (status) conditions.push(eq(sessionsTable.status, status as any));
 
     const where = conditions.length > 0 ? and(...conditions) : undefined;
@@ -40,12 +49,15 @@ router.get("/", async (req, res) => {
   }
 });
 
-router.post("/", async (req, res) => {
+// POST /sessions - Protected: student books for themselves
+router.post("/", requireAuth, async (req: any, res) => {
   try {
     const body = CreateSessionBody.parse(req.body);
+    const studentId = req.user?.role === "admin" ? (body.studentId || req.user.id) : req.user.id;
+
     const [session] = await db.insert(sessionsTable).values({
       tutorId: body.tutorId,
-      studentId: body.studentId,
+      studentId,
       subject: body.subject,
       scheduledAt: new Date(body.scheduledAt),
       durationMinutes: body.durationMinutes ?? 60,
@@ -61,12 +73,17 @@ router.post("/", async (req, res) => {
   }
 });
 
-router.get("/:id", async (req, res) => {
+// GET /sessions/:id - Protected: only session participants or admin
+router.get("/:id", requireAuth, async (req: any, res) => {
   try {
     const id = Number(req.params.id);
     const [session] = await db.select().from(sessionsTable).where(eq(sessionsTable.id, id)).limit(1);
     if (!session) {
       res.status(404).json({ error: "Session not found" });
+      return;
+    }
+    if (req.user?.role !== "admin" && req.user?.id !== session.tutorId && req.user?.id !== session.studentId) {
+      res.status(403).json({ error: "Forbidden: You are not a participant in this session" });
       return;
     }
     const enriched = await enrichSession(session);
@@ -77,21 +94,28 @@ router.get("/:id", async (req, res) => {
   }
 });
 
-router.patch("/:id", async (req, res) => {
+// PATCH /sessions/:id - Protected: only session participants or admin
+router.patch("/:id", requireAuth, async (req: any, res) => {
   try {
     const id = Number(req.params.id);
+    const [session] = await db.select().from(sessionsTable).where(eq(sessionsTable.id, id)).limit(1);
+    if (!session) {
+      res.status(404).json({ error: "Session not found" });
+      return;
+    }
+    if (req.user?.role !== "admin" && req.user?.id !== session.tutorId && req.user?.id !== session.studentId) {
+      res.status(403).json({ error: "Forbidden: You are not a participant in this session" });
+      return;
+    }
+
     const body = UpdateSessionBody.parse(req.body);
     const updateData: any = {};
     if (body.status) updateData.status = body.status;
     if (body.notes !== undefined) updateData.notes = body.notes;
     if (req.body.liveUrl !== undefined) updateData.liveUrl = req.body.liveUrl;
     if (req.body.amount !== undefined) updateData.amount = req.body.amount;
-    const [session] = await db.update(sessionsTable).set(updateData).where(eq(sessionsTable.id, id)).returning();
-    if (!session) {
-      res.status(404).json({ error: "Session not found" });
-      return;
-    }
-    const enriched = await enrichSession(session);
+    const [updated] = await db.update(sessionsTable).set(updateData).where(eq(sessionsTable.id, id)).returning();
+    const enriched = await enrichSession(updated);
     res.json(enriched);
   } catch (err) {
     req.log.error({ err }, "update session error");
@@ -99,13 +123,18 @@ router.patch("/:id", async (req, res) => {
   }
 });
 
-router.post("/:id/pay", async (req, res) => {
+// POST /sessions/:id/pay - Protected: student or admin only
+router.post("/:id/pay", requireAuth, async (req: any, res) => {
   try {
     const id = Number(req.params.id);
 
     const [session] = await db.select().from(sessionsTable).where(eq(sessionsTable.id, id)).limit(1);
     if (!session) {
       res.status(404).json({ error: "Session not found" });
+      return;
+    }
+    if (req.user?.role !== "admin" && req.user?.id !== session.studentId) {
+      res.status(403).json({ error: "Forbidden: Only the student can pay for this session" });
       return;
     }
     if (session.isPaid === 1) {

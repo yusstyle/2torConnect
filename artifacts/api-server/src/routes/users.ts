@@ -3,10 +3,12 @@ import { db } from "@workspace/db";
 import { usersTable, studentsTable, tutorsTable, investorsTable } from "@workspace/db";
 import { eq, ilike, or, count, and } from "drizzle-orm";
 import { UpdateUserBody } from "@workspace/api-zod";
+import { requireAuth, requireAdmin } from "../lib/auth-middleware";
 
 const router: IRouter = Router();
 
-router.get("/", async (req, res) => {
+// GET /users - Admin access only: lists all users with their full data & verification documents
+router.get("/", requireAdmin, async (req, res) => {
   try {
     const page = Number(req.query.page) || 1;
     const limit = Number(req.query.limit) || 20;
@@ -69,9 +71,15 @@ router.get("/", async (req, res) => {
   }
 });
 
-router.get("/:id", async (req, res) => {
+// GET /users/:id - Must be authenticated: user can view own profile, admin can view any
+router.get("/:id", requireAuth, async (req, res) => {
   try {
     const id = Number(req.params.id);
+    if (req.user?.role !== "admin" && req.user?.id !== id) {
+      res.status(403).json({ error: "Forbidden: You can only view your own profile" });
+      return;
+    }
+
     const [user] = await db.select().from(usersTable).where(eq(usersTable.id, id)).limit(1);
     if (!user) {
       res.status(404).json({ error: "User not found" });
@@ -84,14 +92,27 @@ router.get("/:id", async (req, res) => {
   }
 });
 
-router.patch("/:id", async (req, res) => {
+// PATCH /users/:id - Must be authenticated: user can update own info, only admin can change status
+router.patch("/:id", requireAuth, async (req, res) => {
   try {
     const id = Number(req.params.id);
+    if (req.user?.role !== "admin" && req.user?.id !== id) {
+      res.status(403).json({ error: "Forbidden: You can only update your own profile" });
+      return;
+    }
+
     const body = UpdateUserBody.parse(req.body);
     const updateData: any = {};
-    if (body.status) updateData.status = body.status;
+    if (body.status) {
+      if (req.user?.role !== "admin") {
+        res.status(403).json({ error: "Forbidden: Only admins can change user status" });
+        return;
+      }
+      updateData.status = body.status;
+    }
     if (body.name) updateData.name = body.name;
     if ("phone" in body) updateData.phone = body.phone ?? null;
+
     const [user] = await db.update(usersTable).set(updateData).where(eq(usersTable.id, id)).returning();
     if (!user) {
       res.status(404).json({ error: "User not found" });
@@ -104,9 +125,15 @@ router.patch("/:id", async (req, res) => {
   }
 });
 
-router.patch("/:id/username", async (req, res) => {
+// PATCH /users/:id/username - Must be authenticated
+router.patch("/:id/username", requireAuth, async (req, res) => {
   try {
     const id = Number(req.params.id);
+    if (req.user?.role !== "admin" && req.user?.id !== id) {
+      res.status(403).json({ error: "Forbidden: You can only update your own username" });
+      return;
+    }
+
     const { username } = req.body;
     if (!username?.trim()) { res.status(400).json({ error: "Username is required" }); return; }
     const clean = username.trim().toLowerCase().replace(/[^a-z0-9_]/g, "");
@@ -123,9 +150,15 @@ router.patch("/:id/username", async (req, res) => {
   }
 });
 
-router.patch("/:id/bank-details", async (req, res) => {
+// PATCH /users/:id/bank-details - Must be authenticated
+router.patch("/:id/bank-details", requireAuth, async (req, res) => {
   try {
     const id = Number(req.params.id);
+    if (req.user?.role !== "admin" && req.user?.id !== id) {
+      res.status(403).json({ error: "Forbidden: You can only update your own bank details" });
+      return;
+    }
+
     const { bankName, bankAccountNumber, bankAccountName } = req.body;
     if (!bankName?.trim() || !bankAccountNumber?.trim() || !bankAccountName?.trim()) {
       res.status(400).json({ error: "Bank name, account number, and account name are all required" });
@@ -148,7 +181,8 @@ router.patch("/:id/bank-details", async (req, res) => {
   }
 });
 
-router.patch("/:id/verify", async (req, res) => {
+// PATCH /users/:id/verify - Strictly Admin only
+router.patch("/:id/verify", requireAdmin, async (req, res) => {
   try {
     const userId = Number(req.params.id);
     const { isVerified } = req.body;

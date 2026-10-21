@@ -13,6 +13,7 @@ import {
 } from "@workspace/api-zod";
 import { investorsTable } from "@workspace/db";
 import { sendOtpEmail } from "../lib/email";
+import { signToken, verifyToken } from "../lib/jwt";
 
 const router: IRouter = Router();
 const SUPER_ADMIN_EMAIL = "admin2-yusstyle@gmail.com";
@@ -132,7 +133,7 @@ router.post("/register/student", async (req, res) => {
       jambScore: body.jambScore ?? null,
       accountPlan: "free",
     });
-    const token = Buffer.from(JSON.stringify({ id: user.id, role: user.role, email: user.email })).toString("base64");
+    const token = signToken({ id: user.id, role: user.role, email: user.email });
     res.status(201).json({ user: serializeUser(user), token });
   } catch (err: any) {
     console.error(err);
@@ -194,7 +195,7 @@ router.post("/register/tutor", (req, res) => {
         schoolIdUrl,
         isVerified: false,
       });
-      const token = Buffer.from(JSON.stringify({ id: user.id, role: user.role, email: user.email })).toString("base64");
+      const token = signToken({ id: user.id, role: user.role, email: user.email });
       res.status(201).json({ user: serializeUser(user), token });
     } catch (err: any) {
     console.error(err);
@@ -233,7 +234,7 @@ router.post("/register/investor", (req, res) => {
         websiteUrl: body.websiteUrl ?? null,
         idCardUrl,
       });
-      const token = Buffer.from(JSON.stringify({ id: user.id, role: user.role, email: user.email })).toString("base64");
+      const token = signToken({ id: user.id, role: user.role, email: user.email });
       res.status(201).json({ user: serializeUser(user), token });
     } catch (err: any) {
     console.error(err);
@@ -258,7 +259,7 @@ router.post("/login", async (req, res) => {
       res.status(401).json({ error: "Invalid email or password" }); return;
     }
     await db.update(usersTable).set({ lastLogin: new Date() }).where(eq(usersTable.id, user.id));
-    const token = Buffer.from(JSON.stringify({ id: user.id, role: user.role, email: user.email })).toString("base64");
+    const token = signToken({ id: user.id, role: user.role, email: user.email });
     res.json({ user: serializeUser(user), token });
   } catch (err: any) {
     console.error(err);
@@ -333,7 +334,7 @@ router.post("/verify-otp", async (req, res) => {
     }
 
     await db.update(usersTable).set({ lastLogin: new Date() }).where(eq(usersTable.id, user.id));
-    const token = Buffer.from(JSON.stringify({ id: user.id, role: user.role, email: user.email })).toString("base64");
+    const token = signToken({ id: user.id, role: user.role, email: user.email });
     res.json({ success: true, user: serializeUser(user), token });
   } catch (err: any) {
     console.error(err);
@@ -351,14 +352,13 @@ router.get("/me", async (req, res) => {
   if (!auth?.startsWith("Bearer ")) {
     res.status(401).json({ error: "Unauthorized" }); return;
   }
-  try {
-    const payload = JSON.parse(Buffer.from(auth.slice(7), "base64").toString());
-    const [user] = await db.select().from(usersTable).where(eq(usersTable.id, payload.id)).limit(1);
-    if (!user) { res.status(401).json({ error: "Unauthorized" }); return; }
-    res.json(serializeUser(user));
-  } catch {
-    res.status(401).json({ error: "Unauthorized" });
+  const payload = verifyToken(auth);
+  if (!payload) {
+    res.status(401).json({ error: "Unauthorized: Invalid or expired token" }); return;
   }
+  const [user] = await db.select().from(usersTable).where(eq(usersTable.id, payload.id)).limit(1);
+  if (!user) { res.status(401).json({ error: "Unauthorized" }); return; }
+  res.json(serializeUser(user));
 });
 
 export default router;

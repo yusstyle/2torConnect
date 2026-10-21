@@ -2,7 +2,8 @@ import { Router, type IRouter } from "express";
 import { db } from "@workspace/db";
 import { transactionsTable } from "@workspace/db";
 import { eq, and } from "drizzle-orm";
-import { randomUUID } from "crypto";
+import { randomUUID, createHmac, timingSafeEqual } from "crypto";
+import { requireAuth } from "../lib/auth-middleware";
 import {
   initializePayment,
   verifyPayment,
@@ -246,6 +247,15 @@ router.post("/withdraw", authMiddleware, async (req: any, res) => {
 // Monnify webhook — marks transactions as completed when Monnify notifies us
 router.post("/webhook", async (req: any, res) => {
   try {
+    const signature = req.headers["monnify-signature"];
+    const secret = process.env.MONNIFY_SECRET_KEY;
+    if (secret && signature) {
+      const computed = createHmac("sha512", secret).update(JSON.stringify(req.body)).digest("hex");
+      if (computed !== signature) {
+        res.status(401).json({ error: "Invalid signature" });
+        return;
+      }
+    }
     const { eventType, eventData } = req.body;
 
     if (eventType === "SUCCESSFUL_TRANSACTION") {

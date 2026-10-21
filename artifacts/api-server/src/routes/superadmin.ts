@@ -3,29 +3,9 @@ import { db } from "@workspace/db";
 import { usersTable } from "@workspace/db";
 import { eq, and } from "drizzle-orm";
 import bcrypt from "bcryptjs";
+import { requireSuperAdmin, SUPER_ADMIN_EMAIL } from "../lib/auth-middleware";
 
 const router: IRouter = Router();
-
-const SUPER_ADMIN_EMAIL = "yusstyle13@gmail.com";
-
-function requireSuperAdmin(req: any, res: any, next: any) {
-  const auth = req.headers.authorization;
-  if (!auth?.startsWith("Bearer ")) {
-    res.status(401).json({ error: "Unauthorized" });
-    return;
-  }
-  try {
-    const payload = JSON.parse(Buffer.from(auth.slice(7), "base64").toString("utf8"));
-    if (payload.email !== SUPER_ADMIN_EMAIL) {
-      res.status(403).json({ error: "Forbidden: Super Admin only" });
-      return;
-    }
-    req.authUser = payload;
-    next();
-  } catch {
-    res.status(401).json({ error: "Invalid token" });
-  }
-}
 
 router.get("/admins", requireSuperAdmin, async (req, res) => {
   try {
@@ -33,7 +13,7 @@ router.get("/admins", requireSuperAdmin, async (req, res) => {
       .select({ id: usersTable.id, name: usersTable.name, email: usersTable.email, status: usersTable.status, createdAt: usersTable.createdAt, lastLogin: usersTable.lastLogin })
       .from(usersTable)
       .where(eq(usersTable.role, "admin"));
-    const filtered = admins.filter(a => a.email !== SUPER_ADMIN_EMAIL);
+    const filtered = admins.filter(a => a.email !== SUPER_ADMIN_EMAIL && a.email !== "yusstyle13@gmail.com");
     res.json({ admins: filtered });
   } catch (err) {
     res.status(500).json({ error: "Failed to list admins" });
@@ -47,7 +27,7 @@ router.post("/admins", requireSuperAdmin, async (req, res) => {
       res.status(400).json({ error: "Name, email and password are required" });
       return;
     }
-    if (email.trim().toLowerCase() === SUPER_ADMIN_EMAIL) {
+    if (email.trim().toLowerCase() === SUPER_ADMIN_EMAIL || email.trim().toLowerCase() === "yusstyle13@gmail.com") {
       res.status(400).json({ error: "Cannot create an admin with this email" });
       return;
     }
@@ -100,7 +80,7 @@ router.delete("/admins/:id", requireSuperAdmin, async (req, res) => {
       res.status(404).json({ error: "Admin not found" });
       return;
     }
-    if (existing.email === SUPER_ADMIN_EMAIL) {
+    if (existing.email === SUPER_ADMIN_EMAIL || existing.email === "yusstyle13@gmail.com") {
       res.status(403).json({ error: "Cannot delete the super admin" });
       return;
     }
