@@ -14,6 +14,8 @@ import {
 import { investorsTable } from "@workspace/db";
 import { sendOtpEmail } from "../lib/email";
 import { signToken, verifyToken } from "../lib/jwt";
+import { requireAuth } from "../lib/auth-middleware";
+import { authRateLimiter } from "../lib/rate-limiter";
 
 const router: IRouter = Router();
 const SUPER_ADMIN_EMAIL = "admin2-yusstyle@gmail.com";
@@ -56,15 +58,7 @@ if (!useBlobStorage) {
 const avatarStorage = multer.memoryStorage();
 const uploadAvatar = multer({ storage: avatarStorage, limits: { fileSize: 5 * 1024 * 1024 } }).single("avatar");
 
-function authMiddleware(req: any, res: any, next: any) {
-  const authHeader = req.headers.authorization;
-  if (!authHeader?.startsWith("Bearer ")) { res.status(401).json({ error: "Unauthorized" }); return; }
-  try {
-    const payload = JSON.parse(Buffer.from(authHeader.slice(7), "base64").toString("utf8"));
-    req.authUser = payload;
-    next();
-  } catch { res.status(401).json({ error: "Invalid token" }); }
-}
+const authMiddleware = requireAuth;
 
 router.post("/avatar", authMiddleware, (req: any, res) => {
   uploadAvatar(req, res, async (err) => {
@@ -108,7 +102,7 @@ const uploadInvestorId = multer({
   },
 }).single("idCard");
 
-router.post("/register/student", async (req, res) => {
+router.post("/register/student", authRateLimiter, async (req, res) => {
   try {
     const body = RegisterStudentBody.parse(req.body);
     const existing = await db.select().from(usersTable).where(eq(usersTable.email, body.email)).limit(1);
@@ -142,7 +136,7 @@ router.post("/register/student", async (req, res) => {
   }
 });
 
-router.post("/register/tutor", (req, res) => {
+router.post("/register/tutor", authRateLimiter, (req, res) => {
   uploadSchoolId(req, res, async (uploadErr) => {
     if (uploadErr) {
       res.status(400).json({ error: "File upload failed", message: uploadErr.message });
@@ -205,7 +199,7 @@ router.post("/register/tutor", (req, res) => {
   });
 });
 
-router.post("/register/investor", (req, res) => {
+router.post("/register/investor", authRateLimiter, (req, res) => {
   uploadInvestorId(req, res, async (uploadErr) => {
     if (uploadErr) { res.status(400).json({ error: "File upload failed", message: uploadErr.message }); return; }
     try {
@@ -244,7 +238,7 @@ router.post("/register/investor", (req, res) => {
   });
 });
 
-router.post("/login", async (req, res) => {
+router.post("/login", authRateLimiter, async (req, res) => {
   try {
     const { email, password } = req.body;
     if (!email || !password) {
@@ -272,7 +266,7 @@ function generateOtp(): string {
   return Math.floor(100000 + Math.random() * 900000).toString();
 }
 
-router.post("/send-otp", async (req, res) => {
+router.post("/send-otp", authRateLimiter, async (req, res) => {
   try {
     const { email } = req.body;
     if (!email?.trim()) {
@@ -302,7 +296,7 @@ router.post("/send-otp", async (req, res) => {
   }
 });
 
-router.post("/verify-otp", async (req, res) => {
+router.post("/verify-otp", authRateLimiter, async (req, res) => {
   try {
     const { email, code } = req.body;
     if (!email?.trim() || !code?.trim()) {

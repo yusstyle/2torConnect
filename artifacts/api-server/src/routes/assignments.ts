@@ -3,8 +3,12 @@ import { db } from "@workspace/db";
 import { assignmentsTable, assignmentResponsesTable, usersTable } from "@workspace/db";
 import { eq, desc, and } from "drizzle-orm";
 import { pushNotification } from "./notifications";
+import { requireAuth } from "../lib/auth-middleware";
 
 const router = Router();
+
+// All assignment operations require authentication
+router.use(requireAuth);
 
 router.get("/", async (req, res) => {
   try {

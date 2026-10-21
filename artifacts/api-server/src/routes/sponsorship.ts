@@ -1,19 +1,12 @@
 import { Router, type IRouter } from "express";
+import { requireAuth } from "../lib/auth-middleware";
 import { db } from "@workspace/db";
 import { sponsorshipRequestsTable, usersTable, studentsTable } from "@workspace/db";
 import { eq, desc, and } from "drizzle-orm";
 
 const router: IRouter = Router();
 
-function authMiddleware(req: any, res: any, next: any) {
-  const authHeader = req.headers.authorization;
-  if (!authHeader?.startsWith("Bearer ")) { res.status(401).json({ error: "Unauthorized" }); return; }
-  try {
-    const payload = JSON.parse(Buffer.from(authHeader.slice(7), "base64").toString("utf8"));
-    req.authUser = payload;
-    next();
-  } catch { res.status(401).json({ error: "Invalid token" }); }
-}
+const authMiddleware = requireAuth;
 
 router.get("/", async (req, res) => {
   try {

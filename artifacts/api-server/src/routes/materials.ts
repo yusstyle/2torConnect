@@ -5,6 +5,7 @@ import fs from "fs";
 import { db } from "@workspace/db";
 import { materialsTable, tutorsTable } from "@workspace/db";
 import { eq, desc, and, ilike, SQL } from "drizzle-orm";
+import { verifyToken } from "../lib/jwt";
 
 const router: IRouter = Router();
 
@@ -34,11 +35,7 @@ const upload = multer({
 function getAuthPayload(req: any) {
   const auth = req.headers.authorization;
   if (!auth?.startsWith("Bearer ")) return null;
-  try {
-    return JSON.parse(Buffer.from(auth.slice(7), "base64").toString());
-  } catch {
-    return null;
-  }
+  return verifyToken(auth);
 }
 
 // List materials

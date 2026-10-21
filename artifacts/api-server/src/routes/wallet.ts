@@ -13,20 +13,7 @@ import {
 
 const router: IRouter = Router();
 
-function authMiddleware(req: any, res: any, next: any) {
-  const authHeader = req.headers.authorization;
-  if (!authHeader?.startsWith("Bearer ")) {
-    res.status(401).json({ error: "Unauthorized" });
-    return;
-  }
-  try {
-    const payload = JSON.parse(Buffer.from(authHeader.slice(7), "base64").toString("utf8"));
-    req.authUser = payload;
-    next();
-  } catch {
-    res.status(401).json({ error: "Invalid token" });
-  }
-}
+const authMiddleware = requireAuth;
 
 export async function computeBalance(userId: number, role: string) {
   const txns = await db

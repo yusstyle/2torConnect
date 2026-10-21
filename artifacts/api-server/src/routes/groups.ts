@@ -3,6 +3,7 @@ import { db } from "@workspace/db";
 import { sessionsTable, sessionParticipantsTable, usersTable } from "@workspace/db";
 import { eq, and, count } from "drizzle-orm";
 import { pushNotification } from "./notifications";
+import { requireAuth } from "../lib/auth-middleware";
 
 const router = Router();
 
@@ -41,7 +42,7 @@ router.get("/", async (req, res) => {
   }
 });
 
-router.post("/", async (req, res) => {
+router.post("/", requireAuth, async (req, res) => {
   try {
     const tutorId = Number((req as any).user?.id);
     if (!tutorId) return res.status(401).json({ error: "Unauthorized" });
@@ -69,7 +70,7 @@ router.post("/", async (req, res) => {
   }
 });
 
-router.post("/:id/join", async (req, res) => {
+router.post("/:id/join", requireAuth, async (req, res) => {
   try {
     const studentId = Number((req as any).user?.id);
     const sessionId = Number(req.params.id);
@@ -103,7 +104,7 @@ router.post("/:id/join", async (req, res) => {
   }
 });
 
-router.get("/:id/participants", async (req, res) => {
+router.get("/:id/participants", requireAuth, async (req, res) => {
   try {
     const sessionId = Number(req.params.id);
     const rows = await db

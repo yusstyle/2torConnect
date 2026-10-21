@@ -1,4 +1,5 @@
 import { Router, type IRouter } from "express";
+import { requireAuth } from "../lib/auth-middleware";
 import { db } from "@workspace/db";
 import {
   socialPostsTable, socialLikesTable, socialCommentsTable,
@@ -52,14 +53,7 @@ const uploadSocialMedia = multer({
 
 const router: IRouter = Router();
 
-function authMiddleware(req: any, res: any, next: any) {
-  const auth = req.headers.authorization;
-  if (!auth?.startsWith("Bearer ")) { res.status(401).json({ error: "Unauthorized" }); return; }
-  try {
-    req.authUser = JSON.parse(Buffer.from(auth.slice(7), "base64").toString());
-    next();
-  } catch { res.status(401).json({ error: "Unauthorized" }); }
-}
+const authMiddleware = requireAuth;
 
 async function enrichPost(post: any, currentUserId?: number) {
   const [user] = await db.select({
