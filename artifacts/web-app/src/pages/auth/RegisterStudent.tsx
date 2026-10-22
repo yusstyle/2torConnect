@@ -7,6 +7,7 @@ import { useRegisterStudent } from "@workspace/api-client-react";
 import { useAuthStore } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
 import { COUNTRIES } from "@/lib/currency";
+import { validatePasswordStrength } from "@/lib/utils";
 
 export default function RegisterStudentPage() {
   const [, setLocation] = useLocation();
@@ -36,6 +37,11 @@ export default function RegisterStudentPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    const pwdErr = validatePasswordStrength(form.password);
+    if (pwdErr) {
+      toast({ variant: "destructive", title: "Weak Password", description: pwdErr });
+      return;
+    }
     if (form.password !== form.confirmPassword) {
       toast({ variant: "destructive", title: "Passwords don't match" });
       return;
@@ -143,7 +149,7 @@ export default function RegisterStudentPage() {
                 <label className="text-sm font-medium text-white/80">Password</label>
                 <div className="relative">
                   <Lock className="absolute left-4 top-3.5 w-4 h-4 text-muted-foreground" />
-                  <input type="password" required value={form.password} onChange={set("password")} className={inputClass} placeholder="Min 6 characters" />
+                  <input type="password" required value={form.password} onChange={set("password")} className={inputClass} placeholder="Min 8 chars, 1 uppercase, 1 digit" />
                 </div>
               </div>
               <div className="space-y-1">

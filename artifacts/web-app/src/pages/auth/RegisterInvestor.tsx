@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import { useAuthStore } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
+import { validatePasswordStrength } from "@/lib/utils";
 
 const COUNTRIES = [
   "Afghanistan","Albania","Algeria","Andorra","Angola","Antigua and Barbuda","Argentina","Armenia","Australia","Austria",
@@ -69,7 +70,7 @@ export default function RegisterInvestorPage() {
     if (step === 0) {
       if (!form.name.trim()) { toast({ variant: "destructive", title: "Enter your full name" }); return false; }
       if (!form.email.trim()) { toast({ variant: "destructive", title: "Enter your email" }); return false; }
-      if (form.password.length < 6) { toast({ variant: "destructive", title: "Password must be at least 6 characters" }); return false; }
+      const pwdErr = validatePasswordStrength(form.password); if (pwdErr) { toast({ variant: "destructive", title: "Weak Password", description: pwdErr }); return false; }
       if (form.password !== form.confirmPassword) { toast({ variant: "destructive", title: "Passwords do not match" }); return false; }
     }
     if (step === 1) {
@@ -172,7 +173,7 @@ export default function RegisterInvestorPage() {
                   <div className="space-y-1">
                     <label className="text-sm font-medium text-white/80">Password *</label>
                     <div className="relative"><Lock className="absolute left-3.5 top-3.5 w-4 h-4 text-muted-foreground" />
-                      <input type="password" value={form.password} onChange={set("password")} className={icIcon} placeholder="Min. 6 characters" /></div>
+                      <input type="password" value={form.password} onChange={set("password")} className={icIcon} placeholder="Min 8 chars, 1 uppercase, 1 digit" /></div>
                   </div>
                   <div className="space-y-1">
                     <label className="text-sm font-medium text-white/80">Confirm Password *</label>

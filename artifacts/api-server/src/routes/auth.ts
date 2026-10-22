@@ -16,6 +16,7 @@ import { sendOtpEmail } from "../lib/email";
 import { signToken, verifyToken } from "../lib/jwt";
 import { requireAuth } from "../lib/auth-middleware";
 import { authRateLimiter } from "../lib/rate-limiter";
+import { extractClientMeta, validatePasswordStrength, isAccountLocked, recordFailedLogin, recordSuccessfulLogin, logSecurityEvent } from "../lib/security";
 
 const router: IRouter = Router();
 const SUPER_ADMIN_EMAIL = "admin2-yusstyle@gmail.com";
@@ -105,6 +106,8 @@ const uploadInvestorId = multer({
 router.post("/register/student", authRateLimiter, async (req, res) => {
   try {
     const body = RegisterStudentBody.parse(req.body);
+    const pwdErr = validatePasswordStrength(body.password);
+    if (pwdErr) { res.status(400).json({ error: pwdErr }); return; }
     const existing = await db.select().from(usersTable).where(eq(usersTable.email, body.email)).limit(1);
     if (existing.length > 0) {
       res.status(400).json({ error: "Email already in use" });
@@ -148,6 +151,8 @@ router.post("/register/tutor", authRateLimiter, (req, res) => {
         res.status(400).json({ error: "Name, email and password are required" });
         return;
       }
+      const pwdErr = validatePasswordStrength(body.password);
+      if (pwdErr) { res.status(400).json({ error: pwdErr }); return; }
       if (body.password !== body.confirmPassword) {
         res.status(400).json({ error: "Passwords do not match" });
         return;
@@ -206,6 +211,8 @@ router.post("/register/investor", authRateLimiter, (req, res) => {
       const body = req.body;
       if (!body.name || !body.email || !body.password) { res.status(400).json({ error: "Name, email and password are required" }); return; }
       if (body.password !== body.confirmPassword) { res.status(400).json({ error: "Passwords do not match" }); return; }
+      const pwdErr = validatePasswordStrength(body.password);
+      if (pwdErr) { res.status(400).json({ error: pwdErr }); return; }
       if (!body.businessName?.trim()) { res.status(400).json({ error: "Business name is required" }); return; }
       const existing = await db.select().from(usersTable).where(eq(usersTable.email, body.email)).limit(1);
       if (existing.length > 0) {
@@ -240,18 +247,82 @@ router.post("/register/investor", authRateLimiter, (req, res) => {
 
 router.post("/login", authRateLimiter, async (req, res) => {
   try {
+    const { ipAddress, userAgent } = extractClientMeta(req);
     const { email, password } = req.body;
     if (!email || !password) {
       res.status(400).json({ error: "Email and password are required" }); return;
     }
-    const [user] = await db.select().from(usersTable).where(eq(usersTable.email, email.trim().toLowerCase())).limit(1);
-    if (!user) {
-      res.status(401).json({ error: "Invalid email or password" }); return;
+    const normalizedEmail = email.trim().toLowerCase();
+
+    // 1. Account Lockout verification (anti-brute force)
+    const { locked, remainingMinutes } = isAccountLocked(normalizedEmail);
+    if (locked) {
+      await logSecurityEvent({
+        eventType: "account_locked",
+        severity: "critical",
+        ipAddress,
+        userAgent,
+        email: normalizedEmail,
+        details: `Login attempt blocked: account locked for ${remainingMinutes} more minutes`,
+      });
+      res.status(423).json({
+        error: "Account Locked",
+        message: `This account is temporarily locked due to 5 consecutive failed login attempts. Please try again in ${remainingMinutes} minutes.`,
+      });
+      return;
     }
+
+    const [user] = await db.select().from(usersTable).where(eq(usersTable.email, normalizedEmail)).limit(1);
+    if (!user) {
+      const { locked: nowLocked, remainingAttempts } = recordFailedLogin(normalizedEmail);
+      await logSecurityEvent({
+        eventType: nowLocked ? "account_locked" : "failed_login",
+        severity: nowLocked ? "critical" : "warning",
+        ipAddress,
+        userAgent,
+        email: normalizedEmail,
+        details: nowLocked ? "Account locked after 5 failed attempts" : `Failed login attempt. ${remainingAttempts} attempts remaining`,
+      });
+      res.status(401).json({
+        error: "Invalid email or password",
+        message: nowLocked
+          ? "Account is now locked for 15 minutes due to 5 failed attempts."
+          : `Invalid email or password. ${remainingAttempts} attempts remaining.`,
+      });
+      return;
+    }
+
     const valid = await bcrypt.compare(password.trim(), user.passwordHash);
     if (!valid) {
-      res.status(401).json({ error: "Invalid email or password" }); return;
+      const { locked: nowLocked, remainingAttempts } = recordFailedLogin(normalizedEmail);
+      await logSecurityEvent({
+        eventType: nowLocked ? "account_locked" : "failed_login",
+        severity: nowLocked ? "critical" : "warning",
+        ipAddress,
+        userAgent,
+        email: normalizedEmail,
+        details: nowLocked ? "Account locked after 5 failed attempts" : `Failed login attempt. ${remainingAttempts} attempts remaining`,
+      });
+      res.status(401).json({
+        error: "Invalid email or password",
+        message: nowLocked
+          ? "Account is now locked for 15 minutes due to 5 failed attempts."
+          : `Invalid email or password. ${remainingAttempts} attempts remaining.`,
+      });
+      return;
     }
+
+    // Login successful
+    recordSuccessfulLogin(normalizedEmail);
+    await logSecurityEvent({
+      eventType: "successful_login",
+      severity: "info",
+      ipAddress,
+      userAgent,
+      email: normalizedEmail,
+      details: `User ${user.name} (${user.role}) logged in successfully`,
+    });
+
     await db.update(usersTable).set({ lastLogin: new Date() }).where(eq(usersTable.id, user.id));
     const token = signToken({ id: user.id, role: user.role, email: user.email });
     res.json({ user: serializeUser(user), token });

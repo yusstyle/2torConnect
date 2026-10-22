@@ -4,6 +4,7 @@ import { usersTable, sessionsTable, transactionsTable } from "@workspace/db";
 import { eq, count, sql } from "drizzle-orm";
 import { sendCustomEmail } from "../lib/email";
 import { requireAdmin } from "../lib/auth-middleware";
+import { initSecurityTable } from "../lib/security";
 
 const router: IRouter = Router();
 
@@ -46,6 +47,23 @@ router.get("/stats", requireAdmin, async (req, res) => {
   } catch (err) {
     req.log.error({ err }, "admin stats error");
     res.status(500).json({ error: "Failed to get admin stats" });
+  }
+});
+
+// GET /admin/security-logs - Strictly Admin only
+router.get("/security-logs", requireAdmin, async (req, res) => {
+  try {
+    await initSecurityTable();
+    const result = await db.execute(sql`
+      SELECT id, event_type as "eventType", severity, ip_address as "ipAddress", user_agent as "userAgent", email, details, created_at as "createdAt"
+      FROM security_audit_logs
+      ORDER BY created_at DESC
+      LIMIT 100
+    `);
+    res.json({ logs: result.rows });
+  } catch (err) {
+    req.log.error({ err }, "failed to fetch security logs");
+    res.status(500).json({ error: "Failed to fetch security audit logs" });
   }
 });
 
