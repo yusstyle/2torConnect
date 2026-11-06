@@ -102,3 +102,4 @@ export async function logSecurityEvent(params: {
     console.error("Security audit logging error:", err);
   }
 }
+

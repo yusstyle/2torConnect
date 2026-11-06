@@ -8,7 +8,11 @@ function getFromAddress(): string {
   return `"${FROM_NAME}" <${fromEmail}>`;
 }
 
+let cachedTransporter: nodemailer.Transporter | null = null;
+
 function createTransporter() {
+  if (cachedTransporter) return cachedTransporter;
+
   const user = (process.env["SMTP_USER"] ?? "").trim();
   const pass = (process.env["SMTP_PASS"] ?? "").trim();
   const host = (process.env["SMTP_HOST"] ?? "").trim();
@@ -20,23 +24,28 @@ function createTransporter() {
   if (!user || !pass) return null;
 
   if (host) {
-    return nodemailer.createTransport({
+    cachedTransporter = nodemailer.createTransport({
       host,
       port,
       secure,
       requireTLS: !secure && port === 587,
       auth: { user, pass },
+      pool: true,
+      maxConnections: 3,
+      maxMessages: 100,
       tls: {
         rejectUnauthorized: true,
       },
     });
+    return cachedTransporter;
   }
 
   // Fallback: current Gmail setup, unchanged
-  return nodemailer.createTransport({
+  cachedTransporter = nodemailer.createTransport({
     service: "gmail",
     auth: { user, pass },
   });
+  return cachedTransporter;
 }
 
 export async function verifyEmailTransporter(): Promise<{ ok: boolean; message: string }> {
@@ -111,12 +120,25 @@ export async function sendNewAdminEmail(to: string, name: string, password: stri
     console.error("Admin email send failed:", err?.message || err, err);
   }
 }
-export async function sendCustomEmail(to: string, subject: string, message: string, mediaUrl?: string | null, mediaType?: string | null): Promise<boolean> {
+
+export interface SendCustomEmailResult {
+  ok: boolean;
+  error?: string;
+  quotaExceeded?: boolean;
+}
+
+export async function sendCustomEmail(
+  to: string,
+  subject: string,
+  message: string,
+  mediaUrl?: string | null,
+  mediaType?: string | null
+): Promise<SendCustomEmailResult> {
   const transporter = createTransporter();
 
   if (!transporter) {
     console.log(`[DEV] Email to ${to} — ${subject}: ${message}${mediaUrl ? ` (media: ${mediaUrl})` : ""}`);
-    return true;
+    return { ok: true };
   }
 
   try {
@@ -134,9 +156,11 @@ export async function sendCustomEmail(to: string, subject: string, message: stri
         </div>
       `,
     });
-    return true;
+    return { ok: true };
   } catch (err: any) {
-    console.error("Custom email send failed:", err?.message || err, err);
-    return false;
+    const errorMsg = err?.message || String(err);
+    const quotaExceeded = /quota|limit|exceeded|too many|550 5\.4/i.test(errorMsg);
+    console.error(`Custom email send failed for ${to}:`, errorMsg);
+    return { ok: false, error: errorMsg, quotaExceeded };
   }
 }

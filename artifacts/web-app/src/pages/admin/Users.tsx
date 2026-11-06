@@ -1,8 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useListUsers, useUpdateUser } from "@workspace/api-client-react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { format } from "date-fns";
-import { Search, Loader2, CheckCircle, XCircle, Clock, FileImage, X, Eye, BadgeCheck, Mail, Send, Paperclip } from "lucide-react";
+import {
+  Search, Loader2, CheckCircle, XCircle, Clock, FileImage, X, Eye, BadgeCheck,
+  Mail, Send, Paperclip, GraduationCap, Users as UsersIcon, Briefcase, Bell, AlertTriangle, ShieldCheck
+} from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuthStore } from "@/lib/auth";
 import { VerifiedBadge } from "@/components/VerifiedBadge";
@@ -30,6 +33,14 @@ interface DocUser {
   documentUrl: string | null;
 }
 
+interface RecipientStats {
+  activeStudents: number;
+  activeTutors: number;
+  activeInvestors: number;
+  activeAll: number;
+  total: number;
+}
+
 export default function AdminUsersPage() {
   const { token } = useAuthStore();
   const { toast } = useToast();
@@ -37,13 +48,46 @@ export default function AdminUsersPage() {
   const [roleFilter, setRoleFilter] = useState("");
   const [page, setPage] = useState(1);
   const [docUser, setDocUser] = useState<DocUser | null>(null);
-  const [composeTarget, setComposeTarget] = useState<{ type: "single"; id: number; name: string } | { type: "all" } | null>(null);
+
+  // Messaging & broadcast state
+  const [composeTarget, setComposeTarget] = useState<
+    | { type: "single"; id: number; name: string }
+    | { type: "broadcast" }
+    | null
+  >(null);
+  const [targetAudience, setTargetAudience] = useState<"students" | "tutors" | "investors" | "all">("students");
+  const [activeOnly, setActiveOnly] = useState(true);
+  const [sendInApp, setSendInApp] = useState(true);
+  const [batchMode, setBatchMode] = useState<"safe" | "all">("safe");
+  const [batchOffset, setBatchOffset] = useState(0);
+  const [recipientStats, setRecipientStats] = useState<RecipientStats | null>(null);
+
   const [subject, setSubject] = useState("");
   const [message, setMessage] = useState("");
   const [sending, setSending] = useState(false);
   const [mediaFile, setMediaFile] = useState<File | null>(null);
   const [mediaPreview, setMediaPreview] = useState<string | null>(null);
   const [uploadingMedia, setUploadingMedia] = useState(false);
+
+  const fetchRecipientStats = async () => {
+    try {
+      const res = await fetch(`${BASE}/api/admin/recipient-stats`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setRecipientStats(data);
+      }
+    } catch (e) {
+      console.warn("Could not load recipient stats", e);
+    }
+  };
+
+  useEffect(() => {
+    if (composeTarget) {
+      fetchRecipientStats();
+    }
+  }, [composeTarget]);
 
   const handleMediaChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -93,18 +137,36 @@ export default function AdminUsersPage() {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({
-          recipientType: composeTarget.type,
+          recipientType: composeTarget.type === "single" ? "single" : targetAudience,
           userId: composeTarget.type === "single" ? composeTarget.id : undefined,
           subject: subject.trim(),
           message: message.trim(),
           mediaUrl,
           mediaType,
+          activeOnly,
+          batchSize: batchMode === "safe" ? 85 : 100,
+          offset: batchOffset,
+          sendInAppNotification: sendInApp,
         }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error || "Failed to send");
-      toast({ title: "Message sent", description: `Delivered to ${data.sent} recipient${data.sent === 1 ? "" : "s"}${data.failed ? `, ${data.failed} failed` : ""}` });
-      setComposeTarget(null); setSubject(""); setMessage(""); setMediaFile(null); setMediaPreview(null);
+
+      toast({
+        title: data.quotaHit ? "Partial Delivery (Provider Quota Reached)" : "Message Sent",
+        description: data.message || `Delivered to ${data.sent} recipients (${data.inAppDelivered} dashboard notifications posted).`,
+      });
+
+      if (data.remaining > 0) {
+        setBatchOffset(data.nextOffset);
+      } else {
+        setComposeTarget(null);
+        setSubject("");
+        setMessage("");
+        setMediaFile(null);
+        setMediaPreview(null);
+        setBatchOffset(0);
+      }
     } catch (err: any) {
       toast({ variant: "destructive", title: "Failed to send message", description: err?.message });
     } finally {
@@ -155,22 +217,33 @@ export default function AdminUsersPage() {
     return url.startsWith("http") ? url : `/api`;
   };
 
+  const currentAudienceCount =
+    targetAudience === "students"
+      ? recipientStats?.activeStudents
+      : targetAudience === "tutors"
+      ? recipientStats?.activeTutors
+      : targetAudience === "investors"
+      ? recipientStats?.activeInvestors
+      : recipientStats?.activeAll;
+
   return (
     <DashboardLayout role="admin" title="User Management">
       <div className="space-y-4">
+        {/* Filters */}
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="relative flex-1">
-            <Search className="absolute left-4 top-3 w-5 h-5 text-muted-foreground" />
+            <Search className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
             <input
-              type="search"
               value={search}
               onChange={e => { setSearch(e.target.value); setPage(1); }}
               placeholder="Search by name or email..."
-              className="w-full bg-black/40 border border-white/10 rounded-xl py-3 pl-12 pr-4 text-white placeholder:text-white/30 focus:outline-none focus:border-accent transition-all"
+              className="w-full bg-black/40 border border-white/10 rounded-xl py-2.5 pl-9 pr-4 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-accent transition-all"
             />
           </div>
-          <select value={roleFilter} onChange={e => { setRoleFilter(e.target.value); setPage(1); }}
-            className="bg-black/40 border border-white/10 rounded-xl py-3 px-4 text-white focus:outline-none focus:border-accent">
+          <select
+            value={roleFilter}
+            onChange={e => { setRoleFilter(e.target.value); setPage(1); }}
+            className="bg-black/40 border border-white/10 rounded-xl py-2.5 px-4 text-sm text-white focus:outline-none focus:border-accent transition-all">
             <option value="">All Roles</option>
             <option value="student">Students</option>
             <option value="tutor">Tutors</option>
@@ -180,13 +253,28 @@ export default function AdminUsersPage() {
         </div>
 
         <div className="glass-panel rounded-2xl overflow-hidden">
-          <div className="p-4 border-b border-white/5 flex items-center justify-between">
-            <span className="text-sm text-muted-foreground">{total} total users</span>
-            <button
-              onClick={() => setComposeTarget({ type: "all" })}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-accent/10 text-accent hover:bg-accent/20 text-xs font-medium transition-colors">
-              <Mail className="w-3.5 h-3.5" /> Message All Users
-            </button>
+          <div className="p-4 border-b border-white/5 flex flex-wrap items-center justify-between gap-3">
+            <span className="text-sm text-muted-foreground">{total} total registered users</span>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => {
+                  setTargetAudience("students");
+                  setBatchOffset(0);
+                  setComposeTarget({ type: "broadcast" });
+                }}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 text-xs font-semibold transition-colors border border-blue-500/20">
+                <GraduationCap className="w-3.5 h-3.5" /> Message Students
+              </button>
+              <button
+                onClick={() => {
+                  setTargetAudience("all");
+                  setBatchOffset(0);
+                  setComposeTarget({ type: "broadcast" });
+                }}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-accent/10 text-accent hover:bg-accent/20 text-xs font-semibold transition-colors border border-accent/20">
+                <Mail className="w-3.5 h-3.5" /> Broadcast Message
+              </button>
+            </div>
           </div>
 
           {isLoading ? (
@@ -198,25 +286,36 @@ export default function AdminUsersPage() {
               {users.map((user: any) => {
                 const hasDoc = !!(user.documentUrl);
                 return (
-                  <div key={user.id} className="p-4 flex flex-col sm:flex-row sm:items-center gap-3 hover:bg-white/2 transition-colors">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1 flex-wrap">
-                        <span className="text-white font-medium">{user.name}</span>
-                        {user.isVerified && <VerifiedBadge />}
-                        <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${roleColors[user.role] ?? ""}`}>{user.role}</span>
-                        <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${statusColors[user.status] ?? ""}`}>{user.status}</span>
-                        {user.country && <span className="px-2 py-0.5 rounded-full text-xs bg-white/5 text-muted-foreground">{user.country}</span>}
+                  <div key={user.id} className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-white/2 transition-colors">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-primary to-accent flex items-center justify-center text-white font-bold text-sm shrink-0 overflow-hidden">
+                        {user.avatarUrl ? <img src={user.avatarUrl} className="w-full h-full object-cover" /> : user.name.charAt(0)}
                       </div>
-                      <p className="text-sm text-muted-foreground">{user.email} · Joined {format(new Date(user.createdAt), "MMM d, yyyy")}</p>
-                      {user.university && <p className="text-xs text-accent/70 mt-0.5">{user.university}</p>}
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold text-white text-sm">{user.name}</span>
+                          {user.isVerified && <VerifiedBadge size={14} />}
+                          <span className={`text-[11px] px-2 py-0.5 rounded-full capitalize font-medium ${roleColors[user.role] ?? "bg-white/10 text-white"}`}>
+                            {user.role}
+                          </span>
+                          <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${statusColors[user.status] ?? "bg-white/10 text-white"}`}>
+                            {user.status}
+                          </span>
+                        </div>
+                        <p className="text-xs text-muted-foreground">{user.email}</p>
+                        {user.createdAt && (
+                          <p className="text-[10px] text-muted-foreground/60">Joined {format(new Date(user.createdAt), "MMM d, yyyy")}</p>
+                        )}
+                      </div>
                     </div>
-                    <div className="flex gap-2 flex-wrap">
-                      {(user.role === "tutor" || user.role === "investor") && (
+
+                    <div className="flex flex-wrap items-center gap-2 self-end sm:self-auto">
+                      {user.role === "tutor" && (
                         <button
                           onClick={() => toggleVerify(user.id, !user.isVerified)}
                           disabled={verifyingId === user.id}
-                          className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors disabled:opacity-50 ${
-                            user.isVerified ? "bg-blue-500/10 text-blue-400 hover:bg-blue-500/20" : "bg-white/5 text-white/60 hover:bg-white/10"
+                          className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                            user.isVerified ? "bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20" : "bg-white/5 text-muted-foreground hover:bg-white/10"
                           }`}>
                           <BadgeCheck className="w-3.5 h-3.5" /> {user.isVerified ? "Verified" : "Verify"}
                         </button>
@@ -334,45 +433,182 @@ export default function AdminUsersPage() {
           </div>
         </div>
       )}
-      {/* Compose message modal */}
+
+      {/* Upgraded Compose Message / Broadcast Modal */}
       {composeTarget && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" onClick={() => !sending && setComposeTarget(null)}>
           <div className="w-full max-w-lg bg-[#0f1117] border border-white/10 rounded-3xl overflow-hidden shadow-2xl" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between p-5 border-b border-white/10">
               <div>
-                <p className="text-white font-bold">
-                  {composeTarget.type === "all" ? "Message All Users" : `Message ${composeTarget.name}`}
+                <p className="text-white font-bold text-base flex items-center gap-2">
+                  {composeTarget.type === "single" ? (
+                    <>
+                      <Mail className="w-4 h-4 text-accent" /> Message {composeTarget.name}
+                    </>
+                  ) : (
+                    <>
+                      <Send className="w-4 h-4 text-accent" /> Broadcast Announcement
+                    </>
+                  )}
                 </p>
-                <p className="text-xs text-muted-foreground">
-                  {composeTarget.type === "all" ? "This will email every registered user." : "This will email just this one user."}
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {composeTarget.type === "single"
+                    ? "Deliver message directly via email and in-app notification."
+                    : "Target specific groups with email + guaranteed student dashboard notifications."}
                 </p>
               </div>
               <button onClick={() => !sending && setComposeTarget(null)} className="p-1.5 rounded-lg hover:bg-white/10 text-muted-foreground">
                 <X className="w-5 h-5" />
               </button>
             </div>
-            <div className="p-5 space-y-4">
+
+            <div className="p-5 space-y-4 max-h-[75vh] overflow-y-auto">
+              {/* Audience Selector (when broadcast) */}
+              {composeTarget.type === "broadcast" && (
+                <div className="space-y-2">
+                  <label className="text-xs text-muted-foreground font-medium block">Select Target Audience</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => { setTargetAudience("students"); setBatchOffset(0); }}
+                      className={`p-3 rounded-xl border text-left transition-all ${
+                        targetAudience === "students"
+                          ? "border-blue-500/50 bg-blue-500/15 text-white"
+                          : "border-white/10 bg-white/5 text-muted-foreground hover:bg-white/10"
+                      }`}>
+                      <p className="text-xs font-bold flex items-center gap-1.5 text-blue-400">
+                        <GraduationCap className="w-3.5 h-3.5" /> Students
+                      </p>
+                      <p className="text-[11px] text-white/80 mt-1 font-medium">
+                        {recipientStats ? `${recipientStats.activeStudents} active` : "Loading..."}
+                      </p>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => { setTargetAudience("tutors"); setBatchOffset(0); }}
+                      className={`p-3 rounded-xl border text-left transition-all ${
+                        targetAudience === "tutors"
+                          ? "border-purple-500/50 bg-purple-500/15 text-white"
+                          : "border-white/10 bg-white/5 text-muted-foreground hover:bg-white/10"
+                      }`}>
+                      <p className="text-xs font-bold flex items-center gap-1.5 text-purple-400">
+                        <UsersIcon className="w-3.5 h-3.5" /> Tutors
+                      </p>
+                      <p className="text-[11px] text-white/80 mt-1 font-medium">
+                        {recipientStats ? `${recipientStats.activeTutors} active` : "Loading..."}
+                      </p>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => { setTargetAudience("all"); setBatchOffset(0); }}
+                      className={`p-3 rounded-xl border text-left transition-all ${
+                        targetAudience === "all"
+                          ? "border-accent/50 bg-accent/15 text-white"
+                          : "border-white/10 bg-white/5 text-muted-foreground hover:bg-white/10"
+                      }`}>
+                      <p className="text-xs font-bold flex items-center gap-1.5 text-accent">
+                        <Mail className="w-3.5 h-3.5" /> All Users
+                      </p>
+                      <p className="text-[11px] text-white/80 mt-1 font-medium">
+                        {recipientStats ? `${recipientStats.activeAll} active` : "Loading..."}
+                      </p>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => { setTargetAudience("investors"); setBatchOffset(0); }}
+                      className={`p-3 rounded-xl border text-left transition-all ${
+                        targetAudience === "investors"
+                          ? "border-yellow-500/50 bg-yellow-500/15 text-white"
+                          : "border-white/10 bg-white/5 text-muted-foreground hover:bg-white/10"
+                      }`}>
+                      <p className="text-xs font-bold flex items-center gap-1.5 text-yellow-400">
+                        <Briefcase className="w-3.5 h-3.5" /> Investors
+                      </p>
+                      <p className="text-[11px] text-white/80 mt-1 font-medium">
+                        {recipientStats ? `${recipientStats.activeInvestors} active` : "Loading..."}
+                      </p>
+                    </button>
+                  </div>
+
+                  {/* Guaranteed in-app banner */}
+                  <div className="p-3 rounded-xl bg-blue-500/10 border border-blue-500/20 text-xs text-blue-200 space-y-1">
+                    <div className="flex items-center gap-1.5 font-semibold text-blue-300">
+                      <Bell className="w-3.5 h-3.5" />
+                      <span>Guaranteed Dashboard Notification</span>
+                    </div>
+                    <p className="text-[11px] text-blue-300/80 leading-relaxed">
+                      100% of the targeted audience ({currentAudienceCount ?? "all"} users) will instantly receive this notification in their dashboard bell.
+                    </p>
+                  </div>
+
+                  {/* SMTP hourly quota guidance */}
+                  {currentAudienceCount && currentAudienceCount > 85 ? (
+                    <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-200 space-y-2">
+                      <div className="flex items-center gap-1.5 font-semibold text-amber-300">
+                        <AlertTriangle className="w-3.5 h-3.5" />
+                        <span>Mailhostbox Hourly Limit Protection (100 emails/hr)</span>
+                      </div>
+                      <p className="text-[11px] text-amber-200/80 leading-relaxed">
+                        Your email server allows up to 100 emails/hour. Sending in a safe batch of 85 prevents server rejection, while the dashboard notification reaches 100% of students immediately.
+                      </p>
+                      <div className="flex items-center gap-4 pt-1">
+                        <label className="flex items-center gap-1.5 cursor-pointer text-xs font-medium">
+                          <input
+                            type="radio"
+                            name="batchMode"
+                            checked={batchMode === "safe"}
+                            onChange={() => setBatchMode("safe")}
+                            className="accent-accent"
+                          />
+                          <span>Safe Batch (First 85)</span>
+                        </label>
+                        <label className="flex items-center gap-1.5 cursor-pointer text-xs font-medium">
+                          <input
+                            type="radio"
+                            name="batchMode"
+                            checked={batchMode === "all"}
+                            onChange={() => setBatchMode("all")}
+                            className="accent-accent"
+                          />
+                          <span>Attempt All ({currentAudienceCount})</span>
+                        </label>
+                      </div>
+                      {batchOffset > 0 && (
+                        <p className="text-[11px] text-emerald-400 font-semibold">
+                          Continuing from recipient #{batchOffset + 1}
+                        </p>
+                      )}
+                    </div>
+                  ) : null}
+                </div>
+              )}
+
               <div>
-                <label className="text-xs text-muted-foreground mb-1.5 block">Subject</label>
+                <label className="text-xs text-muted-foreground mb-1.5 block font-medium">Subject</label>
                 <input
                   value={subject}
                   onChange={e => setSubject(e.target.value)}
-                  placeholder="e.g. Important update"
-                  className="w-full bg-black/40 border border-white/10 rounded-xl py-2.5 px-4 text-white placeholder:text-white/30 focus:outline-none focus:border-accent transition-all"
+                  placeholder="e.g. Important Announcement: New Study Materials Available"
+                  className="w-full bg-black/40 border border-white/10 rounded-xl py-2.5 px-4 text-white placeholder:text-white/30 focus:outline-none focus:border-accent transition-all text-sm"
                 />
               </div>
+
               <div>
-                <label className="text-xs text-muted-foreground mb-1.5 block">Message</label>
+                <label className="text-xs text-muted-foreground mb-1.5 block font-medium">Message Body</label>
                 <textarea
                   value={message}
                   onChange={e => setMessage(e.target.value)}
-                  placeholder="Write your message..."
-                  rows={6}
-                  className="w-full bg-black/40 border border-white/10 rounded-xl py-2.5 px-4 text-white placeholder:text-white/30 focus:outline-none focus:border-accent transition-all resize-none"
+                  placeholder="Type your message here..."
+                  rows={5}
+                  className="w-full bg-black/40 border border-white/10 rounded-xl py-2.5 px-4 text-white placeholder:text-white/30 focus:outline-none focus:border-accent transition-all resize-none text-sm"
                 />
               </div>
+
               <div>
-                <label className="text-xs text-muted-foreground mb-1.5 block">Attach image or video (optional)</label>
+                <label className="text-xs text-muted-foreground mb-1.5 block font-medium">Attach image or video (optional)</label>
                 {mediaPreview ? (
                   <div className="relative rounded-xl overflow-hidden border border-white/10">
                     {mediaFile?.type.startsWith("video") ? (
@@ -387,13 +623,14 @@ export default function AdminUsersPage() {
                     </button>
                   </div>
                 ) : (
-                  <label className="flex items-center justify-center gap-2 py-3 rounded-xl bg-black/40 border border-dashed border-white/20 text-white/50 hover:text-white/80 hover:border-white/40 cursor-pointer transition-all text-sm">
-                    <Paperclip className="w-4 h-4" /> Choose image or video
+                  <label className="flex items-center justify-center gap-2 py-3 rounded-xl bg-black/40 border border-dashed border-white/20 text-white/50 hover:text-white/80 hover:border-white/40 cursor-pointer transition-all text-xs">
+                    <Paperclip className="w-4 h-4" /> Choose image or video attachment
                     <input type="file" accept="image/*,video/*" className="hidden" onChange={handleMediaChange} />
                   </label>
                 )}
               </div>
             </div>
+
             <div className="flex gap-3 p-5 border-t border-white/10">
               <button
                 onClick={() => setComposeTarget(null)}
@@ -404,9 +641,9 @@ export default function AdminUsersPage() {
               <button
                 onClick={sendMessage}
                 disabled={sending || !subject.trim() || !message.trim()}
-                className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-accent text-white hover:opacity-90 font-bold text-sm transition-all disabled:opacity-50">
+                className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-accent text-white hover:opacity-90 font-bold text-sm transition-all disabled:opacity-50 shadow-lg shadow-accent/25">
                 {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                {uploadingMedia ? "Uploading..." : sending ? "Sending..." : "Send"}
+                {uploadingMedia ? "Uploading..." : sending ? "Delivering..." : composeTarget.type === "broadcast" && currentAudienceCount ? `Deliver to ${targetAudience === "students" ? "Students" : targetAudience}` : "Send Message"}
               </button>
             </div>
           </div>
