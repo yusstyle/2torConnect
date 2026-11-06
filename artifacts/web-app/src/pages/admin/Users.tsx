@@ -4,7 +4,7 @@ import DashboardLayout from "@/components/layout/DashboardLayout";
 import { format } from "date-fns";
 import {
   Search, Loader2, CheckCircle, XCircle, Clock, FileImage, X, Eye, BadgeCheck,
-  Mail, Send, Paperclip, GraduationCap, Users as UsersIcon, Briefcase, Bell, AlertTriangle, ShieldCheck
+  Mail, Send, Paperclip, GraduationCap, Users as UsersIcon, Briefcase, Bell, AlertTriangle, ShieldCheck, Check
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuthStore } from "@/lib/auth";
@@ -41,6 +41,16 @@ interface RecipientStats {
   total: number;
 }
 
+interface QueueStatus {
+  pending: number;
+  sentLastHour: number;
+  totalSent: number;
+  totalFailed: number;
+  totalQueued: number;
+  activeSubject?: string;
+  nextRunInMinutes: number;
+}
+
 export default function AdminUsersPage() {
   const { token } = useAuthStore();
   const { toast } = useToast();
@@ -58,9 +68,11 @@ export default function AdminUsersPage() {
   const [targetAudience, setTargetAudience] = useState<"students" | "tutors" | "investors" | "all">("students");
   const [activeOnly, setActiveOnly] = useState(true);
   const [sendInApp, setSendInApp] = useState(true);
-  const [batchMode, setBatchMode] = useState<"safe" | "all">("safe");
-  const [batchOffset, setBatchOffset] = useState(0);
   const [recipientStats, setRecipientStats] = useState<RecipientStats | null>(null);
+
+  // Queue background state
+  const [queueStatus, setQueueStatus] = useState<QueueStatus | null>(null);
+  const [processingQueue, setProcessingQueue] = useState(false);
 
   const [subject, setSubject] = useState("");
   const [message, setMessage] = useState("");
@@ -82,6 +94,47 @@ export default function AdminUsersPage() {
       console.warn("Could not load recipient stats", e);
     }
   };
+
+  const fetchQueueStatus = async () => {
+    if (!token) return;
+    try {
+      const res = await fetch(`${BASE}/api/admin/email-queue-status`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setQueueStatus(data);
+      }
+    } catch (e) {
+      console.warn("Could not load queue status", e);
+    }
+  };
+
+  const triggerQueueProcessing = async () => {
+    setProcessingQueue(true);
+    try {
+      const res = await fetch(`${BASE}/api/admin/process-email-queue`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      });
+      const data = await res.json();
+      toast({
+        title: data.quotaHit ? "Hourly Limit Reached" : "Queue Processed",
+        description: data.message || `Dispatched ${data.sent} emails.`,
+      });
+      fetchQueueStatus();
+    } catch {
+      toast({ variant: "destructive", title: "Failed to process queue" });
+    } finally {
+      setProcessingQueue(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchQueueStatus();
+    const interval = setInterval(fetchQueueStatus, 30000);
+    return () => clearInterval(interval);
+  }, [token]);
 
   useEffect(() => {
     if (composeTarget) {
@@ -144,8 +197,6 @@ export default function AdminUsersPage() {
           mediaUrl,
           mediaType,
           activeOnly,
-          batchSize: batchMode === "safe" ? 85 : 100,
-          offset: batchOffset,
           sendInAppNotification: sendInApp,
         }),
       });
@@ -153,20 +204,16 @@ export default function AdminUsersPage() {
       if (!res.ok) throw new Error(data?.error || "Failed to send");
 
       toast({
-        title: data.quotaHit ? "Partial Delivery (Provider Quota Reached)" : "Message Sent",
-        description: data.message || `Delivered to ${data.sent} recipients (${data.inAppDelivered} dashboard notifications posted).`,
+        title: "Broadcast Initiated",
+        description: data.message || `Dispatched ${data.sent} emails. Remaining queued to send automatically 85/hour!`,
       });
 
-      if (data.remaining > 0) {
-        setBatchOffset(data.nextOffset);
-      } else {
-        setComposeTarget(null);
-        setSubject("");
-        setMessage("");
-        setMediaFile(null);
-        setMediaPreview(null);
-        setBatchOffset(0);
-      }
+      setComposeTarget(null);
+      setSubject("");
+      setMessage("");
+      setMediaFile(null);
+      setMediaPreview(null);
+      fetchQueueStatus();
     } catch (err: any) {
       toast({ variant: "destructive", title: "Failed to send message", description: err?.message });
     } finally {
@@ -229,6 +276,55 @@ export default function AdminUsersPage() {
   return (
     <DashboardLayout role="admin" title="User Management">
       <div className="space-y-4">
+        {/* Automated Email Queue Progress Banner */}
+        {queueStatus && queueStatus.pending > 0 && (
+          <div className="glass-panel p-4 rounded-2xl border border-accent/40 bg-gradient-to-r from-accent/15 via-background to-blue-950/30">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-white/10">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 rounded-xl bg-accent/20 text-accent">
+                  <Clock className="w-5 h-5 animate-pulse" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-bold text-white text-sm">Automated Hourly Delivery in Progress</h3>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-accent/20 text-accent uppercase tracking-wider">
+                      Auto-Sending
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {queueStatus.activeSubject ? `"${queueStatus.activeSubject}" — ` : ""}
+                    Sending 85 emails automatically every hour to protect your email deliverability.
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={triggerQueueProcessing}
+                disabled={processingQueue}
+                className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-accent/20 hover:bg-accent/30 text-accent font-semibold text-xs transition-all border border-accent/30 disabled:opacity-50">
+                {processingQueue ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
+                Trigger Next 85 Now
+              </button>
+            </div>
+
+            <div className="pt-3 space-y-2">
+              <div className="flex justify-between text-xs text-muted-foreground">
+                <span>
+                  Delivered: <strong className="text-white">{queueStatus.totalSent}</strong> / {queueStatus.totalQueued} emails sent
+                </span>
+                <span>
+                  {queueStatus.pending} pending ({queueStatus.nextRunInMinutes > 0 ? `next auto-batch in ~${queueStatus.nextRunInMinutes}m` : "ready to send"})
+                </span>
+              </div>
+              <div className="w-full h-2 rounded-full bg-white/10 overflow-hidden">
+                <div
+                  className="h-full bg-gradient-to-r from-primary to-accent transition-all duration-500 rounded-full"
+                  style={{ width: `${Math.min(100, Math.round((queueStatus.totalSent / Math.max(1, queueStatus.totalQueued)) * 100))}%` }}
+                />
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Filters */}
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="relative flex-1">
@@ -259,7 +355,6 @@ export default function AdminUsersPage() {
               <button
                 onClick={() => {
                   setTargetAudience("students");
-                  setBatchOffset(0);
                   setComposeTarget({ type: "broadcast" });
                 }}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 text-xs font-semibold transition-colors border border-blue-500/20">
@@ -268,7 +363,6 @@ export default function AdminUsersPage() {
               <button
                 onClick={() => {
                   setTargetAudience("all");
-                  setBatchOffset(0);
                   setComposeTarget({ type: "broadcast" });
                 }}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-accent/10 text-accent hover:bg-accent/20 text-xs font-semibold transition-colors border border-accent/20">
@@ -454,7 +548,7 @@ export default function AdminUsersPage() {
                 <p className="text-xs text-muted-foreground mt-0.5">
                   {composeTarget.type === "single"
                     ? "Deliver message directly via email and in-app notification."
-                    : "Target specific groups with email + guaranteed student dashboard notifications."}
+                    : "Target specific groups with automatic hourly queue delivery."}
                 </p>
               </div>
               <button onClick={() => !sending && setComposeTarget(null)} className="p-1.5 rounded-lg hover:bg-white/10 text-muted-foreground">
@@ -470,7 +564,7 @@ export default function AdminUsersPage() {
                   <div className="grid grid-cols-2 gap-2">
                     <button
                       type="button"
-                      onClick={() => { setTargetAudience("students"); setBatchOffset(0); }}
+                      onClick={() => setTargetAudience("students")}
                       className={`p-3 rounded-xl border text-left transition-all ${
                         targetAudience === "students"
                           ? "border-blue-500/50 bg-blue-500/15 text-white"
@@ -486,7 +580,7 @@ export default function AdminUsersPage() {
 
                     <button
                       type="button"
-                      onClick={() => { setTargetAudience("tutors"); setBatchOffset(0); }}
+                      onClick={() => setTargetAudience("tutors")}
                       className={`p-3 rounded-xl border text-left transition-all ${
                         targetAudience === "tutors"
                           ? "border-purple-500/50 bg-purple-500/15 text-white"
@@ -502,7 +596,7 @@ export default function AdminUsersPage() {
 
                     <button
                       type="button"
-                      onClick={() => { setTargetAudience("all"); setBatchOffset(0); }}
+                      onClick={() => setTargetAudience("all")}
                       className={`p-3 rounded-xl border text-left transition-all ${
                         targetAudience === "all"
                           ? "border-accent/50 bg-accent/15 text-white"
@@ -518,7 +612,7 @@ export default function AdminUsersPage() {
 
                     <button
                       type="button"
-                      onClick={() => { setTargetAudience("investors"); setBatchOffset(0); }}
+                      onClick={() => setTargetAudience("investors")}
                       className={`p-3 rounded-xl border text-left transition-all ${
                         targetAudience === "investors"
                           ? "border-yellow-500/50 bg-yellow-500/15 text-white"
@@ -537,52 +631,23 @@ export default function AdminUsersPage() {
                   <div className="p-3 rounded-xl bg-blue-500/10 border border-blue-500/20 text-xs text-blue-200 space-y-1">
                     <div className="flex items-center gap-1.5 font-semibold text-blue-300">
                       <Bell className="w-3.5 h-3.5" />
-                      <span>Guaranteed Dashboard Notification</span>
+                      <span>Guaranteed Dashboard Notification Included</span>
                     </div>
                     <p className="text-[11px] text-blue-300/80 leading-relaxed">
                       100% of the targeted audience ({currentAudienceCount ?? "all"} users) will instantly receive this notification in their dashboard bell.
                     </p>
                   </div>
 
-                  {/* SMTP hourly quota guidance */}
-                  {currentAudienceCount && currentAudienceCount > 85 ? (
-                    <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-200 space-y-2">
-                      <div className="flex items-center gap-1.5 font-semibold text-amber-300">
-                        <AlertTriangle className="w-3.5 h-3.5" />
-                        <span>Mailhostbox Hourly Limit Protection (100 emails/hr)</span>
-                      </div>
-                      <p className="text-[11px] text-amber-200/80 leading-relaxed">
-                        Your email server allows up to 100 emails/hour. Sending in a safe batch of 85 prevents server rejection, while the dashboard notification reaches 100% of students immediately.
-                      </p>
-                      <div className="flex items-center gap-4 pt-1">
-                        <label className="flex items-center gap-1.5 cursor-pointer text-xs font-medium">
-                          <input
-                            type="radio"
-                            name="batchMode"
-                            checked={batchMode === "safe"}
-                            onChange={() => setBatchMode("safe")}
-                            className="accent-accent"
-                          />
-                          <span>Safe Batch (First 85)</span>
-                        </label>
-                        <label className="flex items-center gap-1.5 cursor-pointer text-xs font-medium">
-                          <input
-                            type="radio"
-                            name="batchMode"
-                            checked={batchMode === "all"}
-                            onChange={() => setBatchMode("all")}
-                            className="accent-accent"
-                          />
-                          <span>Attempt All ({currentAudienceCount})</span>
-                        </label>
-                      </div>
-                      {batchOffset > 0 && (
-                        <p className="text-[11px] text-emerald-400 font-semibold">
-                          Continuing from recipient #{batchOffset + 1}
-                        </p>
-                      )}
+                  {/* Automated Hourly Queue Explanation Banner */}
+                  <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-200 space-y-1">
+                    <div className="flex items-center gap-1.5 font-semibold text-emerald-300">
+                      <Clock className="w-3.5 h-3.5" />
+                      <span>Automated Hourly Delivery Active</span>
                     </div>
-                  ) : null}
+                    <p className="text-[11px] text-emerald-200/80 leading-relaxed">
+                      Batch 1 (first 85 emails) sends immediately. If there are more students, the platform automatically queues the rest and sends 85 every hour in the background until 100% complete. You do not need to do anything manually!
+                    </p>
+                  </div>
                 </div>
               )}
 
@@ -643,7 +708,7 @@ export default function AdminUsersPage() {
                 disabled={sending || !subject.trim() || !message.trim()}
                 className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-accent text-white hover:opacity-90 font-bold text-sm transition-all disabled:opacity-50 shadow-lg shadow-accent/25">
                 {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                {uploadingMedia ? "Uploading..." : sending ? "Delivering..." : composeTarget.type === "broadcast" && currentAudienceCount ? `Deliver to ${targetAudience === "students" ? "Students" : targetAudience}` : "Send Message"}
+                {uploadingMedia ? "Uploading..." : sending ? "Broadcasting..." : composeTarget.type === "broadcast" && currentAudienceCount ? `Deliver to ${targetAudience === "students" ? "Students" : targetAudience}` : "Send Message"}
               </button>
             </div>
           </div>

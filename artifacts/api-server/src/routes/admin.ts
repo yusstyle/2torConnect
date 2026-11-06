@@ -6,6 +6,7 @@ import { sendCustomEmail } from "../lib/email";
 import { requireAdmin } from "../lib/auth-middleware";
 import { initSecurityTable } from "../lib/security";
 import { pushNotification } from "./notifications";
+import { enqueueBroadcast, processEmailQueue, getEmailQueueStatus } from "../lib/email-queue";
 
 const router: IRouter = Router();
 
@@ -95,7 +96,35 @@ router.get("/recipient-stats", requireAdmin, async (_req, res) => {
   }
 });
 
-// POST /admin/send-email -- send a message to one user or target audience
+// GET /admin/email-queue-status - Fetch queue status & auto-drain if ready
+router.get("/email-queue-status", requireAdmin, async (_req, res) => {
+  try {
+    const status = await getEmailQueueStatus();
+
+    // Auto-drain check: If emails are pending and it's time for the next batch, trigger it in background
+    if (status.pending > 0 && status.nextRunInMinutes === 0) {
+      processEmailQueue(85).catch(e => console.error("Auto background queue error:", e));
+    }
+
+    res.json(status);
+  } catch (err) {
+    console.error("email-queue-status error:", err);
+    res.status(500).json({ error: "Failed to fetch email queue status" });
+  }
+});
+
+// POST /admin/process-email-queue - Manually trigger queue worker
+router.post("/process-email-queue", requireAdmin, async (_req, res) => {
+  try {
+    const result = await processEmailQueue(85);
+    res.json(result);
+  } catch (err) {
+    console.error("process-email-queue error:", err);
+    res.status(500).json({ error: "Failed to process email queue" });
+  }
+});
+
+// POST /admin/send-email -- send a message to one user or target audience with automated hourly queueing
 router.post("/send-email", requireAdmin, async (req: any, res) => {
   try {
     const {
@@ -106,8 +135,6 @@ router.post("/send-email", requireAdmin, async (req: any, res) => {
       mediaUrl,
       mediaType,
       activeOnly = true,
-      batchSize = 85,
-      offset = 0,
       sendInAppNotification = true,
     } = req.body;
 
@@ -206,65 +233,35 @@ router.post("/send-email", requireAdmin, async (req: any, res) => {
       }
     }
 
-    // 2. Email Dispatch with Safe Slicing
-    const startIdx = Math.max(0, Number(offset) || 0);
-    const limitNum = Math.min(100, Math.max(1, Number(batchSize) || 85));
-    const emailRecipients = uniqueUsers.slice(startIdx, startIdx + limitNum);
+    // 2. Enqueue all recipients into our persistent broadcast queue
+    const broadcastId = `bc_${Date.now()}`;
+    await enqueueBroadcast({
+      broadcastId,
+      subject,
+      message,
+      mediaUrl,
+      mediaType,
+      recipients: uniqueUsers,
+    });
 
-    let sent = 0;
-    let failed = 0;
-    let quotaHit = false;
-
-    // Micro-batch of 5 with 150ms pause to prevent connection flooding on Mailhostbox
-    const CHUNK = 5;
-    for (let i = 0; i < emailRecipients.length; i += CHUNK) {
-      const chunk = emailRecipients.slice(i, i + CHUNK);
-      const results = await Promise.all(
-        chunk.map(u => sendCustomEmail(u.email, subject, message, mediaUrl, mediaType))
-      );
-
-      for (const r of results) {
-        if (r.ok) {
-          sent++;
-        } else {
-          failed++;
-          if (r.quotaExceeded) {
-            quotaHit = true;
-          }
-        }
-      }
-
-      if (quotaHit) {
-        // Stop hammering SMTP immediately to protect mailbox reputation
-        break;
-      }
-
-      if (i + CHUNK < emailRecipients.length) {
-        await new Promise(resolve => setTimeout(resolve, 150));
-      }
-    }
-
-    const nextOffset = startIdx + sent;
-    const remaining = Math.max(0, totalTargeted - nextOffset);
+    // 3. Immediately dispatch the first batch (up to 85)
+    const queueRun = await processEmailQueue(85);
 
     let feedbackMessage = "";
-    if (quotaHit) {
-      feedbackMessage = `Delivered ${sent} emails. Mailhostbox hourly sending quota (100/hr) reached. All ${inAppDelivered} recipients received this in their dashboard notification bell! You can send to the remaining ${remaining} in 1 hour (starting at #${nextOffset + 1}).`;
-    } else if (remaining > 0) {
-      feedbackMessage = `Delivered ${sent} emails to safe batch (#${startIdx + 1} to #${nextOffset}). All ${inAppDelivered} users received in-app dashboard notifications. ${remaining} remaining for the next batch.`;
+    if (queueRun.remaining > 0) {
+      feedbackMessage = `Batch 1 sent (${queueRun.sent} emails). Remaining ${queueRun.remaining} queued to automatically send 85 every hour until 100% complete! (All ${inAppDelivered} students also received in-app notifications).`;
     } else {
-      feedbackMessage = `Delivered to all ${sent} recipients successfully (plus ${inAppDelivered} dashboard notifications)!`;
+      feedbackMessage = `All ${queueRun.sent} emails delivered successfully (plus ${inAppDelivered} dashboard notifications)!`;
     }
 
     res.json({
-      sent,
-      failed,
+      sent: queueRun.sent,
+      failed: queueRun.failed,
       totalTargeted,
       inAppDelivered,
-      quotaHit,
-      offset: startIdx,
-      nextOffset,
-      remaining,
+      remaining: queueRun.remaining,
+      quotaHit: queueRun.quotaHit,
+      waiting: queueRun.waiting,
       message: feedbackMessage,
     });
   } catch (err) {
