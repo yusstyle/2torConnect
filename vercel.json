@@ -3,12 +3,6 @@
   "installCommand": "pnpm install",
   "buildCommand": "pnpm run vercel-build",
   "outputDirectory": "artifacts/web-app/dist/public",
-  "crons": [
-    {
-      "path": "/api/cron/process-email-queue",
-      "schedule": "0 * * * *"
-    }
-  ],
   "rewrites": [
     { "source": "/api/(.*)", "destination": "/api/[[...slug]]" },
     { "source": "/uploads/(.*)", "destination": "/api/[[...slug]]" },
