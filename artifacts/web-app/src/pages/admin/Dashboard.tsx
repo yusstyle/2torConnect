@@ -290,6 +290,10 @@ export default function AdminDashboard() {
                       borderRadius: 12,
                     }}
                     itemStyle={{ color: "white" }}
+                    formatter={(val: any, name: any) => [
+                      name === "Revenue (₦)" ? `₦${Number(val || 0).toLocaleString()}` : `${val} sessions`,
+                      name
+                    ]}
                   />
                   <Area type="monotone" dataKey="revenue" name="Revenue (₦)" stroke="hsl(var(--primary))" strokeWidth={2.5} fillOpacity={1} fill="url(#colorRev)" />
                   <Area type="monotone" dataKey="sessions" name="Sessions" stroke="hsl(var(--accent))" strokeWidth={2.5} fillOpacity={1} fill="url(#colorSess)" />

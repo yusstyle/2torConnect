@@ -262,3 +262,4 @@ export async function getEmailQueueStatus(): Promise<{
     nextRunInMinutes,
   };
 }
+

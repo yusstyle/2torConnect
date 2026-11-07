@@ -18,12 +18,78 @@ router.get("/stats", requireAdmin, async (req, res) => {
     const [{ total: totalTutors }] = await db.select({ total: count() }).from(usersTable).where(eq(usersTable.role, "tutor"));
     const [{ total: totalSessions }] = await db.select({ total: count() }).from(sessionsTable);
 
+    // Calculate total platform revenue from completed payments & confirmed sessions
     const revenueResult = await db.execute(sql`
       SELECT COALESCE(SUM(amount), 0) as total_revenue
       FROM transactions
-      WHERE status = 'completed'
+      WHERE status = 'completed' AND (description LIKE 'Payment for%' OR description LIKE 'Wallet%' OR type = 'payment')
     `);
-    const totalRevenue = Number(revenueResult.rows[0]?.total_revenue ?? 0);
+
+    const sessionRevenueResult = await db.execute(sql`
+      SELECT COALESCE(SUM(amount), 0) as total_session_revenue
+      FROM sessions
+      WHERE is_paid = 1 OR status = 'completed'
+    `);
+
+    const totalRevenue = Math.max(
+      Number(revenueResult.rows[0]?.total_revenue ?? 0),
+      Number(sessionRevenueResult.rows[0]?.total_session_revenue ?? 0)
+    );
+
+    // Continuous 6-month rolling timeline (e.g. Jun, Jul, Aug, Sep, Oct, Nov)
+    const chartMonths: { key: string; month: string; revenue: number; sessions: number }[] = [];
+    const now = new Date();
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+      const month = d.toLocaleString("en-US", { month: "short" });
+      chartMonths.push({ key, month, revenue: 0, sessions: 0 });
+    }
+
+    // Monthly revenue from transactions
+    const monthlyRevenueRes = await db.execute(sql`
+      SELECT TO_CHAR(created_at, 'YYYY-MM') as month_key,
+             COALESCE(SUM(amount), 0) as revenue
+      FROM transactions
+      WHERE status = 'completed' AND (description LIKE 'Payment for%' OR description LIKE 'Wallet%' OR type = 'payment')
+        AND created_at >= NOW() - INTERVAL '6 months'
+      GROUP BY TO_CHAR(created_at, 'YYYY-MM')
+    `);
+
+    // Monthly sessions count & revenue
+    const monthlySessionsRes = await db.execute(sql`
+      SELECT TO_CHAR(COALESCE(scheduled_at, created_at), 'YYYY-MM') as month_key,
+             COUNT(*) as sessions,
+             COALESCE(SUM(CASE WHEN is_paid = 1 OR status = 'completed' THEN amount ELSE 0 END), 0) as session_revenue
+      FROM sessions
+      WHERE COALESCE(scheduled_at, created_at) >= NOW() - INTERVAL '6 months'
+      GROUP BY TO_CHAR(COALESCE(scheduled_at, created_at), 'YYYY-MM')
+    `);
+
+    const revMap = new Map<string, number>();
+    for (const r of monthlyRevenueRes.rows as any[]) {
+      revMap.set(r.month_key, Number(r.revenue || 0));
+    }
+
+    const sessMap = new Map<string, { sessions: number; sessionRev: number }>();
+    for (const r of monthlySessionsRes.rows as any[]) {
+      sessMap.set(r.month_key, {
+        sessions: Number(r.sessions || 0),
+        sessionRev: Number(r.session_revenue || 0),
+      });
+    }
+
+    const chartData = chartMonths.map(m => {
+      const txRev = revMap.get(m.key) || 0;
+      const sessInfo = sessMap.get(m.key);
+      const sessCount = sessInfo?.sessions || 0;
+      const sRev = sessInfo?.sessionRev || 0;
+      return {
+        month: m.month,
+        revenue: Math.max(txRev, sRev),
+        sessions: sessCount,
+      };
+    });
 
     const recentUsers = await db.select({
       id: usersTable.id,
@@ -49,7 +115,7 @@ router.get("/stats", requireAdmin, async (req, res) => {
       totalRevenue,
       recentUsers,
       roleBreakdown,
-      chartData: [],
+      chartData,
     });
   } catch (err) {
     req.log.error({ err }, "failed to fetch admin stats");
