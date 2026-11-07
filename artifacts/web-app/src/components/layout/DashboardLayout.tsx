@@ -6,7 +6,7 @@ import {
   LogOut, LayoutDashboard, Users, BookOpen,
   CreditCard, MessageSquare, Calendar,
   Search, FileText, X, Video, Globe, GraduationCap, UserCircle, HandCoins, Wallet, Sparkles,
-  Trophy, Gift, Users2, ClipboardList, MoreHorizontal, ChevronUp,
+  Trophy, Gift, Users2, ClipboardList, MoreHorizontal, ChevronUp, Calculator,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import NotificationBell from "@/components/NotificationBell";
@@ -67,6 +67,7 @@ export function DashboardLayout({ children, role: roleProp, title }: DashboardLa
       { label: "Live Sessions", href: "/student/live", icon: Video },
       { label: "Study Materials", href: "/student/materials", icon: FileText },
       { label: "Past Questions & CBT", href: "/past-questions", icon: GraduationCap },
+      { label: "5.0 CGPA Calculator", href: "/cgpa-calculator", icon: Calculator },
       { label: "AI Study Assistant", href: "/student/ai-assistant", icon: Sparkles },
       { label: "My Wallet", href: "/student/wallet", icon: Wallet },
       { label: "Sponsorship", href: "/student/sponsorship", icon: HandCoins },
@@ -84,6 +85,7 @@ export function DashboardLayout({ children, role: roleProp, title }: DashboardLa
       { label: "Live Sessions", href: "/tutor/live", icon: Video },
       { label: "Materials", href: "/tutor/materials", icon: FileText },
       { label: "Past Questions & CBT", href: "/past-questions", icon: GraduationCap },
+      { label: "5.0 CGPA Calculator", href: "/cgpa-calculator", icon: Calculator },
       { label: "Availability", href: "/tutor/availability", icon: Calendar },
       { label: "Earnings", href: "/tutor/earnings", icon: CreditCard },
       { label: "Assignments Board", href: "/tutor/assignments", icon: ClipboardList },

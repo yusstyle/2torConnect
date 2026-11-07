@@ -99,6 +99,9 @@ export default function LandingPage() {
               <span>Past Questions & CBT</span>
               <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-accent/20 text-accent uppercase font-extrabold">Hot</span>
             </Link>
+            <Link href="/cgpa-calculator" className="text-white/80 hover:text-white font-medium transition-colors">
+              CGPA Calculator
+            </Link>
             <a href="#features" className="hover:text-white transition-colors">Features</a>
           </div>
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
@@ -573,6 +576,8 @@ export default function LandingPage() {
             <div>
               <h4 className="text-white font-semibold mb-4 text-sm uppercase tracking-wider">Platform</h4>
               <ul className="space-y-3 text-white/50 text-sm">
+                <li><Link href="/past-questions" className="hover:text-white transition-colors">Past Questions & CBT</Link></li>
+                <li><Link href="/cgpa-calculator" className="hover:text-white transition-colors">5.0 CGPA Calculator</Link></li>
                 {["Find a Tutor", "Become a Tutor", "How it Works", "Pricing"].map(l => (
                   <li key={l}><a href="/register" className="hover:text-white transition-colors">{l}</a></li>
                 ))}

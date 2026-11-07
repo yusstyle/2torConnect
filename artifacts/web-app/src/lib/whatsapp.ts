@@ -80,3 +80,4 @@ export function pingSessionWhatsApp(params: {
 
   window.open(getWhatsAppUrl(message, params.partnerPhone), "_blank");
 }
+

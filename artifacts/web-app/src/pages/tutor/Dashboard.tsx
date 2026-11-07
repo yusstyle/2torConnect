@@ -3,11 +3,12 @@ import { useListSessions, useListTransactions } from "@workspace/api-client-reac
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { useLocation } from "wouter";
 import { format } from "date-fns";
-import { Calendar, DollarSign, Users, Clock, Video, ArrowRight, Loader2, BadgeCheck, XCircle } from "lucide-react";
+import { Calendar, DollarSign, Users, Clock, Video, ArrowRight, Loader2, BadgeCheck, XCircle, Sparkles, Camera } from "lucide-react";
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
 import { getApiUrl } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
+import TutorFlyerModal from "@/components/TutorFlyerModal";
 
 const statusColors: Record<string, string> = {
   pending: "bg-yellow-500/20 text-yellow-400",
@@ -25,6 +26,7 @@ export default function TutorDashboardPage() {
   const [rate, setRate] = useState("");
   const [savedRate, setSavedRate] = useState<string | null>(null);
   const [savingRate, setSavingRate] = useState(false);
+  const [showFlyer, setShowFlyer] = useState(false);
 
   useEffect(() => {
     const token = useAuthStore.getState().token;
@@ -154,6 +156,28 @@ export default function TutorDashboardPage() {
           ))}
         </div>
 
+        {/* Promote on WhatsApp Status Card */}
+        <div className="glass-panel rounded-2xl p-6 border border-emerald-500/20 bg-gradient-to-r from-emerald-950/20 via-background to-purple-950/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <Sparkles className="w-5 h-5 text-emerald-400" />
+              <h3 className="text-white font-bold text-base">Promote Yourself on WhatsApp Status</h3>
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/30">
+                Viral Campus Tool
+              </span>
+            </div>
+            <p className="text-xs text-muted-foreground max-w-xl">
+              Generate a high-definition branded campus flyer with your photo, subjects, star rating, and price to post on your WhatsApp status and course group chats.
+            </p>
+          </div>
+          <button
+            onClick={() => setShowFlyer(true)}
+            className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-2 shadow-lg shadow-emerald-600/20 transition-all shrink-0"
+          >
+            <Camera className="w-4 h-4" /> Generate My Flyer
+          </button>
+        </div>
+
         {/* Set Your Rate */}
         <div className="glass-panel rounded-2xl p-6 border border-accent/20">
           <div className="flex items-center gap-3 mb-4">
@@ -233,6 +257,17 @@ export default function TutorDashboardPage() {
           )}
         </div>
       </div>
+
+      {showFlyer && (
+        <TutorFlyerModal
+          tutor={{
+            name: user?.name || "Tutor",
+            hourlyRate: savedRate || rate,
+            university: (user as any)?.university || "Nigerian University Campus",
+          }}
+          onClose={() => setShowFlyer(false)}
+        />
+      )}
     </DashboardLayout>
   );
 }
