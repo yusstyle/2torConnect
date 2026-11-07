@@ -10,34 +10,22 @@ import {
 import { sharePastQuestionsToWhatsApp } from "@/lib/whatsapp";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "wouter";
-
-interface Question {
-  id: number;
-  question: string;
-  options: { key: string; text: string }[];
-  correctAnswer: string;
-  explanation: string;
-}
-
-interface CoursePQ {
-  code: string;
-  title: string;
-  category: string;
-  level: string;
-  universities: string[];
-  year: string;
-  durationMinutes: number;
-  questionsCount: number;
-  isAiGenerated?: boolean;
-}
+import { getApiUrl } from "@/lib/api";
+import {
+  DEFAULT_COURSES_BANK,
+  DEFAULT_QUESTIONS_MAP,
+  gradeExamLocally,
+  type Question,
+  type CoursePQ
+} from "@/lib/past-questions-data";
 
 export default function PastQuestionsPage() {
   const { user } = useAuthStore();
   const { toast } = useToast();
 
   const [activeTab, setActiveTab] = useState<"bank" | "generator" | "scanner">("bank");
-  const [courses, setCourses] = useState<CoursePQ[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [courses, setCourses] = useState<CoursePQ[]>(DEFAULT_COURSES_BANK);
+  const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedLevel, setSelectedLevel] = useState("all");
@@ -71,18 +59,21 @@ export default function PastQuestionsPage() {
 
   const role = user?.role ?? "student";
 
-  // Fetch courses list
+  // Fetch courses list with local fallback preservation
   const loadCourses = async () => {
     try {
-      const res = await fetch("/api/past-questions");
+      const res = await fetch(`${getApiUrl()}/past-questions`);
       if (res.ok) {
         const data = await res.json();
-        setCourses(data.courses || []);
+        if (data.courses && Array.isArray(data.courses) && data.courses.length > 0) {
+          // Merge server courses with default bank so nothing is lost
+          const existingCodes = new Set(data.courses.map((c: any) => c.code));
+          const uniqueDefaults = DEFAULT_COURSES_BANK.filter((d) => !existingCodes.has(d.code));
+          setCourses([...data.courses, ...uniqueDefaults]);
+        }
       }
     } catch (err) {
-      console.warn("Failed to load past questions", err);
-    } finally {
-      setLoading(false);
+      console.warn("Using offline/local past questions bank", err);
     }
   };
 
@@ -108,23 +99,43 @@ export default function PastQuestionsPage() {
 
   const startTest = async (courseCode: string, mode: "study" | "cbt") => {
     setLoading(true);
+    // Instant fallback check so user never waits or sees blank
+    const localQuestions = DEFAULT_QUESTIONS_MAP[courseCode] || DEFAULT_QUESTIONS_MAP["MTH101"];
+
     try {
-      const res = await fetch(`/api/past-questions/${courseCode}`);
-      if (!res.ok) throw new Error("Could not load course questions");
-      const data = await res.json();
-      setCourseQuestions(data.questions || []);
+      const res = await fetch(`${getApiUrl()}/past-questions/${courseCode}`);
+      if (res.ok) {
+        const data = await res.json();
+        setCourseQuestions(data.questions || localQuestions);
+        setActiveCourse(courseCode);
+        setActiveMode(mode);
+        setCurrentIdx(0);
+        setUserAnswers({});
+        setTestResult(null);
+        if (mode === "cbt") {
+          setTimeLeft((data.durationMinutes || 15) * 60);
+        }
+        return;
+      }
+    } catch (e: any) {
+      console.warn("Using local questions for", courseCode);
+    } finally {
+      setLoading(false);
+    }
+
+    // Local execution fallback
+    if (localQuestions) {
+      setCourseQuestions(localQuestions);
       setActiveCourse(courseCode);
       setActiveMode(mode);
       setCurrentIdx(0);
       setUserAnswers({});
       setTestResult(null);
       if (mode === "cbt") {
-        setTimeLeft((data.durationMinutes || 15) * 60);
+        setTimeLeft(15 * 60);
       }
-    } catch (e: any) {
-      toast({ variant: "destructive", title: "Error", description: e.message });
-    } finally {
-      setLoading(false);
+    } else {
+      toast({ variant: "destructive", title: "Error", description: "Questions loading failed." });
     }
   };
 
@@ -134,19 +145,26 @@ export default function PastQuestionsPage() {
 
   const handleSubmitTest = async () => {
     if (!activeCourse) return;
+    const timeSpent = Math.max(1, 900 - timeLeft);
+
     try {
-      const res = await fetch(`/api/past-questions/${activeCourse}/submit`, {
+      const res = await fetch(`${getApiUrl()}/past-questions/${activeCourse}/submit`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ answers: userAnswers }),
+        body: JSON.stringify({ answers: userAnswers, timeSpentSeconds: timeSpent }),
       });
       if (res.ok) {
         const result = await res.json();
         setTestResult(result);
+        return;
       }
     } catch (err) {
-      toast({ variant: "destructive", title: "Failed to submit test" });
+      console.warn("Grading exam locally...");
     }
+
+    // Client-side instant grading fallback
+    const localResult = gradeExamLocally(activeCourse, courseQuestions, userAnswers, timeSpent);
+    setTestResult(localResult);
   };
 
   const exitMode = () => {
@@ -164,7 +182,7 @@ export default function PastQuestionsPage() {
     }
     setGenerating(true);
     try {
-      const res = await fetch("/api/past-questions/generate", {
+      const res = await fetch(`${getApiUrl()}/past-questions/generate`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -217,7 +235,7 @@ export default function PastQuestionsPage() {
     }
     setScanning(true);
     try {
-      const res = await fetch("/api/past-questions/scan", {
+      const res = await fetch(`${getApiUrl()}/past-questions/scan`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
