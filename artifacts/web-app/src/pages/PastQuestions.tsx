@@ -1,10 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { useAuthStore } from "@/lib/auth";
 import {
   GraduationCap, BookOpen, Clock, CheckCircle2, XCircle, Search,
   Award, Play, RotateCcw, Share2, Sparkles, Filter, ChevronRight,
-  ExternalLink, UserCheck, HelpCircle, ArrowLeft, ArrowRight
+  ExternalLink, UserCheck, HelpCircle, ArrowLeft, ArrowRight,
+  Camera, Upload, Zap, FileText, Layers, Check, Loader2, RefreshCw
 } from "lucide-react";
 import { sharePastQuestionsToWhatsApp } from "@/lib/whatsapp";
 import { useToast } from "@/hooks/use-toast";
@@ -27,12 +28,14 @@ interface CoursePQ {
   year: string;
   durationMinutes: number;
   questionsCount: number;
+  isAiGenerated?: boolean;
 }
 
 export default function PastQuestionsPage() {
   const { user } = useAuthStore();
   const { toast } = useToast();
 
+  const [activeTab, setActiveTab] = useState<"bank" | "generator" | "scanner">("bank");
   const [courses, setCourses] = useState<CoursePQ[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -50,23 +53,40 @@ export default function PastQuestionsPage() {
   const [timeLeft, setTimeLeft] = useState(0);
   const [testResult, setTestResult] = useState<any | null>(null);
 
+  // AI Generator state
+  const [genCourseCode, setGenCourseCode] = useState("MTH 101");
+  const [genTopic, setGenTopic] = useState("Calculus, Differentiation & Integration");
+  const [genExamType, setGenExamType] = useState("University 100L");
+  const [genLevel, setGenLevel] = useState("100L");
+  const [genUniversity, setGenUniversity] = useState("University of Lagos (UNILAG)");
+  const [genCount, setGenCount] = useState(5);
+  const [generating, setGenerating] = useState(false);
+
+  // AI Scanner state
+  const [scanImage, setScanImage] = useState<string | null>(null);
+  const [scanCourseCode, setScanCourseCode] = useState("PHY 101");
+  const [scanUniversity, setScanUniversity] = useState("University Campus");
+  const [scanning, setScanning] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const role = user?.role ?? "student";
 
   // Fetch courses list
-  useEffect(() => {
-    async function loadCourses() {
-      try {
-        const res = await fetch("/api/past-questions");
-        if (res.ok) {
-          const data = await res.json();
-          setCourses(data.courses || []);
-        }
-      } catch (err) {
-        console.warn("Failed to load past questions", err);
-      } finally {
-        setLoading(false);
+  const loadCourses = async () => {
+    try {
+      const res = await fetch("/api/past-questions");
+      if (res.ok) {
+        const data = await res.json();
+        setCourses(data.courses || []);
       }
+    } catch (err) {
+      console.warn("Failed to load past questions", err);
+    } finally {
+      setLoading(false);
     }
+  };
+
+  useEffect(() => {
     loadCourses();
   }, []);
 
@@ -135,6 +155,95 @@ export default function PastQuestionsPage() {
     setTestResult(null);
   };
 
+  // Handle AI Infinite Generator Submission
+  const handleGenerateExam = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!genCourseCode.trim()) {
+      toast({ variant: "destructive", title: "Please enter a course code" });
+      return;
+    }
+    setGenerating(true);
+    try {
+      const res = await fetch("/api/past-questions/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          courseCode: genCourseCode,
+          topic: genTopic,
+          examType: genExamType,
+          level: genLevel,
+          count: genCount,
+          university: genUniversity,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok && data.course?.code) {
+        toast({
+          title: "Exam Generated! ⚡",
+          description: `Created ${data.course.questionsCount} CBT questions for ${data.course.title}`,
+        });
+        await loadCourses();
+        startTest(data.course.code, "cbt");
+      } else {
+        throw new Error(data.error || "Failed to generate mock test");
+      }
+    } catch (err: any) {
+      toast({ variant: "destructive", title: "Generation Failed", description: err.message });
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  // Handle Image File Selection for Scanner
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      toast({ variant: "destructive", title: "Image too large", description: "Please upload an image under 5MB." });
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      setScanImage(event.target?.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // Handle Scanner Submission
+  const handleScanPaper = async () => {
+    if (!scanImage) {
+      toast({ variant: "destructive", title: "No image selected", description: "Please upload or capture a photo of the exam paper." });
+      return;
+    }
+    setScanning(true);
+    try {
+      const res = await fetch("/api/past-questions/scan", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          image: scanImage,
+          courseCode: scanCourseCode,
+          university: scanUniversity,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok && data.course?.code) {
+        toast({
+          title: "Exam Paper Digitized! 📸",
+          description: `Extracted questions and ready to practice!`,
+        });
+        await loadCourses();
+        startTest(data.course.code, "cbt");
+      } else {
+        throw new Error(data.error || "Failed to scan exam paper");
+      }
+    } catch (err: any) {
+      toast({ variant: "destructive", title: "Scanner Error", description: err.message });
+    } finally {
+      setScanning(false);
+    }
+  };
+
   const filteredCourses = courses.filter((c) => {
     const matchSearch =
       c.code.toLowerCase().includes(search.toLowerCase()) ||
@@ -154,18 +263,18 @@ export default function PastQuestionsPage() {
   return (
     <DashboardLayout role={role} title="Past Questions & CBT Practice">
       <div className="max-w-6xl mx-auto space-y-6">
-        {/* Banner */}
+        {/* Banner with 1,000,000+ Questions Counter */}
         <div className="relative overflow-hidden rounded-3xl p-6 md:p-8 bg-gradient-to-r from-cyan-950/40 via-background to-purple-950/40 border border-cyan-500/20 glass-panel">
           <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
             <div className="space-y-2 max-w-xl">
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
-                <GraduationCap className="w-3.5 h-3.5" /> University Past Questions & CBT Bank
+                <Sparkles className="w-3.5 h-3.5 text-accent" /> 1,250,000+ Exam Questions Bank & AI Generator
               </div>
               <h1 className="text-2xl md:text-3xl font-extrabold text-white tracking-tight">
-                Exam Past Questions & Timed CBT Mock Tests
+                National & University Past Questions Hub
               </h1>
               <p className="text-sm text-muted-foreground leading-relaxed">
-                Master 100L–300L semester exams across UNILAG, ABU, UNN, OAU, UI, and BUK. Practice timed CBT mock tests, view step-by-step solutions, and connect with top tutors for one-on-one exam coaching.
+                JAMB UTME, WAEC, Post-UTME (UNILAG, UI, OAU, ABU, UNN), and 100L–400L university semester exam questions. Practice timed CBT mocks, generate infinite custom tests with AI, or snap photos of past papers to digitize them instantly.
               </p>
             </div>
             <div className="flex flex-col sm:flex-row gap-3">
@@ -177,12 +286,31 @@ export default function PastQuestionsPage() {
               </Link>
             </div>
           </div>
+
+          {/* Quick Metrics */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-6 pt-5 border-t border-white/10">
+            <div className="p-3 rounded-2xl bg-black/40 border border-white/5">
+              <p className="text-[11px] text-muted-foreground">Total Questions</p>
+              <p className="text-base font-bold text-cyan-400 mt-0.5">1,250,000+</p>
+            </div>
+            <div className="p-3 rounded-2xl bg-black/40 border border-white/5">
+              <p className="text-[11px] text-muted-foreground">National Boards</p>
+              <p className="text-base font-bold text-emerald-400 mt-0.5">JAMB • WAEC • NECO</p>
+            </div>
+            <div className="p-3 rounded-2xl bg-black/40 border border-white/5">
+              <p className="text-[11px] text-muted-foreground">Universities Covered</p>
+              <p className="text-base font-bold text-accent mt-0.5">UNILAG • UI • OAU • ABU</p>
+            </div>
+            <div className="p-3 rounded-2xl bg-black/40 border border-white/5">
+              <p className="text-[11px] text-muted-foreground">AI Exam Engine</p>
+              <p className="text-base font-bold text-purple-400 mt-0.5">Infinite On-Demand</p>
+            </div>
+          </div>
         </div>
 
         {/* View 1: Active CBT Test Mode */}
         {activeMode === "cbt" && !testResult && courseQuestions.length > 0 && (
           <div className="glass-panel rounded-3xl p-6 md:p-8 border border-white/10 space-y-6">
-            {/* CBT Header */}
             <div className="flex flex-wrap items-center justify-between gap-4 pb-6 border-b border-white/10">
               <div className="flex items-center gap-3">
                 <button
@@ -249,53 +377,52 @@ export default function PastQuestionsPage() {
                 })}
               </div>
 
-              {/* Question Navigation Palette */}
-              <div className="flex flex-wrap items-center gap-2 pt-4 border-t border-white/10">
-                <span className="text-xs text-muted-foreground mr-2">Jump to:</span>
-                {courseQuestions.map((q, idx) => {
-                  const answered = Boolean(userAnswers[q.id]);
-                  const isCurrent = idx === currentIdx;
-                  return (
-                    <button
-                      key={q.id}
-                      onClick={() => setCurrentIdx(idx)}
-                      className={`w-8 h-8 rounded-xl text-xs font-bold transition-all ${
-                        isCurrent
-                          ? "ring-2 ring-accent bg-accent text-black"
-                          : answered
-                          ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
-                          : "bg-white/5 text-muted-foreground hover:bg-white/10"
-                      }`}
-                    >
-                      {idx + 1}
-                    </button>
-                  );
-                })}
-              </div>
-
-              {/* Bottom Actions */}
-              <div className="flex items-center justify-between pt-4">
+              {/* Navigation Controls */}
+              <div className="flex flex-wrap items-center justify-between gap-3 pt-4 border-t border-white/10">
                 <button
-                  onClick={() => setCurrentIdx((p) => Math.max(0, p - 1))}
+                  onClick={() => setCurrentIdx((prev) => Math.max(0, prev - 1))}
                   disabled={currentIdx === 0}
-                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-white text-sm font-semibold disabled:opacity-30"
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-white text-xs font-semibold border border-white/10 transition-colors disabled:opacity-40"
                 >
                   <ArrowLeft className="w-4 h-4" /> Previous
                 </button>
 
-                {currentIdx === courseQuestions.length - 1 ? (
+                {/* Question Jumper */}
+                <div className="flex items-center gap-1.5 flex-wrap justify-center">
+                  {courseQuestions.map((_, idx) => {
+                    const answered = !!userAnswers[courseQuestions[idx]?.id];
+                    const isCurrent = idx === currentIdx;
+                    return (
+                      <button
+                        key={idx}
+                        onClick={() => setCurrentIdx(idx)}
+                        className={`w-8 h-8 rounded-xl text-xs font-bold transition-all ${
+                          isCurrent
+                            ? "bg-accent text-black ring-2 ring-accent/50 scale-105"
+                            : answered
+                            ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40"
+                            : "bg-white/5 text-muted-foreground hover:bg-white/10"
+                        }`}
+                      >
+                        {idx + 1}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {currentIdx < courseQuestions.length - 1 ? (
                   <button
-                    onClick={handleSubmitTest}
-                    className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-bold text-sm hover:opacity-90 shadow-lg shadow-emerald-500/20"
+                    onClick={() => setCurrentIdx((prev) => Math.min(courseQuestions.length - 1, prev + 1))}
+                    className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-white text-xs font-semibold border border-white/10 transition-colors"
                   >
-                    <CheckCircle2 className="w-4 h-4" /> Submit Exam
+                    Next <ArrowRight className="w-4 h-4" />
                   </button>
                 ) : (
                   <button
-                    onClick={() => setCurrentIdx((p) => Math.min(courseQuestions.length - 1, p + 1))}
-                    className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-primary to-accent text-white text-sm font-semibold hover:opacity-90"
+                    onClick={handleSubmitTest}
+                    className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-500 text-white font-bold text-xs hover:opacity-90 shadow-lg shadow-emerald-500/20"
                   >
-                    Next <ArrowRight className="w-4 h-4" />
+                    <CheckCircle2 className="w-4 h-4" /> Submit Exam
                   </button>
                 )}
               </div>
@@ -303,93 +430,118 @@ export default function PastQuestionsPage() {
           </div>
         )}
 
-        {/* View 2: Test Result & Detailed Scorecard */}
+        {/* View 2: Test Result & Review */}
         {testResult && (
           <div className="glass-panel rounded-3xl p-6 md:p-8 border border-white/10 space-y-6">
-            <div className="text-center space-y-3 py-6">
-              <div className="w-20 h-20 mx-auto rounded-3xl bg-gradient-to-br from-emerald-500/20 to-cyan-500/20 border border-emerald-500/30 flex items-center justify-center">
-                <Award className="w-10 h-10 text-emerald-400" />
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pb-6 border-b border-white/10 text-center sm:text-left">
+              <div>
+                <span className="text-xs font-bold uppercase tracking-wider text-accent">Exam Completed</span>
+                <h2 className="text-2xl font-black text-white mt-1">{testResult.courseCode} Result</h2>
+                <p className="text-xs text-muted-foreground mt-0.5">{testResult.remark}</p>
               </div>
-              <h2 className="text-3xl font-extrabold text-white">
-                Grade: <span className="text-emerald-400">{testResult.grade}</span> ({testResult.percentage}%)
-              </h2>
-              <p className="text-base text-white/90 font-medium">{testResult.remark}</p>
-              <p className="text-xs text-muted-foreground">
-                You correctly answered {testResult.score} out of {testResult.total} questions for {testResult.courseCode}.
-              </p>
-              <div className="flex flex-wrap justify-center gap-3 pt-4">
+
+              <div className="flex items-center gap-3">
                 <button
-                  onClick={() => startTest(testResult.courseCode, "cbt")}
-                  className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-semibold text-sm transition-all"
+                  onClick={() => startTest(activeCourse!, "cbt")}
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-white text-xs font-semibold border border-white/10 transition-colors"
                 >
                   <RotateCcw className="w-4 h-4" /> Retake Test
                 </button>
-                <Link
-                  href="/student/find-tutor"
-                  className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-primary to-accent text-white font-bold text-sm hover:opacity-90 transition-all shadow-md"
-                >
-                  <UserCheck className="w-4 h-4" /> Book a Tutor for {testResult.courseCode}
-                </Link>
                 <button
-                  onClick={() => sharePastQuestionsToWhatsApp(testResult.courseCode, "2torConnect Past Questions")}
-                  className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-sm transition-all"
+                  onClick={exitMode}
+                  className="px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/15 text-white text-xs font-semibold"
                 >
-                  <Share2 className="w-4 h-4" /> Share Score to WhatsApp
+                  Back to Hub
                 </button>
               </div>
             </div>
 
-            {/* Answer Review */}
-            <div className="space-y-4 pt-6 border-t border-white/10">
-              <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                <BookOpen className="w-5 h-5 text-accent" /> Question Review & Explanations
-              </h3>
-              <div className="space-y-4">
-                {testResult.review?.map((item: any, idx: number) => (
-                  <div
-                    key={item.id}
-                    className={`p-5 rounded-2xl border ${
-                      item.isCorrect
-                        ? "bg-emerald-950/20 border-emerald-500/30"
-                        : "bg-rose-950/20 border-rose-500/30"
-                    }`}
-                  >
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="space-y-2">
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs font-bold text-muted-foreground">Q{idx + 1}.</span>
-                          <span className="text-sm font-semibold text-white">{item.question}</span>
-                        </div>
-                        <div className="flex flex-wrap gap-4 text-xs font-mono">
-                          <span className={item.isCorrect ? "text-emerald-400" : "text-rose-400"}>
-                            Your Answer: {item.selectedAnswer || "None"}
-                          </span>
-                          <span className="text-emerald-400 font-bold">
-                            Correct: {item.correctAnswer}
-                          </span>
-                        </div>
-                        <div className="text-xs text-muted-foreground mt-2 bg-black/30 p-3 rounded-xl border border-white/5 leading-relaxed">
-                          <strong className="text-white">Explanation: </strong>
-                          {item.explanation}
-                        </div>
-                      </div>
-                      {item.isCorrect ? (
-                        <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
-                      ) : (
-                        <XCircle className="w-5 h-5 text-rose-400 shrink-0" />
-                      )}
-                    </div>
-                  </div>
-                ))}
+            {/* Scorecard */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              <div className="p-4 rounded-2xl bg-black/40 border border-white/5 text-center">
+                <p className="text-xs text-muted-foreground">Score</p>
+                <p className="text-2xl font-black text-white mt-1">
+                  {testResult.score} / {testResult.total}
+                </p>
               </div>
+              <div className="p-4 rounded-2xl bg-black/40 border border-white/5 text-center">
+                <p className="text-xs text-muted-foreground">Percentage</p>
+                <p className={`text-2xl font-black mt-1 ${testResult.percentage >= 60 ? "text-emerald-400" : "text-amber-400"}`}>
+                  {testResult.percentage}%
+                </p>
+              </div>
+              <div className="p-4 rounded-2xl bg-black/40 border border-white/5 text-center">
+                <p className="text-xs text-muted-foreground">Letter Grade</p>
+                <p className={`text-2xl font-black mt-1 ${
+                  testResult.grade === "A" ? "text-emerald-400" :
+                  testResult.grade === "B" ? "text-blue-400" :
+                  testResult.grade === "C" ? "text-amber-400" : "text-rose-400"
+                }`}>
+                  Grade {testResult.grade}
+                </p>
+              </div>
+              <div className="p-4 rounded-2xl bg-black/40 border border-white/5 text-center">
+                <p className="text-xs text-muted-foreground">Time Taken</p>
+                <p className="text-2xl font-black text-cyan-400 mt-1">
+                  {Math.round(testResult.timeSpentSeconds / 60)}m {testResult.timeSpentSeconds % 60}s
+                </p>
+              </div>
+            </div>
+
+            {/* Answer Explanations Review */}
+            <div className="space-y-4 pt-4">
+              <h3 className="text-base font-bold text-white">Question by Question Review</h3>
+              {testResult.review.map((item: any, idx: number) => (
+                <div
+                  key={item.id}
+                  className={`p-5 rounded-2xl border ${
+                    item.isCorrect
+                      ? "bg-emerald-950/20 border-emerald-500/30"
+                      : "bg-rose-950/20 border-rose-500/30"
+                  } space-y-3`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-muted-foreground">Question {idx + 1}</span>
+                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold ${
+                      item.isCorrect
+                        ? "bg-emerald-500/20 text-emerald-300"
+                        : "bg-rose-500/20 text-rose-300"
+                    }`}>
+                      {item.isCorrect ? <CheckCircle2 className="w-3.5 h-3.5" /> : <XCircle className="w-3.5 h-3.5" />}
+                      {item.isCorrect ? "Correct" : `Incorrect (Your answer: ${item.selectedAnswer || "None"})`}
+                    </span>
+                  </div>
+
+                  <p className="text-sm font-medium text-white">{item.question}</p>
+
+                  <div className="p-3 rounded-xl bg-black/40 border border-white/5 text-xs text-muted-foreground space-y-1">
+                    <p className="text-emerald-400 font-semibold">Correct Answer: {item.correctAnswer}</p>
+                    <p className="leading-relaxed">{item.explanation}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Book Tutor Callout */}
+            <div className="p-6 rounded-3xl bg-gradient-to-r from-primary/20 via-background to-accent/20 border border-accent/30 flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="space-y-1 text-center sm:text-left">
+                <h4 className="text-base font-bold text-white">Need 1-on-1 Exam Coaching in {testResult.courseCode}?</h4>
+                <p className="text-xs text-muted-foreground">Book top peer tutors from your university who aced this exact course with an A.</p>
+              </div>
+              <Link
+                href={`/student/find-tutor?subject=${testResult.courseCode}`}
+                className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-primary to-accent text-white font-bold text-xs hover:opacity-90 shadow-md whitespace-nowrap"
+              >
+                Find Tutor for This Course
+              </Link>
             </div>
           </div>
         )}
 
-        {/* View 3: Study Mode (Direct Solutions) */}
-        {activeMode === "study" && courseQuestions.length > 0 && (
+        {/* View 3: Solved Study Mode */}
+        {activeMode === "study" && (
           <div className="glass-panel rounded-3xl p-6 md:p-8 border border-white/10 space-y-6">
-            <div className="flex items-center justify-between pb-4 border-b border-white/10">
+            <div className="flex items-center justify-between pb-6 border-b border-white/10">
               <div className="flex items-center gap-3">
                 <button
                   onClick={exitMode}
@@ -444,114 +596,384 @@ export default function PastQuestionsPage() {
           </div>
         )}
 
-        {/* View 4: Course Browser & Filter Hub */}
+        {/* View 4: Main Explorer with 3 Tabs */}
         {!activeMode && (
           <div className="space-y-6">
-            {/* Search & Filters */}
-            <div className="flex flex-col sm:flex-row items-center gap-3">
-              <div className="relative flex-1 w-full">
-                <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                <input
-                  type="text"
-                  placeholder="Search by course code, title (e.g. MTH 101), or university..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 rounded-2xl bg-white/5 border border-white/10 text-white placeholder:text-muted-foreground focus:outline-none focus:border-accent text-sm"
-                />
-              </div>
+            {/* Navigation Tabs */}
+            <div className="flex border-b border-white/10 gap-2 overflow-x-auto pb-1">
+              <button
+                onClick={() => setActiveTab("bank")}
+                className={`flex items-center gap-2 px-5 py-3 rounded-2xl font-bold text-sm transition-all whitespace-nowrap ${
+                  activeTab === "bank"
+                    ? "bg-accent/20 text-accent border border-accent/40 shadow-sm"
+                    : "text-muted-foreground hover:text-white hover:bg-white/5"
+                }`}
+              >
+                <BookOpen className="w-4 h-4" /> Past Questions Bank ({filteredCourses.length})
+              </button>
 
-              <div className="flex items-center gap-2 w-full sm:w-auto">
-                <select
-                  value={selectedCategory}
-                  onChange={(e) => setSelectedCategory(e.target.value)}
-                  className="px-3 py-2.5 rounded-2xl bg-zinc-900 border border-white/10 text-white text-xs focus:outline-none"
-                >
-                  <option value="all">All Disciplines</option>
-                  <option value="Science">Sciences</option>
-                  <option value="General">General Studies (GST)</option>
-                  <option value="Engineering">Engineering</option>
-                  <option value="Management">Management</option>
-                </select>
+              <button
+                onClick={() => setActiveTab("generator")}
+                className={`flex items-center gap-2 px-5 py-3 rounded-2xl font-bold text-sm transition-all whitespace-nowrap ${
+                  activeTab === "generator"
+                    ? "bg-accent/20 text-accent border border-accent/40 shadow-sm"
+                    : "text-muted-foreground hover:text-white hover:bg-white/5"
+                }`}
+              >
+                <Zap className="w-4 h-4 text-amber-400" /> AI Infinite Exam Generator
+              </button>
 
-                <select
-                  value={selectedLevel}
-                  onChange={(e) => setSelectedLevel(e.target.value)}
-                  className="px-3 py-2.5 rounded-2xl bg-zinc-900 border border-white/10 text-white text-xs focus:outline-none"
-                >
-                  <option value="all">All Levels</option>
-                  <option value="100L">100 Level</option>
-                  <option value="200L">200 Level</option>
-                  <option value="300L">300 Level</option>
-                </select>
-              </div>
+              <button
+                onClick={() => setActiveTab("scanner")}
+                className={`flex items-center gap-2 px-5 py-3 rounded-2xl font-bold text-sm transition-all whitespace-nowrap ${
+                  activeTab === "scanner"
+                    ? "bg-accent/20 text-accent border border-accent/40 shadow-sm"
+                    : "text-muted-foreground hover:text-white hover:bg-white/5"
+                }`}
+              >
+                <Camera className="w-4 h-4 text-emerald-400" /> Photo Exam Paper Scanner
+              </button>
             </div>
 
-            {/* Course Cards Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              {filteredCourses.map((c) => (
-                <div
-                  key={c.code}
-                  className="glass-panel rounded-3xl p-6 border border-white/10 hover:border-accent/40 transition-all flex flex-col justify-between space-y-4"
-                >
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="px-3 py-1 rounded-xl bg-gradient-to-r from-primary/30 to-accent/30 border border-accent/40 text-accent font-extrabold text-sm tracking-wide">
-                        {c.code}
-                      </span>
-                      <span className="text-xs px-2.5 py-0.5 rounded-full bg-white/5 border border-white/10 text-muted-foreground">
-                        {c.level} • {c.year}
-                      </span>
+            {/* TAB 1: Core Bank */}
+            {activeTab === "bank" && (
+              <div className="space-y-6">
+                {/* Search & Filters */}
+                <div className="flex flex-col sm:flex-row items-center gap-3">
+                  <div className="relative flex-1 w-full">
+                    <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                    <input
+                      type="text"
+                      placeholder="Search JAMB, Post-UTME, course code (e.g. MTH101), or university..."
+                      value={search}
+                      onChange={(e) => setSearch(e.target.value)}
+                      className="w-full pl-10 pr-4 py-2.5 rounded-2xl bg-white/5 border border-white/10 text-white placeholder:text-muted-foreground focus:outline-none focus:border-accent text-sm"
+                    />
+                  </div>
+
+                  <div className="flex items-center gap-2 w-full sm:w-auto">
+                    <select
+                      value={selectedCategory}
+                      onChange={(e) => setSelectedCategory(e.target.value)}
+                      className="px-3 py-2.5 rounded-2xl bg-zinc-900 border border-white/10 text-white text-xs focus:outline-none"
+                    >
+                      <option value="all">All Disciplines</option>
+                      <option value="JAMB">JAMB UTME</option>
+                      <option value="Post-UTME">Post-UTME Screenings</option>
+                      <option value="Science">Sciences</option>
+                      <option value="General">General Studies (GST)</option>
+                      <option value="Engineering">Engineering</option>
+                      <option value="Management">Management</option>
+                    </select>
+
+                    <select
+                      value={selectedLevel}
+                      onChange={(e) => setSelectedLevel(e.target.value)}
+                      className="px-3 py-2.5 rounded-2xl bg-zinc-900 border border-white/10 text-white text-xs focus:outline-none"
+                    >
+                      <option value="all">All Levels</option>
+                      <option value="UTME/SSCE">JAMB / UTME / SSCE</option>
+                      <option value="Post-UTME">Post-UTME</option>
+                      <option value="100L">100 Level</option>
+                      <option value="200L">200 Level</option>
+                      <option value="300L">300 Level</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Course Cards Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  {filteredCourses.map((c) => (
+                    <div
+                      key={c.code}
+                      className="glass-panel rounded-3xl p-6 border border-white/10 hover:border-accent/40 transition-all flex flex-col justify-between space-y-4"
+                    >
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="px-3 py-1 rounded-xl bg-gradient-to-r from-primary/30 to-accent/30 border border-accent/40 text-accent font-extrabold text-sm tracking-wide">
+                            {c.code}
+                          </span>
+                          <div className="flex items-center gap-2">
+                            {c.isAiGenerated && (
+                              <span className="text-[10px] px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30 font-bold">
+                                ⚡ AI Generated
+                              </span>
+                            )}
+                            <span className="text-xs px-2.5 py-0.5 rounded-full bg-white/5 border border-white/10 text-muted-foreground">
+                              {c.level} • {c.year}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div>
+                          <h3 className="text-lg font-bold text-white group-hover:text-accent transition-colors">
+                            {c.title}
+                          </h3>
+                          <p className="text-xs text-muted-foreground mt-1 line-clamp-1">
+                            {c.universities.join(", ")}
+                          </p>
+                        </div>
+
+                        <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                          <span className="flex items-center gap-1.5">
+                            <BookOpen className="w-3.5 h-3.5 text-accent" /> {c.questionsCount} Solved Questions
+                          </span>
+                          <span className="flex items-center gap-1.5">
+                            <Clock className="w-3.5 h-3.5 text-emerald-400" /> {c.durationMinutes} Mins CBT Test
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="pt-3 border-t border-white/10 flex flex-wrap items-center gap-2">
+                        <button
+                          onClick={() => startTest(c.code, "cbt")}
+                          className="flex-1 min-w-[120px] flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-gradient-to-r from-primary to-accent text-white font-bold text-xs hover:opacity-90 shadow-md transition-all"
+                        >
+                          <Play className="w-3.5 h-3.5" /> Start CBT Mock
+                        </button>
+                        <button
+                          onClick={() => startTest(c.code, "study")}
+                          className="flex-1 min-w-[120px] flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-white font-medium text-xs border border-white/10 transition-all"
+                        >
+                          <BookOpen className="w-3.5 h-3.5" /> View Solutions
+                        </button>
+                        <button
+                          onClick={() => sharePastQuestionsToWhatsApp(c.code, c.title)}
+                          className="p-2.5 rounded-xl bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 border border-emerald-500/30 transition-all"
+                          title="Share to Course WhatsApp Group"
+                        >
+                          <Share2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {filteredCourses.length === 0 && (
+                  <div className="text-center py-16 glass-panel rounded-3xl border border-white/10">
+                    <GraduationCap className="w-12 h-12 mx-auto text-muted-foreground mb-3" />
+                    <p className="text-white font-bold">No past questions matched your filter</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      You can instantly generate this exam using the <strong>AI Infinite Exam Generator</strong> tab above!
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* TAB 2: AI Infinite Exam Generator */}
+            {activeTab === "generator" && (
+              <div className="glass-panel rounded-3xl p-6 md:p-8 border border-white/10 space-y-6">
+                <div>
+                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30 mb-2">
+                    <Zap className="w-3.5 h-3.5" /> Powered by 2torConnect AI Engine
+                  </div>
+                  <h2 className="text-xl font-bold text-white">Generate Any CBT Exam Question On-Demand</h2>
+                  <p className="text-xs text-muted-foreground mt-1 max-w-2xl">
+                    Need practice for a specific course or topic not in the bank? Enter your course code, topic, and university below. Our AI generates verified multiple-choice questions with step-by-step explanations in seconds.
+                  </p>
+                </div>
+
+                <form onSubmit={handleGenerateExam} className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  <div>
+                    <label className="block text-xs font-medium text-muted-foreground mb-1.5">
+                      Course Code / Exam Name
+                    </label>
+                    <input
+                      type="text"
+                      value={genCourseCode}
+                      onChange={(e) => setGenCourseCode(e.target.value)}
+                      placeholder="e.g. MTH 101, GST 102, JAMB Chemistry, or UNILAG Law"
+                      className="w-full px-4 py-2.5 rounded-xl bg-black/40 border border-white/10 text-white text-sm focus:border-accent focus:outline-none"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-muted-foreground mb-1.5">
+                      Specific Exam Level / Category
+                    </label>
+                    <select
+                      value={genExamType}
+                      onChange={(e) => setGenExamType(e.target.value)}
+                      className="w-full px-4 py-2.5 rounded-xl bg-zinc-900 border border-white/10 text-white text-sm focus:border-accent focus:outline-none"
+                    >
+                      <option value="University 100L">University 100 Level</option>
+                      <option value="University 200L">University 200 Level</option>
+                      <option value="University 300L">University 300 Level</option>
+                      <option value="University 400L">University 400 Level (Final Year)</option>
+                      <option value="JAMB UTME">JAMB UTME</option>
+                      <option value="Post-UTME">University Post-UTME Screening</option>
+                      <option value="WAEC / SSCE">WAEC / WASSCE</option>
+                    </select>
+                  </div>
+
+                  <div className="md:col-span-2">
+                    <label className="block text-xs font-medium text-muted-foreground mb-1.5">
+                      Target Topic / Syllabus Area
+                    </label>
+                    <input
+                      type="text"
+                      value={genTopic}
+                      onChange={(e) => setGenTopic(e.target.value)}
+                      placeholder="e.g. Differentiation, Integration, Thermodynamics, Organic Chemistry, or Civil Procedure"
+                      className="w-full px-4 py-2.5 rounded-xl bg-black/40 border border-white/10 text-white text-sm focus:border-accent focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-muted-foreground mb-1.5">
+                      Target University / Institution
+                    </label>
+                    <input
+                      type="text"
+                      value={genUniversity}
+                      onChange={(e) => setGenUniversity(e.target.value)}
+                      placeholder="e.g. UNILAG, ABU, UNN, UI, OAU, LASU, Covenant"
+                      className="w-full px-4 py-2.5 rounded-xl bg-black/40 border border-white/10 text-white text-sm focus:border-accent focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-muted-foreground mb-1.5">
+                      Number of Questions to Generate
+                    </label>
+                    <select
+                      value={genCount}
+                      onChange={(e) => setGenCount(Number(e.target.value))}
+                      className="w-full px-4 py-2.5 rounded-xl bg-zinc-900 border border-white/10 text-white text-sm focus:border-accent focus:outline-none"
+                    >
+                      <option value={5}>5 Questions (Quick Quiz - 10 mins)</option>
+                      <option value={10}>10 Questions (Standard Mock - 20 mins)</option>
+                      <option value={15}>15 Questions (Full CBT Simulation - 30 mins)</option>
+                    </select>
+                  </div>
+
+                  <div className="md:col-span-2 pt-2">
+                    <button
+                      type="submit"
+                      disabled={generating}
+                      className="w-full py-3.5 px-6 rounded-2xl bg-gradient-to-r from-amber-500 via-primary to-accent text-white font-bold text-sm hover:opacity-90 transition-all flex items-center justify-center gap-2 shadow-lg shadow-primary/20 disabled:opacity-50"
+                    >
+                      {generating ? (
+                        <>
+                          <Loader2 className="w-5 h-5 animate-spin" />
+                          Synthesizing CBT Exam Questions & Explanations...
+                        </>
+                      ) : (
+                        <>
+                          <Zap className="w-5 h-5" />
+                          Generate Custom CBT Exam & Start Test
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            )}
+
+            {/* TAB 3: Photo Exam Paper Scanner */}
+            {activeTab === "scanner" && (
+              <div className="glass-panel rounded-3xl p-6 md:p-8 border border-white/10 space-y-6">
+                <div>
+                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 mb-2">
+                    <Camera className="w-3.5 h-3.5" /> AI Vision Past Question Paper Scanner
+                  </div>
+                  <h2 className="text-xl font-bold text-white">Snap & Digitize Physical Past Question Papers</h2>
+                  <p className="text-xs text-muted-foreground mt-1 max-w-2xl">
+                    Take a photo of any physical exam paper, departmental test, or textbook question. Our AI reads the text, extracts the questions, calculates the answers, and converts it into a playable CBT mock quiz in 5 seconds.
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+                  {/* Upload area */}
+                  <div className="space-y-4">
+                    <div
+                      onClick={() => fileInputRef.current?.click()}
+                      className="border-2 border-dashed border-white/20 hover:border-emerald-500/50 rounded-3xl p-8 text-center cursor-pointer bg-black/40 hover:bg-white/5 transition-all flex flex-col items-center justify-center min-h-[220px]"
+                    >
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/*"
+                        capture="environment"
+                        onChange={handleImageUpload}
+                        className="hidden"
+                      />
+                      {scanImage ? (
+                        <div className="space-y-2">
+                          <img
+                            src={scanImage}
+                            alt="Exam Paper Preview"
+                            className="max-h-48 rounded-xl object-contain mx-auto shadow-lg border border-white/10"
+                          />
+                          <p className="text-xs text-emerald-400 font-bold flex items-center justify-center gap-1">
+                            <Check className="w-4 h-4" /> Photo Loaded. Click to change.
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          <div className="w-12 h-12 rounded-2xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto">
+                            <Upload className="w-6 h-6" />
+                          </div>
+                          <p className="text-sm font-bold text-white">Click to Upload or Snap Exam Paper</p>
+                          <p className="text-xs text-muted-foreground">Supports JPG, PNG, WEBP (Max 5MB)</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Form metadata */}
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-xs font-medium text-muted-foreground mb-1.5">
+                        Course Code / Module
+                      </label>
+                      <input
+                        type="text"
+                        value={scanCourseCode}
+                        onChange={(e) => setScanCourseCode(e.target.value)}
+                        placeholder="e.g. PHY 101 or MTH 201"
+                        className="w-full px-4 py-2.5 rounded-xl bg-black/40 border border-white/10 text-white text-sm focus:border-emerald-500 focus:outline-none"
+                      />
                     </div>
 
                     <div>
-                      <h3 className="text-lg font-bold text-white group-hover:text-accent transition-colors">
-                        {c.title}
-                      </h3>
-                      <p className="text-xs text-muted-foreground mt-1 line-clamp-1">
-                        Universities: {c.universities.join(", ")}
-                      </p>
+                      <label className="block text-xs font-medium text-muted-foreground mb-1.5">
+                        University / Department
+                      </label>
+                      <input
+                        type="text"
+                        value={scanUniversity}
+                        onChange={(e) => setScanUniversity(e.target.value)}
+                        placeholder="e.g. University of Lagos (UNILAG) Faculty of Science"
+                        className="w-full px-4 py-2.5 rounded-xl bg-black/40 border border-white/10 text-white text-sm focus:border-emerald-500 focus:outline-none"
+                      />
                     </div>
 
-                    <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                      <span className="flex items-center gap-1.5">
-                        <BookOpen className="w-3.5 h-3.5 text-accent" /> {c.questionsCount} Solved Questions
-                      </span>
-                      <span className="flex items-center gap-1.5">
-                        <Clock className="w-3.5 h-3.5 text-emerald-400" /> {c.durationMinutes} Mins CBT Test
-                      </span>
+                    <div className="p-3.5 rounded-2xl bg-white/5 border border-white/10 text-xs text-muted-foreground leading-relaxed">
+                      💡 <strong>Tip for best accuracy:</strong> Ensure the paper is well-lit and all question numbers and text are sharp and clear.
                     </div>
-                  </div>
 
-                  <div className="pt-3 border-t border-white/10 flex flex-wrap items-center gap-2">
                     <button
-                      onClick={() => startTest(c.code, "cbt")}
-                      className="flex-1 min-w-[120px] flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-gradient-to-r from-primary to-accent text-white font-bold text-xs hover:opacity-90 shadow-md transition-all"
+                      onClick={handleScanPaper}
+                      disabled={scanning || !scanImage}
+                      className="w-full py-3.5 px-6 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-500 text-white font-bold text-sm hover:opacity-90 transition-all flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/20 disabled:opacity-50"
                     >
-                      <Play className="w-3.5 h-3.5" /> Start CBT Mock
-                    </button>
-                    <button
-                      onClick={() => startTest(c.code, "study")}
-                      className="flex-1 min-w-[120px] flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-white font-medium text-xs border border-white/10 transition-all"
-                    >
-                      <BookOpen className="w-3.5 h-3.5" /> View Solutions
-                    </button>
-                    <button
-                      onClick={() => sharePastQuestionsToWhatsApp(c.code, c.title)}
-                      className="p-2.5 rounded-xl bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 border border-emerald-500/30 transition-all"
-                      title="Share to Course WhatsApp Group"
-                    >
-                      <Share2 className="w-4 h-4" />
+                      {scanning ? (
+                        <>
+                          <Loader2 className="w-5 h-5 animate-spin" />
+                          Reading Paper & Extracting Questions...
+                        </>
+                      ) : (
+                        <>
+                          <Camera className="w-5 h-5" />
+                          Scan Paper & Launch CBT Quiz
+                        </>
+                      )}
                     </button>
                   </div>
                 </div>
-              ))}
-            </div>
-
-            {filteredCourses.length === 0 && (
-              <div className="text-center py-16 glass-panel rounded-3xl border border-white/10">
-                <GraduationCap className="w-12 h-12 mx-auto text-muted-foreground mb-3" />
-                <p className="text-white font-bold">No past questions matched your filter</p>
-                <p className="text-xs text-muted-foreground mt-1">Try searching another course code (e.g. MTH101, PHY101, GST101, CSC101).</p>
               </div>
             )}
           </div>
@@ -560,4 +982,3 @@ export default function PastQuestionsPage() {
     </DashboardLayout>
   );
 }
-
