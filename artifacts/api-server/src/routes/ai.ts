@@ -1,4 +1,4 @@
-﻿import { Router, type IRouter } from "express";
+import { Router, type IRouter } from "express";
 import OpenAI from "openai";
 import { requireAuth } from "../lib/auth-middleware";
 
@@ -42,15 +42,19 @@ const SYSTEM_PROMPT =
   "For step-by-step logic, cycles, and relationships, also include clean ASCII/Unicode diagrams, Markdown tables, and structured bullet trees.\n\n" +
   "Always format your answers with clear Markdown headings, bullet points, math equations, and code blocks.";
 
-// POST /chat â€” streams a chat completion back to the client as Server-Sent Events.
-// Body: { message: string, history?: { role: "user"|"assistant", content: string }[] }
+// POST /chat — streams a chat completion back to the client as Server-Sent Events.
+// Body: { message: string, history?: { role: "user"|"assistant", content: string }[], image?: string }
 router.post("/chat", authMiddleware, async (req: any, res) => {
-  const { message, history } = req.body ?? {};
+  const { message, history, image } = req.body ?? {};
 
-  if (typeof message !== "string" || !message.trim()) {
-    res.status(400).json({ error: "message is required" });
+  if ((typeof message !== "string" || !message.trim()) && !image) {
+    res.status(400).json({ error: "message or image is required" });
     return;
   }
+
+  const promptText = (typeof message === "string" && message.trim())
+    ? message.trim()
+    : "Please analyze and solve this problem step-by-step. Explain the formulas, work through each step clearly, and provide the final answer.";
 
   if (!openai) {
     req.log.error("AI chat request failed: no OPENAI_API_KEY / AI_INTEGRATIONS_OPENAI_API_KEY configured");
@@ -64,10 +68,17 @@ router.post("/chat", authMiddleware, async (req: any, res) => {
         .map((m: any) => ({ role: m.role, content: m.content }))
     : [];
 
-  const messages = [
-    { role: "system" as const, content: SYSTEM_PROMPT },
+  const userContent: any = image
+    ? [
+        { type: "text", text: promptText },
+        { type: "image_url", image_url: { url: image } },
+      ]
+    : promptText;
+
+  const messages: any[] = [
+    { role: "system", content: SYSTEM_PROMPT },
     ...priorMessages,
-    { role: "user" as const, content: message },
+    { role: "user", content: userContent },
   ];
 
   res.setHeader("Content-Type", "text/event-stream");

@@ -21,6 +21,7 @@ import assignmentsRouter from "./assignments";
 import leaderboardRouter from "./leaderboard";
 import referralsRouter from "./referrals";
 import groupsRouter from "./groups";
+import pastQuestionsRouter from "./past-questions";
 import { processEmailQueue } from "../lib/email-queue";
 
 const router: IRouter = Router();
@@ -47,6 +48,7 @@ router.use("/assignments", assignmentsRouter);
 router.use("/leaderboard", leaderboardRouter);
 router.use("/referrals", referralsRouter);
 router.use("/groups", groupsRouter);
+router.use("/past-questions", pastQuestionsRouter);
 
 // Automated Hourly Email Queue Runner (triggered by Vercel Cron or monitoring ping)
 router.get("/cron/process-email-queue", async (_req, res) => {

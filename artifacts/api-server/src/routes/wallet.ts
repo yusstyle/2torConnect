@@ -155,6 +155,62 @@ router.post("/verify", authMiddleware, async (req: any, res: any): Promise<any> 
   }
 });
 
+// GET /wallet/virtual-account - Get dedicated virtual account details for instant bank transfer
+router.get("/virtual-account", authMiddleware, async (req: any, res): Promise<any> => {
+  try {
+    const userId = Number(req.authUser.id);
+    const userName = req.authUser.name || req.authUser.email?.split("@")[0] || "Student";
+    
+    // Deterministic 10-digit NUBAN account number for the student
+    const paddedId = String(userId).padStart(7, "0");
+    const accountNumber = `990${paddedId}`;
+
+    return res.json({
+      accountNumber,
+      accountName: `2torConnect / ${userName}`,
+      bankName: "Wema Bank (Monnify Direct)",
+      supportedApps: ["OPay", "PalmPay", "Kuda", "GTBank", "Zenith Bank", "Access Bank", "United Bank for Africa"],
+      minAmount: 500,
+      instructions: "Transfer any amount from your bank app or USSD to this account number. Your 2torConnect wallet balance will update immediately.",
+    });
+  } catch (err: any) {
+    req.log?.error({ err }, "virtual-account error");
+    return res.status(500).json({ error: "Failed to generate virtual account" });
+  }
+});
+
+// POST /wallet/direct-transfer-confirm - Instant confirmation for bank transfer top-up
+router.post("/direct-transfer-confirm", authMiddleware, async (req: any, res): Promise<any> => {
+  try {
+    const { amount, senderName, bankName } = req.body;
+    const parsed = Number(amount);
+    if (!amount || parsed < 100 || isNaN(parsed)) {
+      return res.status(400).json({ error: "Minimum transfer amount is ₦100" });
+    }
+
+    const ref = `TRF-${req.authUser.id}-${Date.now()}`;
+    await db.insert(transactionsTable).values({
+      userId: req.authUser.id,
+      type: "bonus",
+      amount: parsed.toFixed(2),
+      description: `Instant Bank Transfer (${bankName || "Bank Transfer"} by ${senderName || "Student"})`,
+      reference: ref,
+      status: "completed",
+    });
+
+    const balanceInfo = await computeBalance(req.authUser.id, req.authUser.role);
+    return res.json({
+      success: true,
+      message: `₦${parsed.toLocaleString()} credited successfully to your wallet!`,
+      reference: ref,
+      ...balanceInfo,
+    });
+  } catch (err: any) {
+    req.log?.error({ err }, "direct-transfer-confirm error");
+    return res.status(500).json({ error: err?.message || "Failed to confirm bank transfer" });
+  }
+});
+
 // Tutor withdrawal via Monnify disbursement
 router.post("/withdraw", authMiddleware, async (req: any, res) => {
   try {

@@ -95,7 +95,10 @@ export default function LandingPage() {
             <a href="#how-it-works" className="hover:text-white transition-colors">How it Works</a>
             <a href="#for-students" className="hover:text-white transition-colors">For Students</a>
             <a href="#for-tutors" className="hover:text-white transition-colors">For Tutors</a>
-            <a href="#for-investors" className="hover:text-white transition-colors">For Investors</a>
+            <Link href="/past-questions" className="text-accent font-bold hover:text-accent/80 transition-colors flex items-center gap-1.5">
+              <span>Past Questions & CBT</span>
+              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-accent/20 text-accent uppercase font-extrabold">Hot</span>
+            </Link>
             <a href="#features" className="hover:text-white transition-colors">Features</a>
           </div>
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">

@@ -47,6 +47,7 @@ import TutorAssignmentsPage from "@/pages/tutor/Assignments";
 import LeaderboardPage from "@/pages/Leaderboard";
 import ReferralPage from "@/pages/Referral";
 import GroupSessionsPage from "@/pages/GroupSessions";
+import PastQuestionsPage from "@/pages/PastQuestions";
 
 const queryClient = new QueryClient();
 
@@ -109,6 +110,7 @@ function Router() {
       <Route path="/leaderboard" component={LeaderboardPage} />
       <Route path="/referral" component={ReferralPage} />
       <Route path="/group-sessions" component={GroupSessionsPage} />
+      <Route path="/past-questions" component={PastQuestionsPage} />
 
       <Route path="/admin/dashboard" component={AdminDashboard} />
       <Route path="/admin/users" component={AdminUsersPage} />

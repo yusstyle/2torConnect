@@ -4,9 +4,10 @@ import { useListSessions, useUpdateSession } from "@workspace/api-client-react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { useLocation } from "wouter";
 import { format } from "date-fns";
-import { Calendar, Clock, CheckCircle, XCircle, Loader2, Video, DollarSign, BadgeCheck, CreditCard, X } from "lucide-react";
+import { Calendar, Clock, CheckCircle, XCircle, Loader2, Video, DollarSign, BadgeCheck, CreditCard, X, Share2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { getApiUrl } from "@/lib/api";
+import { pingSessionWhatsApp } from "@/lib/whatsapp";
 
 const statusColors: Record<string, string> = {
   pending: "bg-yellow-500/20 text-yellow-400",
@@ -221,13 +222,28 @@ export default function StudentSessionsPage() {
                   )}
 
                   {session.status === "confirmed" && isPaid && (
-                    <button
-                      onClick={() => setLocation(`/session/${session.id}`)}
-                      className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-primary to-accent text-white font-bold text-sm hover:opacity-90 transition-all shadow-lg shadow-primary/20"
-                    >
-                      <Video className="w-4 h-4" />
-                      Join Session
-                    </button>
+                    <>
+                      <button
+                        onClick={() => pingSessionWhatsApp({
+                          partnerName: (session as any).tutor?.name || "Tutor",
+                          subject: session.subject,
+                          time: format(new Date(session.scheduledAt), "MMM d, h:mm a"),
+                          sessionId: session.id,
+                          isTutor: false,
+                        })}
+                        className="px-3 py-2 rounded-xl bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 border border-emerald-500/30 font-semibold text-xs flex items-center gap-1.5 transition-all"
+                        title="Ping Tutor on WhatsApp"
+                      >
+                        <Share2 className="w-3.5 h-3.5" /> WhatsApp
+                      </button>
+                      <button
+                        onClick={() => setLocation(`/session/${session.id}`)}
+                        className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-primary to-accent text-white font-bold text-sm hover:opacity-90 transition-all shadow-lg shadow-primary/20"
+                      >
+                        <Video className="w-4 h-4" />
+                        Join Session
+                      </button>
+                    </>
                   )}
 
                   {session.status === "completed" && (

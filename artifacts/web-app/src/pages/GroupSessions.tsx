@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { useAuthStore } from "@/lib/auth";
-import { Users, Video, PlusCircle, Loader2, Calendar, Clock, X } from "lucide-react";
+import { Users, Video, PlusCircle, Loader2, Calendar, Clock, X, Share2, Sparkles } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { motion } from "framer-motion";
+import { shareGroupSessionToWhatsApp } from "@/lib/whatsapp";
 
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 const API = `${BASE}/api`;
@@ -113,16 +114,28 @@ export default function GroupSessionsPage() {
                     </div>
                     {s.notes && <p className="text-muted-foreground text-xs mt-1.5 line-clamp-1">{s.notes}</p>}
                   </div>
-                  {role === "student" && (
+
+                  <div className="flex items-center gap-2 shrink-0">
                     <button
-                      onClick={() => join(s.id)}
-                      disabled={isFull || joining === s.id}
-                      className="shrink-0 px-5 py-2.5 rounded-xl bg-gradient-to-r from-primary to-accent text-white font-bold text-sm hover:opacity-90 disabled:opacity-50 flex items-center gap-2"
+                      onClick={() => shareGroupSessionToWhatsApp(s)}
+                      className="p-2.5 rounded-xl bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 border border-emerald-500/30 transition-all flex items-center gap-1.5 text-xs font-semibold"
+                      title="Share class to WhatsApp Course Group"
                     >
-                      {joining === s.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Users className="w-4 h-4" />}
-                      {isFull ? "Full" : "Join"}
+                      <Share2 className="w-4 h-4" />
+                      <span className="hidden sm:inline">WhatsApp</span>
                     </button>
-                  )}
+
+                    {role === "student" && (
+                      <button
+                        onClick={() => join(s.id)}
+                        disabled={isFull || joining === s.id}
+                        className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-primary to-accent text-white font-bold text-sm hover:opacity-90 disabled:opacity-50 flex items-center gap-2 shadow-md shadow-primary/20"
+                      >
+                        {joining === s.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Users className="w-4 h-4" />}
+                        {isFull ? "Full" : "Join"}
+                      </button>
+                    )}
+                  </div>
                 </motion.div>
               );
             })}
