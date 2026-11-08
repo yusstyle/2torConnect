@@ -3,8 +3,10 @@ import { useLocation } from "wouter";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { useAuthStore } from "@/lib/auth";
 import { useListConversations, useListMessages, useSendMessage, useListTutors } from "@workspace/api-client-react";
-import { Send, User, MessageSquare, Search, ArrowLeft, X } from "lucide-react";
+import { Send, User, MessageSquare, Search, ArrowLeft, X, Mic } from "lucide-react";
 import { format, isToday, isYesterday } from "date-fns";
+import VoiceNoteRecorder from "@/components/VoiceNoteRecorder";
+import VoiceNotePlayer from "@/components/VoiceNotePlayer";
 
 function formatMsgTime(dateStr: string) {
   const d = new Date(dateStr);
@@ -272,9 +274,16 @@ function ChatArea({ otherUserId, otherName, onBack }: { otherUserId: number, oth
                       {otherName.charAt(0).toUpperCase()}
                     </div>
                   )}
-                  <div className={`max-w-[72%] rounded-2xl px-4 py-3 ${isMine ? 'bg-gradient-to-br from-primary to-primary/80 text-white rounded-tr-sm' : 'bg-white/10 text-white rounded-tl-sm'}`}>
-                    <p className="text-sm leading-relaxed break-words">{msg.content}</p>
-                    <p className={`text-[10px] mt-1.5 ${isMine ? 'text-white/60 text-right' : 'text-muted-foreground'}`}>
+                  <div className={`max-w-[78%] rounded-2xl px-3.5 py-2.5 ${isMine ? 'bg-gradient-to-br from-primary to-primary/80 text-white rounded-tr-sm shadow-md' : 'bg-white/10 text-white rounded-tl-sm'}`}>
+                    {msg.content.startsWith("[VOICE_NOTE]:") ? (
+                      <VoiceNotePlayer
+                        audioSrc={msg.content.replace("[VOICE_NOTE]:", "")}
+                        isMine={isMine}
+                      />
+                    ) : (
+                      <p className="text-sm leading-relaxed break-words">{msg.content}</p>
+                    )}
+                    <p className={`text-[10px] mt-1 ${isMine ? 'text-white/60 text-right' : 'text-muted-foreground'}`}>
                       {format(new Date(msg.createdAt), "h:mm a")}
                     </p>
                   </div>
@@ -286,23 +295,31 @@ function ChatArea({ otherUserId, otherName, onBack }: { otherUserId: number, oth
         <div ref={bottomRef} />
       </div>
 
-      <form onSubmit={handleSend} className="p-3 bg-black/40 border-t border-white/10 flex gap-2 shrink-0">
-        <input
-          type="text"
-          value={content}
-          onChange={e => setContent(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder={`Message ${otherName}…`}
-          className="flex-1 bg-black/40 border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-accent transition-all"
+      <div className="p-3 bg-black/40 border-t border-white/10 flex items-center gap-2 shrink-0">
+        <VoiceNoteRecorder
+          onSendVoiceNote={(audioData) => {
+            sendMutation.mutate({ data: { receiverId: otherUserId, content: `[VOICE_NOTE]:${audioData}` } });
+          }}
         />
-        <button
-          type="submit"
-          disabled={!content.trim() || sendMutation.isPending}
-          className="bg-accent text-background p-2.5 rounded-xl hover:opacity-90 disabled:opacity-40 transition-all"
-        >
-          <Send className="w-4 h-4" />
-        </button>
-      </form>
+
+        <form onSubmit={handleSend} className="flex-1 flex gap-2">
+          <input
+            type="text"
+            value={content}
+            onChange={e => setContent(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder={`Message ${otherName}…`}
+            className="flex-1 bg-black/40 border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-accent transition-all"
+          />
+          <button
+            type="submit"
+            disabled={!content.trim() || sendMutation.isPending}
+            className="bg-accent text-background p-2.5 rounded-xl hover:opacity-90 disabled:opacity-40 transition-all shrink-0"
+          >
+            <Send className="w-4 h-4" />
+          </button>
+        </form>
+      </div>
     </>
   );
 }

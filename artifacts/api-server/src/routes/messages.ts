@@ -40,7 +40,7 @@ router.get("/conversations", async (req, res) => {
         conversationMap.set(otherId, {
           userId: otherId,
           userName: "Loading...",
-          lastMessage: msg.content,
+          lastMessage: msg.content.startsWith("[VOICE_NOTE") ? "🎤 Voice Note" : msg.content,
           lastMessageAt: msg.createdAt,
           unreadCount: unread,
         });
