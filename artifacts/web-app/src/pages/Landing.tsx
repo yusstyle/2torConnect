@@ -6,8 +6,9 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import {
   BookOpen, Users, Star, ArrowRight, ShieldCheck, Zap, CheckCircle,
   TrendingUp, Clock, MessageSquare, Award, Target, GraduationCap,
-  Banknote, Calendar, ChevronRight, ChevronDown, HandCoins, Video, Globe2, Heart
+  Banknote, Calendar, ChevronRight, ChevronDown, HandCoins, Video, Globe2, Heart, Smartphone
 } from "lucide-react";
+import InstallAppModal from "@/components/InstallAppModal";
 
 const fadeUp = (delay = 0) => ({
   initial: { opacity: 0, y: 30 },
@@ -47,6 +48,7 @@ function isPlatformStats(value: unknown): value is PlatformStats {
 
 export default function LandingPage() {
   const [stats, setStats] = useState<PlatformStats | null>(null);
+  const [showInstallApp, setShowInstallApp] = useState(false);
 
   useEffect(() => {
     fetch(`${import.meta.env.BASE_URL}api/stats`)
@@ -105,6 +107,14 @@ export default function LandingPage() {
             <a href="#features" className="hover:text-white transition-colors">Features</a>
           </div>
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+            <button
+              onClick={() => setShowInstallApp(true)}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-xl bg-white/5 hover:bg-white/10 text-emerald-400 text-xs font-bold border border-emerald-500/30 transition-all shadow-sm"
+              title="Install Android / iOS Mobile App"
+            >
+              <Smartphone className="w-3.5 h-3.5" />
+              <span>Get App</span>
+            </button>
             <ThemeToggle />
             <Link href="/login" className="px-2 py-2 sm:px-3 text-sm font-semibold text-white/80 hover:text-white transition-colors whitespace-nowrap">
               Sign In
@@ -600,6 +610,9 @@ export default function LandingPage() {
         </div>
       </footer>
 
+      {showInstallApp && (
+        <InstallAppModal onClose={() => setShowInstallApp(false)} />
+      )}
     </div>
   );
 }
