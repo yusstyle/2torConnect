@@ -1,20 +1,84 @@
+import { useState } from "react";
 import { useAuthStore } from "@/lib/auth";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { useListSessions } from "@workspace/api-client-react";
 import { useLocation } from "wouter";
-import { BookOpen, Clock, CheckCircle2, Video, ArrowRight, Loader2 } from "lucide-react";
+import {
+  BookOpen, Clock, CheckCircle2, Video, ArrowRight, Loader2,
+  Zap, Layers, PenTool, Headphones, GraduationCap, Calculator,
+  Sparkles, Flame, Smartphone
+} from "lucide-react";
 import { format } from "date-fns";
 import { motion } from "framer-motion";
+import InstallAppModal from "@/components/InstallAppModal";
 
 export default function StudentDashboard() {
   const { user } = useAuthStore();
   const [, setLocation] = useLocation();
+  const [showInstallApp, setShowInstallApp] = useState(false);
   const { data: sessionsData, isLoading } = useListSessions({ studentId: user?.id, limit: 10 });
 
   const allSessions = sessionsData?.sessions || [];
   const confirmedSessions = allSessions.filter(s => s.status === "confirmed");
   const completedSessions = allSessions.filter(s => s.status === "completed");
   const nextSession = confirmedSessions[0];
+
+  const tools = [
+    {
+      title: "2torArena: Daily Battle",
+      desc: "5-question speed quiz · Earn XP & tutor discounts",
+      icon: Zap,
+      href: "/arena",
+      color: "from-red-600/20 to-orange-500/10",
+      iconColor: "text-red-400",
+      badge: "🔥 Daily Streak"
+    },
+    {
+      title: "2torCards: Flashcards",
+      desc: "3D active recall decks for MTH101, PHY101 & GST101",
+      icon: Layers,
+      href: "/flashcards",
+      color: "from-blue-600/20 to-cyan-500/10",
+      iconColor: "text-cyan-400",
+      badge: "High-Yield"
+    },
+    {
+      title: "2torBoard: Whiteboard",
+      desc: "Canvas sketchpad for derivations & formulas",
+      icon: PenTool,
+      href: "/whiteboard",
+      color: "from-emerald-600/20 to-teal-500/10",
+      iconColor: "text-emerald-400",
+      badge: "Export PNG"
+    },
+    {
+      title: "24/7 Virtual Study Lounge",
+      desc: "Pomodoro focus timer & ambient Nigerian rain sounds",
+      icon: Headphones,
+      href: "/study-lounge",
+      color: "from-purple-600/20 to-pink-500/10",
+      iconColor: "text-purple-400",
+      badge: "🇳🇬 Live"
+    },
+    {
+      title: "Past Questions & CBT",
+      desc: "Practice 10,000+ national & university exam questions",
+      icon: GraduationCap,
+      href: "/past-questions",
+      color: "from-primary/20 to-accent/10",
+      iconColor: "text-accent",
+      badge: "JAMB & 100L"
+    },
+    {
+      title: "5.0 CGPA Calculator",
+      desc: "Calculate semester GPA & forecast degree classification",
+      icon: Calculator,
+      href: "/cgpa-calculator",
+      color: "from-amber-600/20 to-yellow-500/10",
+      iconColor: "text-amber-400",
+      badge: "University Standard"
+    }
+  ];
 
   return (
     <DashboardLayout role="student" title={`Welcome back, ${user?.name?.split(" ")[0] ?? ""}!`}>
@@ -90,6 +154,54 @@ export default function StudentDashboard() {
           </div>
         </div>
 
+        {/* Study Power Tools Grid */}
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-bold text-white flex items-center gap-2">
+              <Sparkles className="w-5 h-5 text-accent" />
+              Academic Toolkit & Campus Features
+            </h2>
+            <button
+              onClick={() => setShowInstallApp(true)}
+              className="text-xs font-semibold text-accent hover:underline flex items-center gap-1.5"
+            >
+              <Smartphone className="w-3.5 h-3.5" /> Install App
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {tools.map((tool) => (
+              <div
+                key={tool.title}
+                onClick={() => setLocation(tool.href)}
+                className={`glass-panel p-5 rounded-2xl bg-gradient-to-br ${tool.color} border border-white/10 hover:border-white/20 transition-all duration-300 cursor-pointer flex flex-col justify-between group hover:-translate-y-1 shadow-md`}
+              >
+                <div>
+                  <div className="flex items-center justify-between mb-3">
+                    <div className={`p-2.5 rounded-xl bg-white/10 ${tool.iconColor}`}>
+                      <tool.icon className="w-5 h-5" />
+                    </div>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-white/10 text-white/90">
+                      {tool.badge}
+                    </span>
+                  </div>
+                  <h3 className="font-bold text-white text-base group-hover:text-accent transition-colors">
+                    {tool.title}
+                  </h3>
+                  <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                    {tool.desc}
+                  </p>
+                </div>
+
+                <div className="mt-4 pt-3 border-t border-white/5 flex items-center justify-between text-xs font-semibold text-white/80 group-hover:text-white">
+                  <span>Open Tool</span>
+                  <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
         {/* Upcoming Schedule */}
         <div className="glass-panel rounded-2xl p-6">
           <div className="flex items-center justify-between mb-5">
@@ -138,6 +250,10 @@ export default function StudentDashboard() {
           )}
         </div>
       </div>
+
+      {showInstallApp && (
+        <InstallAppModal onClose={() => setShowInstallApp(false)} />
+      )}
     </DashboardLayout>
   );
 }

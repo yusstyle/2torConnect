@@ -3,7 +3,7 @@ import { useListSessions, useListTransactions } from "@workspace/api-client-reac
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { useLocation } from "wouter";
 import { format } from "date-fns";
-import { Calendar, DollarSign, Users, Clock, Video, ArrowRight, Loader2, BadgeCheck, XCircle, Sparkles, Camera } from "lucide-react";
+import { Calendar, DollarSign, Users, Clock, Video, ArrowRight, Loader2, BadgeCheck, XCircle, Sparkles, Camera, PenTool, Zap, Layers, Headphones, GraduationCap } from "lucide-react";
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
 import { getApiUrl } from "@/lib/api";
@@ -181,6 +181,30 @@ export default function TutorDashboardPage() {
 
         {/* 30-Second Voice Intro Audio Pitch */}
         <TutorVoiceIntroRecorder />
+
+        {/* Tutor Teaching Tools */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {[
+            { title: "2torBoard", desc: "Digital Whiteboard", href: "/whiteboard", icon: PenTool, color: "text-cyan-400", bg: "bg-cyan-500/10" },
+            { title: "Past Questions", desc: "CBT Exam Bank", href: "/past-questions", icon: GraduationCap, color: "text-accent", bg: "bg-accent/10" },
+            { title: "2torArena", desc: "Daily Speed Battle", href: "/arena", icon: Zap, color: "text-red-400", bg: "bg-red-500/10" },
+            { title: "2torCards", desc: "Flashcard Decks", href: "/flashcards", icon: Layers, color: "text-purple-400", bg: "bg-purple-500/10" },
+          ].map((t) => (
+            <div
+              key={t.title}
+              onClick={() => setLocation(t.href)}
+              className="glass-panel p-4 rounded-2xl cursor-pointer hover:border-white/20 transition-all group flex flex-col justify-between"
+            >
+              <div className={`w-8 h-8 rounded-xl ${t.bg} ${t.color} flex items-center justify-center mb-2`}>
+                <t.icon className="w-4 h-4" />
+              </div>
+              <div>
+                <p className="text-white text-xs font-bold group-hover:text-accent transition-colors">{t.title}</p>
+                <p className="text-[11px] text-muted-foreground">{t.desc}</p>
+              </div>
+            </div>
+          ))}
+        </div>
 
         {/* Set Your Rate */}
         <div className="glass-panel rounded-2xl p-6 border border-accent/20">

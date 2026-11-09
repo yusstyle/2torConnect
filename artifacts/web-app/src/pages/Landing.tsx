@@ -6,7 +6,8 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import {
   BookOpen, Users, Star, ArrowRight, ShieldCheck, Zap, CheckCircle,
   TrendingUp, Clock, MessageSquare, Award, Target, GraduationCap,
-  Banknote, Calendar, ChevronRight, ChevronDown, HandCoins, Video, Globe2, Heart, Smartphone
+  Banknote, Calendar, ChevronRight, ChevronDown, HandCoins, Video, Globe2, Heart, Smartphone,
+  PenTool, Layers, Headphones, Mic, Flame
 } from "lucide-react";
 import InstallAppModal from "@/components/InstallAppModal";
 
@@ -474,12 +475,12 @@ export default function LandingPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {[
-              { icon: ShieldCheck, title: "Verified Tutors Only", desc: "Every tutor goes through an identity and academic verification process. You always know who you're learning from.", color: "from-blue-500/20 to-blue-500/5" },
-              { icon: Zap, title: "Instant Booking", desc: "See real-time tutor availability, book a slot, and get confirmed within minutes — not days.", color: "from-yellow-500/20 to-yellow-500/5" },
-              { icon: Star, title: "Ratings & Reviews", desc: "Read honest reviews from real students before booking. Our rating system keeps quality consistently high.", color: "from-accent/20 to-accent/5" },
-              { icon: BookOpen, title: "Subject Coverage", desc: "From Mathematics and Sciences to Law, Medicine, Engineering, and Humanities — we cover every faculty.", color: "from-green-500/20 to-green-500/5" },
-              { icon: MessageSquare, title: "In-App Messaging", desc: "Communicate directly with your tutor or student through our secure built-in messaging system.", color: "from-purple-500/20 to-purple-500/5" },
-              { icon: TrendingUp, title: "Progress Tracking", desc: "Log session notes, track your improvement over time, and see which subjects need the most attention.", color: "from-primary/20 to-primary/5" },
+              { icon: PenTool, title: "2torBoard: Live Whiteboard", desc: "Collaborate and sketch math derivations, physics formulas, and science diagrams live during video calls and export notes as high-res images.", color: "from-cyan-500/20 to-cyan-500/5" },
+              { icon: Mic, title: "In-Call Voice Notes & Chat", desc: "Send WhatsApp-style voice notes in chat and inside live video sessions so you never have to talk over the tutor.", color: "from-emerald-500/20 to-emerald-500/5" },
+              { icon: Flame, title: "2torArena: Daily Speed Battles", desc: "5 rapid-fire questions every day. Build daily study streaks, earn tutor discounts, and rank your university on the national leaderboard.", color: "from-red-500/20 to-red-500/5" },
+              { icon: Layers, title: "2torCards: Smart Flashcards", desc: "Active recall 3D flip cards for MTH101, PHY101, CHM101 and GST101, plus an AI Deck Generator for any custom course code.", color: "from-purple-500/20 to-purple-500/5" },
+              { icon: Headphones, title: "24/7 Virtual Study Lounge", desc: "Customizable Pomodoro timer paired with ambient Nigerian tropical rain and 432Hz deep focus alpha waves.", color: "from-yellow-500/20 to-yellow-500/5" },
+              { icon: GraduationCap, title: "10,000+ Past Questions & CBT", desc: "Comprehensive CBT exam simulator for JAMB UTME, Post-UTME, and Nigerian university 100-level core courses.", color: "from-primary/20 to-primary/5" },
             ].map((feature, i) => (
               <motion.div key={feature.title} {...fadeUp(i * 0.1)}
                 className="glass-panel rounded-3xl p-8 group hover:border-white/20 transition-all duration-300 hover:-translate-y-1">

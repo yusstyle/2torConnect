@@ -442,3 +442,4 @@ export default function WhiteboardCanvas({ height = "100%", initialBackground = 
     </div>
   );
 }
+
