@@ -9,6 +9,7 @@ import { useState, useEffect } from "react";
 import { getApiUrl } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import TutorFlyerModal from "@/components/TutorFlyerModal";
+import { TutorVoiceIntroRecorder } from "@/components/TutorVoiceIntro";
 
 const statusColors: Record<string, string> = {
   pending: "bg-yellow-500/20 text-yellow-400",
@@ -177,6 +178,9 @@ export default function TutorDashboardPage() {
             <Camera className="w-4 h-4" /> Generate My Flyer
           </button>
         </div>
+
+        {/* 30-Second Voice Intro Audio Pitch */}
+        <TutorVoiceIntroRecorder />
 
         {/* Set Your Rate */}
         <div className="glass-panel rounded-2xl p-6 border border-accent/20">

@@ -6,11 +6,12 @@ import {
   Video, PhoneOff, ArrowLeft, Wifi,
   ExternalLink, Copy, CheckCheck,
   Maximize2, Loader2, Youtube,
-  MessageSquare, Send, X, Sparkles
+  MessageSquare, Send, X, Sparkles, PenTool
 } from "lucide-react";
 import { format, isToday, isYesterday } from "date-fns";
 import VoiceNoteRecorder from "@/components/VoiceNoteRecorder";
 import VoiceNotePlayer from "@/components/VoiceNotePlayer";
+import WhiteboardCanvas from "@/components/WhiteboardCanvas";
 
 interface VideoRoomProps {
   params: { id: string };
@@ -38,6 +39,7 @@ export default function VideoRoom({ params }: VideoRoomProps) {
   const [sessionTime, setSessionTime] = useState(0);
   const [copied, setCopied] = useState(false);
   const [iframeLoaded, setIframeLoaded] = useState(false);
+  const [activeView, setActiveView] = useState<"video" | "whiteboard">("video");
   const [showChat, setShowChat] = useState(false);
   const [chatInput, setChatInput] = useState("");
   const [lastReadCount, setLastReadCount] = useState(0);
@@ -172,6 +174,30 @@ export default function VideoRoom({ params }: VideoRoomProps) {
         </div>
 
         <div className="flex items-center gap-2 sm:gap-3">
+          {/* Mode Switcher: Video vs Whiteboard */}
+          <div className="flex items-center bg-white/10 p-0.5 rounded-xl border border-white/10">
+            <button
+              onClick={() => setActiveView("video")}
+              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${
+                activeView === "video" ? "bg-primary text-white shadow-sm" : "text-muted-foreground hover:text-white"
+              }`}
+              title="Video Call View"
+            >
+              <Video className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Video</span>
+            </button>
+            <button
+              onClick={() => setActiveView("whiteboard")}
+              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${
+                activeView === "whiteboard" ? "bg-accent text-background font-bold shadow-sm" : "text-muted-foreground hover:text-white"
+              }`}
+              title="2torBoard Whiteboard"
+            >
+              <PenTool className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Whiteboard</span>
+            </button>
+          </div>
+
           {youtubeId && (
             <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-red-600/20 border border-red-500/30">
               <Youtube className="w-3.5 h-3.5 text-red-400" />
@@ -213,48 +239,56 @@ export default function VideoRoom({ params }: VideoRoomProps) {
       {/* Main interactive area: Video Frame + Side Chat Drawer */}
       <div className="flex-1 relative overflow-hidden flex flex-row">
 
-        {/* Video stream container */}
+        {/* Main Workspace (Video stream or Whiteboard) */}
         <div className="flex-1 relative overflow-hidden flex flex-col h-full bg-black">
-          {/* Loading overlay */}
-          {!iframeLoaded && (
-            <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-[#0F0F1B] gap-5">
-              <div className="w-20 h-20 rounded-full bg-gradient-to-tr from-primary to-accent flex items-center justify-center shadow-lg shadow-primary/30">
-                <Video className="w-10 h-10 text-white" />
-              </div>
-              <div className="text-center">
-                <p className="text-white font-bold text-xl mb-2">
-                  {youtubeId ? "Starting live stream…" : "Starting video room…"}
-                </p>
-                <p className="text-muted-foreground text-sm mb-4">
-                  {youtubeId ? "Your tutor's live session is loading" : "Allow camera and microphone when prompted"}
-                </p>
-                <Loader2 className="w-6 h-6 animate-spin text-accent mx-auto" />
-              </div>
-            </div>
-          )}
+          {/* Whiteboard view */}
+          <div className={`w-full h-full p-2 sm:p-3 ${activeView === "whiteboard" ? "flex flex-col" : "hidden"}`}>
+            <WhiteboardCanvas initialBackground="grid" />
+          </div>
 
-          {youtubeEmbedUrl ? (
-            <iframe
-              key={youtubeEmbedUrl}
-              src={youtubeEmbedUrl}
-              allow="autoplay; fullscreen; picture-in-picture"
-              allowFullScreen
-              className="flex-1 w-full border-0"
-              style={{ minHeight: 0 }}
-              title="2torConnect Live Session"
-              onLoad={() => setIframeLoaded(true)}
-            />
-          ) : (
-            <iframe
-              src={jitsiIframeUrl}
-              allow="camera *; microphone *; fullscreen *; display-capture *; autoplay *; clipboard-write"
-              allowFullScreen
-              className="flex-1 w-full border-0"
-              style={{ minHeight: 0 }}
-              title="2torConnect Video Session"
-              onLoad={() => setIframeLoaded(true)}
-            />
-          )}
+          {/* Video call view (kept alive in DOM so audio never disconnects) */}
+          <div className={`w-full h-full flex flex-col relative ${activeView === "video" ? "flex" : "hidden"}`}>
+            {/* Loading overlay */}
+            {!iframeLoaded && (
+              <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-[#0F0F1B] gap-5">
+                <div className="w-20 h-20 rounded-full bg-gradient-to-tr from-primary to-accent flex items-center justify-center shadow-lg shadow-primary/30">
+                  <Video className="w-10 h-10 text-white" />
+                </div>
+                <div className="text-center">
+                  <p className="text-white font-bold text-xl mb-2">
+                    {youtubeId ? "Starting live stream…" : "Starting video room…"}
+                  </p>
+                  <p className="text-muted-foreground text-sm mb-4">
+                    {youtubeId ? "Your tutor's live session is loading" : "Allow camera and microphone when prompted"}
+                  </p>
+                  <Loader2 className="w-6 h-6 animate-spin text-accent mx-auto" />
+                </div>
+              </div>
+            )}
+
+            {youtubeEmbedUrl ? (
+              <iframe
+                key={youtubeEmbedUrl}
+                src={youtubeEmbedUrl}
+                allow="autoplay; fullscreen; picture-in-picture"
+                allowFullScreen
+                className="flex-1 w-full border-0"
+                style={{ minHeight: 0 }}
+                title="2torConnect Live Session"
+                onLoad={() => setIframeLoaded(true)}
+              />
+            ) : (
+              <iframe
+                src={jitsiIframeUrl}
+                allow="camera *; microphone *; fullscreen *; display-capture *; autoplay *; clipboard-write"
+                allowFullScreen
+                className="flex-1 w-full border-0"
+                style={{ minHeight: 0 }}
+                title="2torConnect Video Session"
+                onLoad={() => setIframeLoaded(true)}
+              />
+            )}
+          </div>
         </div>
 
         {/* In-Call Chat & Voice Notes Drawer */}

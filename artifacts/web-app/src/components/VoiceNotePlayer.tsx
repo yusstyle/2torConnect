@@ -114,3 +114,4 @@ export default function VoiceNotePlayer({ audioSrc, isMine = false }: VoiceNoteP
     </div>
   );
 }
+

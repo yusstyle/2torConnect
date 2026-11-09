@@ -5,6 +5,7 @@ import { useCreateSession } from "@workspace/api-client-react";
 import { useAuthStore } from "@/lib/auth";
 import { Search, Star, BookOpen, MessageSquare, Loader2, Filter, X, ChevronDown } from "lucide-react";
 import { VerifiedBadge } from "@/components/VerifiedBadge";
+import { TutorVoiceIntroPlayer } from "@/components/TutorVoiceIntro";
 import { useToast } from "@/hooks/use-toast";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -280,9 +281,10 @@ function TutorCard({ tutor, onBook, onMessage, onReview }: { tutor: Tutor; onBoo
 
         <p className="text-sm text-muted-foreground line-clamp-2 mb-4">{tutor.aboutYou || "No bio provided."}</p>
 
-        {/* Stats */}
-        <div className="flex items-center gap-3 text-xs text-muted-foreground mb-4">
+        {/* Stats & Voice Intro */}
+        <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground mb-4 flex-wrap">
           <span className="flex items-center gap-1"><BookOpen className="w-3 h-3" /> {tutor.totalSessions ?? 0} sessions</span>
+          <TutorVoiceIntroPlayer tutorName={tutor.name} />
         </div>
 
         {/* Reviews toggle */}

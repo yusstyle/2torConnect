@@ -180,3 +180,4 @@ export default function VoiceNoteRecorder({ onSendVoiceNote, onCancel }: VoiceNo
     </div>
   );
 }
+

@@ -49,6 +49,10 @@ import ReferralPage from "@/pages/Referral";
 import GroupSessionsPage from "@/pages/GroupSessions";
 import PastQuestionsPage from "@/pages/PastQuestions";
 import CgpaCalculatorPage from "@/pages/CgpaCalculator";
+import WhiteboardPage from "@/pages/Whiteboard";
+import ArenaPage from "@/pages/Arena";
+import FlashcardsPage from "@/pages/Flashcards";
+import StudyLoungePage from "@/pages/StudyLounge";
 
 const queryClient = new QueryClient();
 
@@ -113,6 +117,10 @@ function Router() {
       <Route path="/group-sessions" component={GroupSessionsPage} />
       <Route path="/past-questions" component={PastQuestionsPage} />
       <Route path="/cgpa-calculator" component={CgpaCalculatorPage} />
+      <Route path="/whiteboard" component={WhiteboardPage} />
+      <Route path="/arena" component={ArenaPage} />
+      <Route path="/flashcards" component={FlashcardsPage} />
+      <Route path="/study-lounge" component={StudyLoungePage} />
 
       <Route path="/admin/dashboard" component={AdminDashboard} />
       <Route path="/admin/users" component={AdminUsersPage} />
