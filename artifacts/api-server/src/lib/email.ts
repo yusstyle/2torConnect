@@ -164,3 +164,334 @@ export async function sendCustomEmail(
     return { ok: false, error: errorMsg, quotaExceeded };
   }
 }
+
+export interface TutorBookingNotificationParams {
+  tutorName: string;
+  tutorEmail: string;
+  studentName: string;
+  studentEmail: string;
+  studentUniversity?: string | null;
+  subject: string;
+  scheduledAt: Date | string;
+  durationMinutes: number;
+  amount?: string | number | null;
+  notes?: string | null;
+  sessionId?: number;
+}
+
+export async function sendSessionBookingNotificationToTutor(params: TutorBookingNotificationParams): Promise<boolean> {
+  const transporter = createTransporter();
+  const dateObj = new Date(params.scheduledAt);
+  const formattedDate = !isNaN(dateObj.getTime())
+    ? dateObj.toLocaleString("en-US", {
+        weekday: "long",
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+        hour: "numeric",
+        minute: "2-digit",
+        timeZoneName: "short",
+      })
+    : String(params.scheduledAt);
+
+  const studentMessage = (params.notes || "").trim() || "No additional notes provided by student.";
+  const formattedFee = params.amount && Number(params.amount) > 0
+    ? `₦${Number(params.amount).toLocaleString()}`
+    : "Standard session rate";
+
+  const sessionLink = "https://www.2torconnect.com/tutor/sessions";
+
+  if (!transporter) {
+    console.log(
+      `[DEV] Booking notification to Tutor <${params.tutorEmail}>: ${params.studentName} (${params.studentEmail}) requested ${params.subject} on ${formattedDate}. Message: "${studentMessage}"`
+    );
+    return true;
+  }
+
+  try {
+    await transporter.sendMail({
+      from: getFromAddress(),
+      to: params.tutorEmail,
+      replyTo: params.studentEmail,
+      subject: `New Session Booking Request from ${params.studentName} — ${params.subject}`,
+      html: `
+        <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;max-width:560px;margin:0 auto;padding:32px 24px;background:#0d0d18;border-radius:20px;color:#ffffff;border:1px solid rgba(255,255,255,0.08);">
+          <!-- Header Logo / Brand -->
+          <div style="text-align:center;margin-bottom:28px;">
+            <div style="display:inline-block;padding:8px 18px;background:rgba(168,85,247,0.12);border:1px solid rgba(168,85,247,0.3);border-radius:999px;margin-bottom:12px;">
+              <span style="color:#c084fc;font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;">⚡ New Session Request</span>
+            </div>
+            <h1 style="margin:0;font-size:24px;font-weight:800;color:#ffffff;">2tor<span style="color:#06b6d4;">Connect</span></h1>
+            <p style="margin:6px 0 0;font-size:14px;color:#94a3b8;">You have received a new 1-on-1 tutoring booking request</p>
+          </div>
+
+          <!-- Greeting -->
+          <p style="font-size:15px;line-height:1.6;color:#e2e8f0;margin-bottom:20px;">
+            Hello <strong>${params.tutorName}</strong>,<br/>
+            <strong>${params.studentName}</strong> has requested to book a tutoring session with you on 2torConnect.
+          </p>
+
+          <!-- Student Profile & Exact Message Box -->
+          <div style="background:#151528;border-radius:14px;padding:20px;margin-bottom:20px;border:1px solid rgba(255,255,255,0.06);">
+            <div style="font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;">Student Information</div>
+            <div style="font-size:15px;color:#ffffff;font-weight:700;margin-bottom:4px;">${params.studentName}</div>
+            <div style="font-size:13px;color:#06b6d4;margin-bottom:4px;">
+              <a href="mailto:${params.studentEmail}" style="color:#06b6d4;text-decoration:none;">${params.studentEmail}</a>
+            </div>
+            ${params.studentUniversity ? `<div style="font-size:12px;color:#94a3b8;">🎓 ${params.studentUniversity}</div>` : ""}
+
+            <div style="margin-top:16px;padding-top:14px;border-top:1px solid rgba(255,255,255,0.08);">
+              <div style="font-size:11px;font-weight:700;color:#c084fc;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">
+                💬 Message from ${params.studentName}:
+              </div>
+              <div style="background:rgba(0,0,0,0.3);border-left:3px solid #c084fc;padding:12px 14px;border-radius:8px;font-size:14px;line-height:1.6;color:#f1f5f9;font-style:italic;">
+                "${studentMessage}"
+              </div>
+            </div>
+          </div>
+
+          <!-- Booking Details Card -->
+          <div style="background:#151528;border-radius:14px;padding:20px;margin-bottom:24px;border:1px solid rgba(255,255,255,0.06);">
+            <div style="font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;">Session Details</div>
+            
+            <table style="width:100%;border-collapse:collapse;font-size:14px;">
+              <tr>
+                <td style="padding:6px 0;color:#94a3b8;">Course / Subject:</td>
+                <td style="padding:6px 0;color:#ffffff;font-weight:700;text-align:right;">${params.subject}</td>
+              </tr>
+              <tr>
+                <td style="padding:6px 0;color:#94a3b8;">Scheduled Date:</td>
+                <td style="padding:6px 0;color:#ffffff;font-weight:700;text-align:right;">${formattedDate}</td>
+              </tr>
+              <tr>
+                <td style="padding:6px 0;color:#94a3b8;">Duration:</td>
+                <td style="padding:6px 0;color:#ffffff;font-weight:700;text-align:right;">${params.durationMinutes} minutes</td>
+              </tr>
+              <tr>
+                <td style="padding:6px 0;color:#94a3b8;">Session Fee:</td>
+                <td style="padding:6px 0;color:#4ade80;font-weight:700;text-align:right;">${formattedFee}</td>
+              </tr>
+            </table>
+          </div>
+
+          <!-- Action Button -->
+          <div style="text-align:center;margin-bottom:24px;">
+            <a href="${sessionLink}" style="display:inline-block;padding:14px 32px;background:linear-gradient(135deg, #9333ea, #06b6d4);color:#ffffff;font-size:14px;font-weight:700;text-decoration:none;border-radius:12px;box-shadow:0 8px 20px rgba(147,51,234,0.3);letter-spacing:0.3px;">
+              Review & Confirm in Dashboard →
+            </a>
+          </div>
+
+          <!-- Reply tip -->
+          <p style="font-size:12px;line-height:1.5;color:#94a3b8;text-align:center;margin:0 0 20px;">
+            💡 <em>Tip: You can also reply directly to this email to send a message back to ${params.studentName}.</em>
+          </p>
+
+          <div style="border-top:1px solid rgba(255,255,255,0.06);padding-top:18px;text-align:center;font-size:11px;color:#64748b;">
+            2torConnect Peer Tutoring Platform · <a href="https://www.2torconnect.com" style="color:#94a3b8;text-decoration:none;">www.2torconnect.com</a>
+          </div>
+        </div>
+      `,
+    });
+    return true;
+  } catch (err: any) {
+    console.error(`Booking notification to tutor ${params.tutorEmail} failed:`, err?.message || err);
+    return false;
+  }
+}
+
+export interface StudentBookingConfirmationParams {
+  studentName: string;
+  studentEmail: string;
+  tutorName: string;
+  tutorEmail: string;
+  subject: string;
+  scheduledAt: Date | string;
+  durationMinutes: number;
+  notes?: string | null;
+  sessionId?: number;
+}
+
+export async function sendSessionBookingConfirmationToStudent(params: StudentBookingConfirmationParams): Promise<boolean> {
+  const transporter = createTransporter();
+  const dateObj = new Date(params.scheduledAt);
+  const formattedDate = !isNaN(dateObj.getTime())
+    ? dateObj.toLocaleString("en-US", {
+        weekday: "long",
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+        hour: "numeric",
+        minute: "2-digit",
+        timeZoneName: "short",
+      })
+    : String(params.scheduledAt);
+
+  const sessionLink = "https://www.2torconnect.com/student/sessions";
+
+  if (!transporter) {
+    console.log(
+      `[DEV] Booking confirmation to Student <${params.studentEmail}>: You requested ${params.subject} with ${params.tutorName} on ${formattedDate}.`
+    );
+    return true;
+  }
+
+  try {
+    await transporter.sendMail({
+      from: getFromAddress(),
+      to: params.studentEmail,
+      replyTo: params.tutorEmail,
+      subject: `Booking Request Sent to ${params.tutorName} — ${params.subject} | 2torConnect`,
+      html: `
+        <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;max-width:560px;margin:0 auto;padding:32px 24px;background:#0d0d18;border-radius:20px;color:#ffffff;border:1px solid rgba(255,255,255,0.08);">
+          <div style="text-align:center;margin-bottom:28px;">
+            <div style="display:inline-block;padding:8px 18px;background:rgba(6,182,212,0.12);border:1px solid rgba(6,182,212,0.3);border-radius:999px;margin-bottom:12px;">
+              <span style="color:#22d3ee;font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;">✓ Booking Requested</span>
+            </div>
+            <h1 style="margin:0;font-size:24px;font-weight:800;color:#ffffff;">2tor<span style="color:#06b6d4;">Connect</span></h1>
+            <p style="margin:6px 0 0;font-size:14px;color:#94a3b8;">Your tutor booking request has been delivered</p>
+          </div>
+
+          <p style="font-size:15px;line-height:1.6;color:#e2e8f0;margin-bottom:20px;">
+            Hello <strong>${params.studentName}</strong>,<br/>
+            Your request for a tutoring session on <strong>${params.subject}</strong> has been sent to <strong>${params.tutorName}</strong>.
+          </p>
+
+          <div style="background:#151528;border-radius:14px;padding:20px;margin-bottom:20px;border:1px solid rgba(255,255,255,0.06);">
+            <div style="font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;">Summary of Your Request</div>
+            <table style="width:100%;border-collapse:collapse;font-size:14px;">
+              <tr>
+                <td style="padding:6px 0;color:#94a3b8;">Tutor:</td>
+                <td style="padding:6px 0;color:#ffffff;font-weight:700;text-align:right;">${params.tutorName}</td>
+              </tr>
+              <tr>
+                <td style="padding:6px 0;color:#94a3b8;">Subject:</td>
+                <td style="padding:6px 0;color:#ffffff;font-weight:700;text-align:right;">${params.subject}</td>
+              </tr>
+              <tr>
+                <td style="padding:6px 0;color:#94a3b8;">Scheduled Date:</td>
+                <td style="padding:6px 0;color:#ffffff;font-weight:700;text-align:right;">${formattedDate}</td>
+              </tr>
+              <tr>
+                <td style="padding:6px 0;color:#94a3b8;">Duration:</td>
+                <td style="padding:6px 0;color:#ffffff;font-weight:700;text-align:right;">${params.durationMinutes} minutes</td>
+              </tr>
+            </table>
+
+            ${params.notes ? `
+            <div style="margin-top:14px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.08);">
+              <div style="font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">Your Notes to Tutor:</div>
+              <div style="font-size:13px;color:#cbd5e1;font-style:italic;">"${params.notes}"</div>
+            </div>` : ""}
+          </div>
+
+          <p style="font-size:14px;line-height:1.6;color:#cbd5e1;margin-bottom:24px;">
+            We have emailed ${params.tutorName} with your message. You'll receive another notification as soon as ${params.tutorName} confirms the session.
+          </p>
+
+          <div style="text-align:center;margin-bottom:24px;">
+            <a href="${sessionLink}" style="display:inline-block;padding:14px 32px;background:linear-gradient(135deg, #9333ea, #06b6d4);color:#ffffff;font-size:14px;font-weight:700;text-decoration:none;border-radius:12px;box-shadow:0 8px 20px rgba(147,51,234,0.3);letter-spacing:0.3px;">
+              View My Sessions →
+            </a>
+          </div>
+
+          <div style="border-top:1px solid rgba(255,255,255,0.06);padding-top:18px;text-align:center;font-size:11px;color:#64748b;">
+            2torConnect Peer Tutoring Platform · <a href="https://www.2torconnect.com" style="color:#94a3b8;text-decoration:none;">www.2torconnect.com</a>
+          </div>
+        </div>
+      `,
+    });
+    return true;
+  } catch (err: any) {
+    console.error(`Booking confirmation to student ${params.studentEmail} failed:`, err?.message || err);
+    return false;
+  }
+}
+
+export interface SessionConfirmedEmailParams {
+  studentName: string;
+  studentEmail: string;
+  tutorName: string;
+  subject: string;
+  scheduledAt: Date | string;
+  sessionId: number;
+}
+
+export async function sendSessionConfirmedEmailToStudent(params: SessionConfirmedEmailParams): Promise<boolean> {
+  const transporter = createTransporter();
+  const dateObj = new Date(params.scheduledAt);
+  const formattedDate = !isNaN(dateObj.getTime())
+    ? dateObj.toLocaleString("en-US", {
+        weekday: "long",
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+        hour: "numeric",
+        minute: "2-digit",
+        timeZoneName: "short",
+      })
+    : String(params.scheduledAt);
+
+  const classroomLink = `https://www.2torconnect.com/session/${params.sessionId}`;
+
+  if (!transporter) {
+    console.log(
+      `[DEV] Session confirmation to Student <${params.studentEmail}>: ${params.tutorName} confirmed ${params.subject} on ${formattedDate}. Classroom: ${classroomLink}`
+    );
+    return true;
+  }
+
+  try {
+    await transporter.sendMail({
+      from: getFromAddress(),
+      to: params.studentEmail,
+      subject: `Session Confirmed! ${params.tutorName} accepted your session (${params.subject}) | 2torConnect`,
+      html: `
+        <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;max-width:560px;margin:0 auto;padding:32px 24px;background:#0d0d18;border-radius:20px;color:#ffffff;border:1px solid rgba(255,255,255,0.08);">
+          <div style="text-align:center;margin-bottom:28px;">
+            <div style="display:inline-block;padding:8px 18px;background:rgba(34,197,94,0.12);border:1px solid rgba(34,197,94,0.3);border-radius:999px;margin-bottom:12px;">
+              <span style="color:#4ade80;font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;">🎉 Session Confirmed</span>
+            </div>
+            <h1 style="margin:0;font-size:24px;font-weight:800;color:#ffffff;">2tor<span style="color:#06b6d4;">Connect</span></h1>
+            <p style="margin:6px 0 0;font-size:14px;color:#94a3b8;">Your 1-on-1 tutoring session is ready</p>
+          </div>
+
+          <p style="font-size:15px;line-height:1.6;color:#e2e8f0;margin-bottom:20px;">
+            Great news, <strong>${params.studentName}</strong>!<br/>
+            <strong>${params.tutorName}</strong> has accepted your booking request for <strong>${params.subject}</strong>.
+          </p>
+
+          <div style="background:#151528;border-radius:14px;padding:20px;margin-bottom:24px;border:1px solid rgba(255,255,255,0.06);">
+            <table style="width:100%;border-collapse:collapse;font-size:14px;">
+              <tr>
+                <td style="padding:6px 0;color:#94a3b8;">Tutor:</td>
+                <td style="padding:6px 0;color:#ffffff;font-weight:700;text-align:right;">${params.tutorName}</td>
+              </tr>
+              <tr>
+                <td style="padding:6px 0;color:#94a3b8;">Course / Subject:</td>
+                <td style="padding:6px 0;color:#ffffff;font-weight:700;text-align:right;">${params.subject}</td>
+              </tr>
+              <tr>
+                <td style="padding:6px 0;color:#94a3b8;">Date & Time:</td>
+                <td style="padding:6px 0;color:#4ade80;font-weight:700;text-align:right;">${formattedDate}</td>
+              </tr>
+            </table>
+          </div>
+
+          <div style="text-align:center;margin-bottom:24px;">
+            <a href="${classroomLink}" style="display:inline-block;padding:14px 32px;background:linear-gradient(135deg, #10b981, #06b6d4);color:#ffffff;font-size:14px;font-weight:700;text-decoration:none;border-radius:12px;box-shadow:0 8px 20px rgba(16,185,129,0.3);letter-spacing:0.3px;">
+              Open Live Classroom →
+            </a>
+          </div>
+
+          <div style="border-top:1px solid rgba(255,255,255,0.06);padding-top:18px;text-align:center;font-size:11px;color:#64748b;">
+            2torConnect Peer Tutoring Platform · <a href="https://www.2torconnect.com" style="color:#94a3b8;text-decoration:none;">www.2torconnect.com</a>
+          </div>
+        </div>
+      `,
+    });
+    return true;
+  } catch (err: any) {
+    console.error(`Session confirmation email to student ${params.studentEmail} failed:`, err?.message || err);
+    return false;
+  }
+}

@@ -444,7 +444,10 @@ function BookingModal({ tutor, onClose }: { tutor: Tutor; onClose: () => void })
   const bookMutation = useCreateSession({
     mutation: {
       onSuccess: () => {
-        toast({ title: "Session Requested!", description: "The tutor will review your request." });
+        toast({
+          title: "Booking Request Sent! 📬",
+          description: `An email notification with your message has been sent to ${tutor.name}.`,
+        });
         onClose();
       },
       onError: (err: any) => {
@@ -490,8 +493,18 @@ function BookingModal({ tutor, onClose }: { tutor: Tutor; onClose: () => void })
             </div>
           </div>
           <div>
-            <label className="block text-sm font-medium text-white/80 mb-2">Notes (optional)</label>
-            <textarea value={notes} onChange={e => setNotes(e.target.value)} className="w-full bg-black/40 border border-white/10 rounded-xl py-3 px-4 text-white focus:border-accent focus:outline-none min-h-20 resize-none" placeholder="What do you need help with?" />
+            <label className="block text-sm font-medium text-white/80 mb-1.5">
+              Message to Tutor / What do you need help with?
+            </label>
+            <textarea
+              value={notes}
+              onChange={e => setNotes(e.target.value)}
+              className="w-full bg-black/40 border border-white/10 rounded-xl py-3 px-4 text-white focus:border-accent focus:outline-none min-h-24 resize-none text-sm placeholder:text-muted-foreground"
+              placeholder="e.g. Hi! I need help preparing for my calculus exam, specifically integration by parts and differential equations..."
+            />
+            <p className="text-[11px] text-muted-foreground mt-1.5 flex items-center gap-1.5">
+              <span>✉️</span> This message will be emailed directly to {tutor.name} with your booking request.
+            </p>
           </div>
           <div className="flex gap-3 mt-2">
             <button type="button" onClick={onClose} className="flex-1 py-3 rounded-xl border border-white/10 text-white font-medium hover:bg-white/5 transition-colors">Cancel</button>

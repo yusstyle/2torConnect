@@ -1,9 +1,15 @@
 import { Router, type IRouter } from "express";
 import { db } from "@workspace/db";
-import { sessionsTable, transactionsTable, usersTable } from "@workspace/db";
+import { sessionsTable, transactionsTable, usersTable, studentsTable } from "@workspace/db";
 import { eq, and, count, or } from "drizzle-orm";
 import { CreateSessionBody, UpdateSessionBody } from "@workspace/api-zod";
 import { requireAuth } from "../lib/auth-middleware";
+import {
+  sendSessionBookingNotificationToTutor,
+  sendSessionBookingConfirmationToStudent,
+  sendSessionConfirmedEmailToStudent,
+} from "../lib/email";
+import { pushNotification } from "./notifications";
 
 const router: IRouter = Router();
 
@@ -66,6 +72,68 @@ router.post("/", requireAuth, async (req: any, res) => {
       status: "pending",
     }).returning();
     const enriched = await enrichSession(session);
+
+    // Fetch tutor and student profiles to send email notifications & in-app alerts
+    try {
+      const [tutorUser] = await db.select().from(usersTable).where(eq(usersTable.id, session.tutorId)).limit(1);
+      const [studentUser] = await db.select().from(usersTable).where(eq(usersTable.id, session.studentId)).limit(1);
+      const [studentProfile] = await db.select().from(studentsTable).where(eq(studentsTable.userId, session.studentId)).limit(1);
+
+      if (tutorUser && studentUser) {
+        // 1. Send detailed email to Tutor with the message from the student
+        sendSessionBookingNotificationToTutor({
+          tutorName: tutorUser.name,
+          tutorEmail: tutorUser.email,
+          studentName: studentUser.name,
+          studentEmail: studentUser.email,
+          studentUniversity: studentProfile?.university || null,
+          subject: session.subject,
+          scheduledAt: session.scheduledAt,
+          durationMinutes: session.durationMinutes,
+          amount: session.amount,
+          notes: session.notes,
+          sessionId: session.id,
+        }).catch((emailErr) => {
+          req.log.warn({ err: emailErr }, "Failed sending tutor booking email notification");
+        });
+
+        // 2. Send booking confirmation email to Student
+        sendSessionBookingConfirmationToStudent({
+          studentName: studentUser.name,
+          studentEmail: studentUser.email,
+          tutorName: tutorUser.name,
+          tutorEmail: tutorUser.email,
+          subject: session.subject,
+          scheduledAt: session.scheduledAt,
+          durationMinutes: session.durationMinutes,
+          notes: session.notes,
+          sessionId: session.id,
+        }).catch((emailErr) => {
+          req.log.warn({ err: emailErr }, "Failed sending student booking confirmation email");
+        });
+
+        // 3. In-app notifications
+        const snippet = (session.notes || "No message provided").trim().slice(0, 75);
+        pushNotification(
+          tutorUser.id,
+          "session_request",
+          `New Booking: ${session.subject}`,
+          `${studentUser.name} requested a session: "${snippet}"`,
+          "/tutor/sessions"
+        ).catch(() => {});
+
+        pushNotification(
+          studentUser.id,
+          "session_request",
+          `Request Sent: ${session.subject}`,
+          `Your session request with message has been sent to ${tutorUser.name}.`,
+          "/student/sessions"
+        ).catch(() => {});
+      }
+    } catch (notifyErr) {
+      req.log.warn({ err: notifyErr }, "Session notification dispatch warning");
+    }
+
     res.status(201).json(enriched);
   } catch (err) {
     req.log.error({ err }, "create session error");
@@ -116,6 +184,35 @@ router.patch("/:id", requireAuth, async (req: any, res) => {
     if (req.body.amount !== undefined) updateData.amount = req.body.amount;
     const [updated] = await db.update(sessionsTable).set(updateData).where(eq(sessionsTable.id, id)).returning();
     const enriched = await enrichSession(updated);
+
+    // If session status was updated to confirmed, notify the student via email & in-app
+    if (body.status === "confirmed" && session.status !== "confirmed") {
+      try {
+        const [tutorUser] = await db.select().from(usersTable).where(eq(usersTable.id, session.tutorId)).limit(1);
+        const [studentUser] = await db.select().from(usersTable).where(eq(usersTable.id, session.studentId)).limit(1);
+        if (studentUser && tutorUser) {
+          sendSessionConfirmedEmailToStudent({
+            studentName: studentUser.name,
+            studentEmail: studentUser.email,
+            tutorName: tutorUser.name,
+            subject: session.subject,
+            scheduledAt: session.scheduledAt,
+            sessionId: session.id,
+          }).catch((err) => req.log.warn({ err }, "Failed sending session confirmed email"));
+
+          pushNotification(
+            studentUser.id,
+            "session_confirmed",
+            `Session Confirmed! 🎉`,
+            `${tutorUser.name} has confirmed your session for ${session.subject}.`,
+            `/session/${session.id}`
+          ).catch(() => {});
+        }
+      } catch (notifyErr) {
+        req.log.warn({ err: notifyErr }, "Session confirmation notify warning");
+      }
+    }
+
     res.json(enriched);
   } catch (err) {
     req.log.error({ err }, "update session error");
@@ -182,6 +279,29 @@ router.post("/:id/pay", requireAuth, async (req: any, res) => {
       description: `Earnings for session #${id} — ${session.subject}`,
       status: "completed",
     });
+
+    try {
+      const [tutorUser] = await db.select().from(usersTable).where(eq(usersTable.id, session.tutorId)).limit(1);
+      const [studentUser] = await db.select().from(usersTable).where(eq(usersTable.id, session.studentId)).limit(1);
+      if (studentUser && tutorUser) {
+        sendSessionConfirmedEmailToStudent({
+          studentName: studentUser.name,
+          studentEmail: studentUser.email,
+          tutorName: tutorUser.name,
+          subject: session.subject,
+          scheduledAt: session.scheduledAt,
+          sessionId: session.id,
+        }).catch(() => {});
+
+        pushNotification(
+          tutorUser.id,
+          "payment_received",
+          `Payment Confirmed: ${session.subject}`,
+          `${studentUser.name} paid ₦${amount.toLocaleString()} for session #${id}. Session is confirmed!`,
+          "/tutor/sessions"
+        ).catch(() => {});
+      }
+    } catch {}
 
     const [updated] = await db.select().from(sessionsTable).where(eq(sessionsTable.id, id)).limit(1);
     const enriched = await enrichSession(updated);
