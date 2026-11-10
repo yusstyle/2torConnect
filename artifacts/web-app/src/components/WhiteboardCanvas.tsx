@@ -258,9 +258,9 @@ export default function WhiteboardCanvas({ height = "100%", initialBackground = 
   return (
     <div className="flex flex-col h-full w-full bg-[#0B0B16] rounded-2xl overflow-hidden border border-white/10 shadow-2xl relative select-none">
       {/* Top Toolbar */}
-      <div className="shrink-0 p-2.5 sm:p-3 bg-black/60 backdrop-blur-xl border-b border-white/10 flex items-center justify-between gap-2 flex-wrap z-10">
+      <div className="shrink-0 p-2 sm:p-2.5 bg-black/80 backdrop-blur-xl border-b border-white/10 flex items-center justify-between gap-2 sm:gap-4 overflow-x-auto scrollbar-none z-10 flex-nowrap">
         {/* Left: Tools */}
-        <div className="flex items-center gap-1 sm:gap-1.5 flex-wrap">
+        <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
           <button
             onClick={() => setTool("pen")}
             className={`p-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all ${
@@ -339,7 +339,7 @@ export default function WhiteboardCanvas({ height = "100%", initialBackground = 
         </div>
 
         {/* Middle: Colors & Stroke */}
-        <div className="flex items-center gap-1.5 sm:gap-2">
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
           {/* Color palette */}
           <div className="flex items-center gap-1 bg-black/40 p-1 rounded-xl border border-white/5">
             {COLORS.map((c) => (
@@ -371,7 +371,7 @@ export default function WhiteboardCanvas({ height = "100%", initialBackground = 
         </div>
 
         {/* Right: Actions (Undo, Background, Clear, Download) */}
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1.5 shrink-0">
           <button
             onClick={undo}
             title="Undo"

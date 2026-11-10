@@ -153,72 +153,72 @@ export default function VideoRoom({ params }: VideoRoomProps) {
     <div className="h-screen bg-[#0F0F1B] flex flex-col overflow-hidden">
 
       {/* Top bar */}
-      <div className="shrink-0 flex items-center justify-between px-4 py-3 bg-black/70 backdrop-blur border-b border-white/10 z-20">
-        <div className="flex items-center gap-3">
+      <div className="shrink-0 flex items-center justify-between px-3 sm:px-4 py-2.5 sm:py-3 bg-black/80 backdrop-blur border-b border-white/10 z-20 gap-2">
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
           <button
             onClick={handleLeave}
-            className="flex items-center gap-2 text-muted-foreground hover:text-white transition-colors text-sm"
+            className="flex items-center gap-1.5 text-muted-foreground hover:text-white transition-colors text-xs sm:text-sm shrink-0"
           >
             <ArrowLeft className="w-4 h-4" />
             <span className="hidden sm:inline">Back</span>
           </button>
-          <div className="h-5 w-px bg-white/10" />
-          <div>
-            <p className="text-white font-bold text-sm leading-tight">
+          <div className="h-4 w-px bg-white/10 shrink-0" />
+          <div className="min-w-0">
+            <p className="text-white font-bold text-xs sm:text-sm leading-tight truncate max-w-[110px] sm:max-w-[200px]">
               {(session as any)?.subject ?? `Session #${sessionId}`}
             </p>
-            <p className="text-xs text-muted-foreground">
-              {otherName ? `With ${otherName}` : "2torConnect Live"}
+            <p className="text-[10px] sm:text-xs text-muted-foreground truncate max-w-[110px] sm:max-w-[200px]">
+              {otherName ? `With ${otherName}` : "2torConnect"}
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2 sm:gap-3">
+        <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
           {/* Mode Switcher: Video vs Whiteboard */}
-          <div className="flex items-center bg-white/10 p-0.5 rounded-xl border border-white/10">
+          <div className="flex items-center bg-white/10 p-0.5 rounded-xl border border-white/10 shrink-0">
             <button
               onClick={() => setActiveView("video")}
-              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${
+              className={`flex items-center gap-1 px-2 sm:px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${
                 activeView === "video" ? "bg-primary text-white shadow-sm" : "text-muted-foreground hover:text-white"
               }`}
               title="Video Call View"
             >
               <Video className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Video</span>
+              <span className="hidden md:inline">Video</span>
             </button>
             <button
               onClick={() => setActiveView("whiteboard")}
-              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${
+              className={`flex items-center gap-1 px-2 sm:px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${
                 activeView === "whiteboard" ? "bg-accent text-background font-bold shadow-sm" : "text-muted-foreground hover:text-white"
               }`}
               title="2torBoard Whiteboard"
             >
               <PenTool className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Whiteboard</span>
+              <span className="hidden md:inline">Board</span>
             </button>
           </div>
 
           {youtubeId && (
-            <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-red-600/20 border border-red-500/30">
+            <div className="hidden sm:flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-red-600/20 border border-red-500/30">
               <Youtube className="w-3.5 h-3.5 text-red-400" />
-              <span className="text-xs font-semibold text-red-400">Live Stream</span>
+              <span className="text-[11px] font-semibold text-red-400">Stream</span>
             </div>
           )}
 
-          <div className="flex items-center gap-2 bg-red-500/10 border border-red-500/30 px-3 py-1 rounded-full">
-            <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-            <span className="text-xs font-semibold text-red-400">LIVE</span>
+          <div className="flex items-center gap-1 bg-red-500/10 border border-red-500/30 px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full shrink-0">
+            <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
+            <span className="text-[10px] sm:text-xs font-bold text-red-400">LIVE</span>
           </div>
 
-          <div className="flex items-center gap-1.5 text-white font-mono text-xs sm:text-sm">
-            <Wifi className="w-4 h-4 text-green-400" />
-            {formatTime(sessionTime)}
+          <div className="hidden xs:flex items-center gap-1 text-white font-mono text-[11px] sm:text-xs shrink-0">
+            <Wifi className="w-3.5 h-3.5 text-green-400" />
+            <span>{formatTime(sessionTime)}</span>
           </div>
 
           {/* Toggle In-Call Chat & Voice Notes Button */}
           <button
             onClick={() => setShowChat(!showChat)}
-            className={`relative flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all shadow-md ${
+            className={`relative flex items-center gap-1.5 px-2.5 sm:px-3 py-1 rounded-xl text-xs font-semibold transition-all shadow-md shrink-0 ${
               showChat
                 ? "bg-accent text-background font-bold shadow-accent/20"
                 : "bg-white/10 hover:bg-white/20 text-white"
@@ -228,7 +228,7 @@ export default function VideoRoom({ params }: VideoRoomProps) {
             <MessageSquare className="w-3.5 h-3.5" />
             <span className="hidden md:inline">Voice & Chat</span>
             {unreadCount > 0 && (
-              <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 rounded-full bg-accent text-background text-[10px] font-black flex items-center justify-center animate-bounce">
+              <span className="absolute -top-1 -right-1 min-w-[16px] h-[16px] px-1 rounded-full bg-accent text-background text-[9px] font-black flex items-center justify-center animate-bounce">
                 {unreadCount}
               </span>
             )}

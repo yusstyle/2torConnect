@@ -8,7 +8,7 @@ export default function WhiteboardPage() {
 
   return (
     <DashboardLayout title="2torBoard · Digital Whiteboard" role={user?.role as any}>
-      <div className="flex flex-col h-[calc(100vh-8.5rem)]">
+      <div className="flex flex-col h-[calc(100dvh-13rem)] md:h-[calc(100vh-8.5rem)]">
         {/* Header bar */}
         <div className="flex items-center justify-between mb-3 shrink-0">
           <div>

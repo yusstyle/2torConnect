@@ -333,31 +333,36 @@ export function DashboardLayout({ children, role: roleProp, title }: DashboardLa
             transition={{ type: "spring", stiffness: 300, damping: 30 }}
             className="fixed bottom-0 left-0 right-0 z-50 md:hidden bg-card border-t border-white/10 rounded-t-3xl pb-safe"
           >
-            {/* Drawer handle */}
+            {/* Drawer handle & header */}
             <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b border-white/5">
-              <span className="text-sm font-semibold text-white">More</span>
+              <div>
+                <span className="text-sm font-bold text-white">More Features & Tools</span>
+                <p className="text-[11px] text-muted-foreground">Study tools, CBT practice & rewards</p>
+              </div>
               <button onClick={() => setMoreOpen(false)} className="p-1.5 rounded-full bg-white/10 text-muted-foreground hover:text-white transition-colors">
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <div className="px-4 py-3 max-h-[60vh] overflow-y-auto">
-              <div className="grid grid-cols-3 gap-2 mb-4">
+            <div className="px-4 py-3 max-h-[65vh] overflow-y-auto">
+              <div className="grid grid-cols-2 gap-2 mb-4">
                 {moreItems.map((item) => {
                   const isActive = location === item.href || location.startsWith(item.href + "/");
                   return (
-                    <Link key={item.href} href={item.href}
+                    <Link
+                      key={item.href}
+                      href={item.href}
                       onClick={() => setMoreOpen(false)}
-                      className={`flex flex-col items-center gap-1.5 p-3 rounded-2xl transition-all ${
+                      className={`flex items-center gap-2.5 p-2.5 sm:p-3 rounded-2xl transition-all border ${
                         isActive
-                          ? "bg-primary/20 border border-primary/30"
-                          : "bg-white/5 hover:bg-white/10"
+                          ? "bg-primary/20 border-primary/40 shadow-sm"
+                          : "bg-white/5 border-white/5 hover:bg-white/10"
                       }`}
                     >
-                      <div className={`w-10 h-10 rounded-2xl flex items-center justify-center ${isActive ? "bg-primary/30" : "bg-white/5"}`}>
-                        <item.icon className={`w-5 h-5 ${isActive ? "text-accent" : "text-muted-foreground"}`} />
+                      <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${isActive ? "bg-primary/30 text-accent" : "bg-white/10 text-white"}`}>
+                        <item.icon className="w-4 h-4" />
                       </div>
-                      <span className={`text-xs font-medium text-center leading-tight ${isActive ? "text-white" : "text-muted-foreground"}`}>
+                      <span className={`text-xs font-semibold leading-tight line-clamp-2 ${isActive ? "text-accent font-bold" : "text-white/90"}`}>
                         {item.label}
                       </span>
                     </Link>
@@ -365,15 +370,24 @@ export function DashboardLayout({ children, role: roleProp, title }: DashboardLa
                 })}
               </div>
 
+              {/* Install App button in drawer */}
+              <button
+                onClick={() => { setMoreOpen(false); setShowInstallApp(true); }}
+                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-bold text-xs mb-2 transition-all active:scale-[0.98]"
+              >
+                <Smartphone className="w-4 h-4 shrink-0" />
+                <span>Install Mobile App (APK/PWA)</span>
+              </button>
+
               {/* Logout button in drawer */}
               <button onClick={handleLogout}
-                className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl bg-destructive/10 border border-destructive/20 text-destructive hover:bg-destructive/20 transition-all">
-                <LogOut className="w-5 h-5 shrink-0" />
-                <span className="font-medium text-sm">Log Out</span>
+                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl bg-destructive/10 border border-destructive/20 text-destructive hover:bg-destructive/20 font-bold text-xs transition-all active:scale-[0.98]">
+                <LogOut className="w-4 h-4 shrink-0" />
+                <span>Log Out</span>
               </button>
             </div>
             {/* Safe area spacer */}
-            <div className="h-4" />
+            <div className="h-6" />
           </motion.div>
         )}
       </AnimatePresence>

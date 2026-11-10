@@ -48,7 +48,7 @@ export default function MessagesPage() {
 
   return (
     <DashboardLayout title="Messages" role={user?.role as any}>
-      <div className="h-[calc(100vh-8rem)] glass-panel rounded-3xl overflow-hidden flex border border-white/10">
+      <div className="h-[calc(100dvh-13.5rem)] md:h-[calc(100vh-8rem)] glass-panel rounded-2xl md:rounded-3xl overflow-hidden flex border border-white/10">
 
         {/* Sidebar */}
         <div className={`w-full md:w-80 border-r border-white/10 flex flex-col shrink-0 ${selectedUserId || showNewChat ? 'hidden md:flex' : 'flex'}`}>

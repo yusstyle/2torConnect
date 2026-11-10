@@ -149,6 +149,45 @@
   .box-glow-accent {
     box-shadow: 0 0 30px hsl(var(--accent) / 0.2);
   }
+
+  /* Mobile Safe Area insets */
+  .pb-safe {
+    padding-bottom: max(1.25rem, env(safe-area-inset-bottom, 20px));
+  }
+  .pt-safe {
+    padding-top: max(0.5rem, env(safe-area-inset-top, 10px));
+  }
+}
+
+/* Touch & mobile UI/UX optimization */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button, a, input, select, textarea {
+  touch-action: manipulation;
+}
+
+/* Sleek custom scrollbars */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+.light ::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.15);
+}
+.light ::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.3);
 }
 
 /* Light-mode overrides for hardcoded dark-theme utility classes.

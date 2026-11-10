@@ -195,21 +195,21 @@ export default function ArenaPage() {
               </p>
             </div>
 
-            <div className="flex items-center gap-4 bg-black/40 border border-white/10 p-4 rounded-2xl shrink-0">
-              <div className="text-center">
+            <div className="flex items-center justify-around w-full sm:w-auto gap-4 sm:gap-6 bg-black/40 border border-white/10 p-3.5 sm:p-4 rounded-2xl shrink-0">
+              <div className="text-center flex-1 sm:flex-none">
                 <div className="flex items-center justify-center gap-1 text-2xl font-black text-red-400">
-                  <Flame className="w-6 h-6 fill-current text-red-500" />
+                  <Flame className="w-5 sm:w-6 h-5 sm:h-6 fill-current text-red-500" />
                   {streak}
                 </div>
-                <p className="text-[11px] text-muted-foreground font-semibold uppercase tracking-wider">Day Streak</p>
+                <p className="text-[10px] sm:text-[11px] text-muted-foreground font-semibold uppercase tracking-wider">Day Streak</p>
               </div>
               <div className="h-8 w-px bg-white/10" />
-              <div className="text-center">
+              <div className="text-center flex-1 sm:flex-none">
                 <div className="flex items-center justify-center gap-1 text-2xl font-black text-accent">
-                  <Zap className="w-6 h-6 fill-current text-accent" />
+                  <Zap className="w-5 sm:w-6 h-5 sm:h-6 fill-current text-accent" />
                   {score > 0 ? score : "500+"}
                 </div>
-                <p className="text-[11px] text-muted-foreground font-semibold uppercase tracking-wider">Max XP</p>
+                <p className="text-[10px] sm:text-[11px] text-muted-foreground font-semibold uppercase tracking-wider">Max XP</p>
               </div>
             </div>
           </div>

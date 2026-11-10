@@ -302,30 +302,30 @@ export default function StudyLoungePage() {
           {/* Left 2 Cols: Pomodoro Timer */}
           <div className="lg:col-span-2 glass-panel p-6 sm:p-10 rounded-3xl border border-white/10 flex flex-col items-center justify-between text-center relative overflow-hidden">
             {/* Mode switch pills */}
-            <div className="flex items-center gap-1.5 p-1 bg-black/40 border border-white/10 rounded-2xl mb-8">
+            <div className="flex items-center gap-1 p-1 bg-black/40 border border-white/10 rounded-2xl mb-6 sm:mb-8 w-full sm:w-auto max-w-md justify-center">
               <button
                 onClick={() => switchMode("study")}
-                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+                className={`flex-1 sm:flex-none px-2.5 sm:px-4 py-2 rounded-xl text-[11px] sm:text-xs font-bold transition-all ${
                   mode === "study" ? "bg-accent text-background shadow-md shadow-accent/20" : "text-muted-foreground hover:text-white"
                 }`}
               >
-                Deep Study (25m)
+                <span className="hidden sm:inline">Deep </span>Study (25m)
               </button>
               <button
                 onClick={() => switchMode("shortBreak")}
-                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+                className={`flex-1 sm:flex-none px-2.5 sm:px-4 py-2 rounded-xl text-[11px] sm:text-xs font-bold transition-all ${
                   mode === "shortBreak" ? "bg-accent text-background shadow-md shadow-accent/20" : "text-muted-foreground hover:text-white"
                 }`}
               >
-                Short Break (5m)
+                <span className="hidden sm:inline">Short </span>Break (5m)
               </button>
               <button
                 onClick={() => switchMode("longBreak")}
-                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+                className={`flex-1 sm:flex-none px-2.5 sm:px-4 py-2 rounded-xl text-[11px] sm:text-xs font-bold transition-all ${
                   mode === "longBreak" ? "bg-accent text-background shadow-md shadow-accent/20" : "text-muted-foreground hover:text-white"
                 }`}
               >
-                Long Break (15m)
+                <span className="hidden sm:inline">Long </span>Break (15m)
               </button>
             </div>
 
