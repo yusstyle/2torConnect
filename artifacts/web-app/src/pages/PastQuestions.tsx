@@ -328,85 +328,85 @@ export default function PastQuestionsPage() {
 
         {/* View 1: Active CBT Test Mode */}
         {activeMode === "cbt" && !testResult && courseQuestions.length > 0 && (
-          <div className="glass-panel rounded-3xl p-6 md:p-8 border border-white/10 space-y-6">
-            <div className="flex flex-wrap items-center justify-between gap-4 pb-6 border-b border-white/10">
-              <div className="flex items-center gap-3">
+          <div className="glass-panel rounded-3xl p-4 sm:p-6 md:p-8 border border-white/10 space-y-5 sm:space-y-6">
+            <div className="flex flex-wrap items-center justify-between gap-3 pb-4 sm:pb-6 border-b border-white/10">
+              <div className="flex items-center gap-2.5 sm:gap-3">
                 <button
                   onClick={exitMode}
                   className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-white transition-colors"
                 >
-                  <ArrowLeft className="w-5 h-5" />
+                  <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5" />
                 </button>
                 <div>
-                  <h2 className="text-lg font-bold text-white flex items-center gap-2">
-                    {activeCourse} CBT Mock Exam
+                  <h2 className="text-base sm:text-lg font-bold text-white flex items-center gap-2 flex-wrap">
+                    {activeCourse} CBT Mock
                     <span className="text-xs px-2.5 py-0.5 rounded-full bg-accent/20 text-accent font-semibold">
-                      Question {currentIdx + 1} of {courseQuestions.length}
+                      Q {currentIdx + 1}/{courseQuestions.length}
                     </span>
                   </h2>
-                  <p className="text-xs text-muted-foreground">Select your answer and navigate using the controls below.</p>
+                  <p className="text-[11px] sm:text-xs text-muted-foreground">Select your answer and navigate below.</p>
                 </div>
               </div>
 
               {/* Timer */}
-              <div className={`flex items-center gap-2 px-4 py-2 rounded-2xl border font-mono font-bold text-base ${
+              <div className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-2xl border font-mono font-bold text-sm sm:text-base ${
                 timeLeft < 180
                   ? "bg-rose-500/20 border-rose-500/40 text-rose-400 animate-pulse"
                   : "bg-white/5 border-white/10 text-emerald-400"
               }`}>
-                <Clock className="w-4 h-4" />
+                <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                 {formatTimer(timeLeft)}
               </div>
             </div>
 
             {/* Current Question */}
-            <div className="space-y-6">
-              <div className="p-5 rounded-2xl bg-black/40 border border-white/5">
-                <span className="text-xs font-semibold uppercase tracking-wider text-accent mb-2 block">
+            <div className="space-y-5 sm:space-y-6">
+              <div className="p-4 sm:p-5 rounded-2xl bg-black/40 border border-white/5">
+                <span className="text-[11px] sm:text-xs font-semibold uppercase tracking-wider text-accent mb-2 block">
                   Question {currentIdx + 1}
                 </span>
-                <p className="text-base md:text-lg font-medium text-white leading-relaxed">
+                <p className="text-sm sm:text-base md:text-lg font-medium text-white leading-relaxed">
                   {courseQuestions[currentIdx]?.question}
                 </p>
               </div>
 
               {/* Options */}
-              <div className="space-y-3">
+              <div className="space-y-2.5 sm:space-y-3">
                 {courseQuestions[currentIdx]?.options.map((opt) => {
                   const isSelected = userAnswers[courseQuestions[currentIdx].id] === opt.key;
                   return (
                     <button
                       key={opt.key}
                       onClick={() => handleSelectAnswer(courseQuestions[currentIdx].id, opt.key)}
-                      className={`w-full text-left p-4 rounded-2xl border transition-all flex items-center gap-4 ${
+                      className={`w-full text-left p-3.5 sm:p-4 rounded-xl sm:rounded-2xl border transition-all flex items-center gap-3 sm:gap-4 ${
                         isSelected
                           ? "bg-accent/20 border-accent text-white shadow-md shadow-accent/10"
                           : "bg-white/5 border-white/10 text-white/90 hover:bg-white/10"
                       }`}
                     >
-                      <span className={`w-8 h-8 rounded-xl font-bold flex items-center justify-center text-sm shrink-0 ${
+                      <span className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl font-bold flex items-center justify-center text-xs sm:text-sm shrink-0 ${
                         isSelected ? "bg-accent text-black font-extrabold" : "bg-white/10 text-muted-foreground"
                       }`}>
                         {opt.key}
                       </span>
-                      <span className="text-sm font-medium">{opt.text}</span>
+                      <span className="text-xs sm:text-sm font-medium">{opt.text}</span>
                     </button>
                   );
                 })}
               </div>
 
               {/* Navigation Controls */}
-              <div className="flex flex-wrap items-center justify-between gap-3 pt-4 border-t border-white/10">
+              <div className="flex flex-wrap items-center justify-between gap-2.5 pt-4 border-t border-white/10">
                 <button
                   onClick={() => setCurrentIdx((prev) => Math.max(0, prev - 1))}
                   disabled={currentIdx === 0}
-                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-white text-xs font-semibold border border-white/10 transition-colors disabled:opacity-40"
+                  className="flex items-center gap-1.5 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-white text-xs font-semibold border border-white/10 transition-colors disabled:opacity-40"
                 >
-                  <ArrowLeft className="w-4 h-4" /> Previous
+                  <ArrowLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> Prev
                 </button>
 
                 {/* Question Jumper */}
-                <div className="flex items-center gap-1.5 flex-wrap justify-center">
+                <div className="flex items-center gap-1.5 max-w-[140px] sm:max-w-none overflow-x-auto scrollbar-none flex-nowrap sm:flex-wrap py-1">
                   {courseQuestions.map((_, idx) => {
                     const answered = !!userAnswers[courseQuestions[idx]?.id];
                     const isCurrent = idx === currentIdx;
@@ -414,7 +414,7 @@ export default function PastQuestionsPage() {
                       <button
                         key={idx}
                         onClick={() => setCurrentIdx(idx)}
-                        className={`w-8 h-8 rounded-xl text-xs font-bold transition-all ${
+                        className={`w-7 h-7 sm:w-8 sm:h-8 rounded-xl text-xs font-bold transition-all shrink-0 ${
                           isCurrent
                             ? "bg-accent text-black ring-2 ring-accent/50 scale-105"
                             : answered
@@ -431,16 +431,16 @@ export default function PastQuestionsPage() {
                 {currentIdx < courseQuestions.length - 1 ? (
                   <button
                     onClick={() => setCurrentIdx((prev) => Math.min(courseQuestions.length - 1, prev + 1))}
-                    className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-white text-xs font-semibold border border-white/10 transition-colors"
+                    className="flex items-center gap-1.5 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-white text-xs font-semibold border border-white/10 transition-colors"
                   >
-                    Next <ArrowRight className="w-4 h-4" />
+                    Next <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                   </button>
                 ) : (
                   <button
                     onClick={handleSubmitTest}
-                    className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-500 text-white font-bold text-xs hover:opacity-90 shadow-lg shadow-emerald-500/20"
+                    className="flex items-center gap-1.5 px-4 sm:px-6 py-2 sm:py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-500 text-white font-bold text-xs hover:opacity-90 shadow-lg shadow-emerald-500/20"
                   >
-                    <CheckCircle2 className="w-4 h-4" /> Submit Exam
+                    <CheckCircle2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> Submit
                   </button>
                 )}
               </div>

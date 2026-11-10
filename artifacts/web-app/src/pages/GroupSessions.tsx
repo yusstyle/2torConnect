@@ -115,21 +115,21 @@ export default function GroupSessionsPage() {
                     {s.notes && <p className="text-muted-foreground text-xs mt-1.5 line-clamp-1">{s.notes}</p>}
                   </div>
 
-                  <div className="flex items-center gap-2 shrink-0">
+                  <div className="flex items-center gap-2 shrink-0 w-full sm:w-auto pt-2 sm:pt-0 border-t sm:border-t-0 border-white/5">
                     <button
                       onClick={() => shareGroupSessionToWhatsApp(s)}
-                      className="p-2.5 rounded-xl bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 border border-emerald-500/30 transition-all flex items-center gap-1.5 text-xs font-semibold"
+                      className="p-2.5 rounded-xl bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 border border-emerald-500/30 transition-all flex items-center justify-center gap-1.5 text-xs font-semibold flex-1 sm:flex-none"
                       title="Share class to WhatsApp Course Group"
                     >
                       <Share2 className="w-4 h-4" />
-                      <span className="hidden sm:inline">WhatsApp</span>
+                      <span>WhatsApp</span>
                     </button>
 
                     {role === "student" && (
                       <button
                         onClick={() => join(s.id)}
                         disabled={isFull || joining === s.id}
-                        className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-primary to-accent text-white font-bold text-sm hover:opacity-90 disabled:opacity-50 flex items-center gap-2 shadow-md shadow-primary/20"
+                        className="flex-1 sm:flex-none justify-center px-5 py-2.5 rounded-xl bg-gradient-to-r from-primary to-accent text-white font-bold text-sm hover:opacity-90 disabled:opacity-50 flex items-center gap-2 shadow-md shadow-primary/20"
                       >
                         {joining === s.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Users className="w-4 h-4" />}
                         {isFull ? "Full" : "Join"}

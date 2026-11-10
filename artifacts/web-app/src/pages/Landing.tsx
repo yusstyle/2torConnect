@@ -7,7 +7,7 @@ import {
   BookOpen, Users, Star, ArrowRight, ShieldCheck, Zap, CheckCircle,
   TrendingUp, Clock, MessageSquare, Award, Target, GraduationCap,
   Banknote, Calendar, ChevronRight, ChevronDown, HandCoins, Video, Globe2, Heart, Smartphone,
-  PenTool, Layers, Headphones, Mic, Flame
+  PenTool, Layers, Headphones, Mic, Flame, Menu, X
 } from "lucide-react";
 import InstallAppModal from "@/components/InstallAppModal";
 
@@ -50,6 +50,7 @@ function isPlatformStats(value: unknown): value is PlatformStats {
 export default function LandingPage() {
   const [stats, setStats] = useState<PlatformStats | null>(null);
   const [showInstallApp, setShowInstallApp] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     fetch(`${import.meta.env.BASE_URL}api/stats`)
@@ -92,7 +93,7 @@ export default function LandingPage() {
 
       {/* ── Navbar ── */}
       <nav className="sticky top-0 z-50 border-b border-white/5 backdrop-blur-xl bg-background/80">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex justify-between items-center">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3.5 sm:py-4 flex justify-between items-center">
           <Logo size={42} />
           <div className="hidden md:flex items-center gap-8 text-sm font-medium text-muted-foreground">
             <a href="#how-it-works" className="hover:text-white transition-colors">How it Works</a>
@@ -117,19 +118,75 @@ export default function LandingPage() {
               <span>Get App</span>
             </button>
             <ThemeToggle />
-            <Link href="/login" className="px-2 py-2 sm:px-3 text-sm font-semibold text-white/80 hover:text-white transition-colors whitespace-nowrap">
+            <Link href="/login" className="px-2 py-2 sm:px-3 text-sm font-semibold text-white/80 hover:text-white transition-colors whitespace-nowrap hidden sm:inline-block">
               Sign In
             </Link>
             <Link href="/register" className="px-3 py-2 sm:px-4 sm:py-2.5 rounded-xl text-sm font-bold bg-gradient-to-r from-primary to-accent text-white hover:opacity-90 hover:shadow-lg hover:shadow-accent/30 transition-all duration-300 whitespace-nowrap">
               <span className="hidden sm:inline">Get Started Free</span>
               <span className="sm:hidden">Join Free</span>
             </Link>
+            {/* Mobile Hamburger Menu Toggle */}
+            <button
+              onClick={() => setMobileMenuOpen(prev => !prev)}
+              className="md:hidden p-2 rounded-xl bg-white/5 hover:bg-white/10 text-white/80 hover:text-white transition-colors"
+              aria-label="Toggle navigation menu"
+            >
+              {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            </button>
           </div>
         </div>
+
+        {/* Mobile Slide-Down Navigation Menu */}
+        {mobileMenuOpen && (
+          <div className="md:hidden border-t border-white/10 bg-background/95 backdrop-blur-2xl px-5 py-4 space-y-3 animate-in slide-in-from-top-2 duration-200">
+            <div className="grid grid-cols-2 gap-2 pb-2 border-b border-white/10">
+              <Link
+                href="/past-questions"
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex items-center gap-2 p-2.5 rounded-xl bg-accent/10 border border-accent/30 text-accent font-bold text-xs"
+              >
+                <GraduationCap className="w-4 h-4" />
+                <span>Past Questions</span>
+              </Link>
+              <Link
+                href="/cgpa-calculator"
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex items-center gap-2 p-2.5 rounded-xl bg-white/5 border border-white/10 text-white font-bold text-xs"
+              >
+                <Award className="w-4 h-4 text-amber-400" />
+                <span>5.0 CGPA Calc</span>
+              </Link>
+            </div>
+            <div className="flex flex-col space-y-2 text-sm text-white/80 font-medium">
+              <a href="#how-it-works" onClick={() => setMobileMenuOpen(false)} className="py-1.5 hover:text-white">How it Works</a>
+              <a href="#for-students" onClick={() => setMobileMenuOpen(false)} className="py-1.5 hover:text-white">For Students</a>
+              <a href="#for-tutors" onClick={() => setMobileMenuOpen(false)} className="py-1.5 hover:text-white">For Tutors</a>
+              <a href="#for-investors" onClick={() => setMobileMenuOpen(false)} className="py-1.5 hover:text-white">For Sponsors</a>
+              <a href="#features" onClick={() => setMobileMenuOpen(false)} className="py-1.5 hover:text-white">Campus Tools & Features</a>
+              <Link href="/about" onClick={() => setMobileMenuOpen(false)} className="py-1.5 hover:text-white">About 2torConnect</Link>
+            </div>
+            <div className="pt-2 border-t border-white/10 flex items-center gap-2">
+              <Link
+                href="/login"
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex-1 py-2.5 text-center text-sm font-semibold rounded-xl bg-white/5 text-white border border-white/10"
+              >
+                Sign In
+              </Link>
+              <Link
+                href="/register"
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex-1 py-2.5 text-center text-sm font-bold rounded-xl bg-gradient-to-r from-primary to-accent text-white"
+              >
+                Register
+              </Link>
+            </div>
+          </div>
+        )}
       </nav>
 
       {/* ── Hero ── */}
-      <section className="relative min-h-[90vh] flex items-center overflow-hidden">
+      <section className="relative min-h-[85vh] sm:min-h-[90vh] flex items-center overflow-hidden">
         {/* Background image with overlay */}
         <div
           className="absolute inset-0 bg-cover bg-center bg-no-repeat"
@@ -141,18 +198,18 @@ export default function LandingPage() {
         <div className="absolute top-1/3 left-1/4 w-96 h-96 bg-primary/20 rounded-full blur-3xl" />
         <div className="absolute bottom-1/4 right-1/4 w-64 h-64 bg-accent/10 rounded-full blur-3xl" />
 
-        <div className="relative z-10 max-w-7xl mx-auto px-6 py-20 grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 py-12 sm:py-20 grid grid-cols-1 lg:grid-cols-2 gap-10 sm:gap-16 items-center">
           <motion.div
             initial={{ opacity: 0, x: -40 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.8 }}
           >
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-accent/10 border border-accent/30 mb-8">
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-full bg-accent/10 border border-accent/30 mb-6 sm:mb-8">
               <span className="flex w-2 h-2 rounded-full bg-accent animate-pulse" />
-              <span className="text-xs font-semibold text-accent tracking-wider uppercase">The Global Peer Tutoring Platform</span>
+              <span className="text-[11px] sm:text-xs font-semibold text-accent tracking-wider uppercase">The Global Peer Tutoring Platform</span>
             </div>
 
-            <h1 className="text-5xl md:text-6xl font-display font-extrabold leading-tight mb-6">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-display font-extrabold leading-tight mb-4 sm:mb-6">
               Connect with the{" "}
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary via-accent to-primary">
                 best tutors
@@ -160,24 +217,24 @@ export default function LandingPage() {
               in your university
             </h1>
 
-            <p className="text-lg text-white/70 leading-relaxed mb-8 max-w-xl">
+            <p className="text-sm sm:text-base md:text-lg text-white/70 leading-relaxed mb-6 sm:mb-8 max-w-xl">
               2torConnect links university students worldwide with top-performing peers who've aced the same courses. Get personalized, one-on-one academic support — or become a tutor and earn on your own schedule.
             </p>
 
-            <div className="flex flex-wrap gap-4 mb-10">
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-8 sm:mb-10 w-full sm:w-auto">
               <Link href="/register/student"
-                className="group flex items-center gap-3 px-7 py-4 rounded-2xl bg-gradient-to-r from-primary to-accent text-white font-bold text-base shadow-xl shadow-primary/30 hover:shadow-2xl hover:shadow-primary/50 hover:-translate-y-1 transition-all duration-300">
+                className="group flex items-center justify-center gap-3 px-6 py-3.5 sm:px-7 sm:py-4 rounded-2xl bg-gradient-to-r from-primary to-accent text-white font-bold text-sm sm:text-base shadow-xl shadow-primary/30 hover:shadow-2xl hover:shadow-primary/50 hover:-translate-y-1 transition-all duration-300 w-full sm:w-auto">
                 Find a Tutor Now
                 <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
               </Link>
               <Link href="/register/tutor"
-                className="group flex items-center gap-3 px-7 py-4 rounded-2xl border border-white/20 bg-white/5 backdrop-blur-sm text-white font-bold text-base hover:bg-white/10 hover:border-accent/50 hover:-translate-y-1 transition-all duration-300">
+                className="group flex items-center justify-center gap-3 px-6 py-3.5 sm:px-7 sm:py-4 rounded-2xl border border-white/20 bg-white/5 backdrop-blur-sm text-white font-bold text-sm sm:text-base hover:bg-white/10 hover:border-accent/50 hover:-translate-y-1 transition-all duration-300 w-full sm:w-auto">
                 Become a Tutor
                 <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
               </Link>
             </div>
 
-            <div className="flex items-center gap-6 text-sm text-white/50">
+            <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-xs sm:text-sm text-white/50">
               {["Free to join", "Verified tutors", "Secure payments"].map((t) => (
                 <span key={t} className="flex items-center gap-1.5">
                   <CheckCircle className="w-4 h-4 text-accent" /> {t}

@@ -1,4 +1,4 @@
-﻿import { useState } from "react";
+import { useState } from "react";
 import { Link, useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { Mail, Lock, ArrowRight, Loader2, Eye, EyeOff, ShieldCheck, RefreshCw } from "lucide-react";
@@ -139,7 +139,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-6 relative overflow-hidden">
+    <div className="min-h-screen bg-background flex items-center justify-center p-4 sm:p-6 relative overflow-hidden">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-primary/20 via-background to-background" />
 
       <motion.div
@@ -147,11 +147,11 @@ export default function LoginPage() {
         animate={{ opacity: 1, scale: 1 }}
         className="w-full max-w-md relative z-10"
       >
-        <Link href="/" className="inline-flex items-center gap-2 text-muted-foreground hover:text-white mb-8 transition-colors">
+        <Link href="/" className="inline-flex items-center gap-2 text-muted-foreground hover:text-white mb-6 sm:mb-8 transition-colors text-sm">
           <ArrowRight className="w-4 h-4 rotate-180" /> Back to Home
         </Link>
 
-        <div className="glass-panel p-8 sm:p-10 rounded-3xl">
+        <div className="glass-panel p-5 sm:p-10 rounded-3xl">
           <AnimatePresence mode="wait">
             {step === "credentials" ? (
               <motion.div key="credentials" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }}>

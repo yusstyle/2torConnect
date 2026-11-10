@@ -406,27 +406,27 @@ export default function AIAssistantPage() {
 
   return (
     <DashboardLayout role="student" title="AI Study Assistant">
-      <div className="flex flex-col h-[calc(100dvh-300px)] md:h-[calc(100vh-80px)] max-w-3xl mx-auto">
+      <div className="flex flex-col h-[calc(100dvh-13.5rem)] md:h-[calc(100vh-8rem)] max-w-3xl mx-auto">
 
         {/* Header */}
-        <div className="flex items-center justify-between mb-4 shrink-0">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-accent/30 to-primary/30 border border-white/10 flex items-center justify-center">
-              <Sparkles className="w-5 h-5 text-accent" />
+        <div className="flex items-center justify-between mb-3 sm:mb-4 shrink-0">
+          <div className="flex items-center gap-2.5 sm:gap-3">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-gradient-to-br from-accent/30 to-primary/30 border border-white/10 flex items-center justify-center shrink-0">
+              <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-accent" />
             </div>
             <div>
-              <h2 className="text-white font-bold text-lg leading-tight">2torAssist</h2>
-              <p className="text-muted-foreground text-xs">Snap & Solve Homework · FLUX Diagrams · GPT-4o</p>
+              <h2 className="text-white font-bold text-base sm:text-lg leading-tight">2torAssist</h2>
+              <p className="text-muted-foreground text-[11px] sm:text-xs">Snap & Solve Homework · FLUX Diagrams · GPT-4o</p>
             </div>
           </div>
           {hasMessages && (
             <button
               onClick={clearChat}
               disabled={streaming}
-              className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-white transition-colors px-3 py-1.5 rounded-xl hover:bg-white/5"
+              className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-white transition-colors px-2.5 sm:px-3 py-1.5 rounded-xl hover:bg-white/5"
             >
               <RotateCcw className="w-3.5 h-3.5" />
-              New chat
+              <span className="hidden sm:inline">New chat</span>
             </button>
           )}
         </div>

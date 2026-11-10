@@ -236,7 +236,7 @@ function TutorCard({ tutor, onBook, onMessage, onReview }: { tutor: Tutor; onBoo
 
   return (
     <div className="glass-panel rounded-2xl flex flex-col hover:border-accent/30 transition-all duration-300 overflow-hidden">
-      <div className="p-6 flex-1">
+      <div className="p-4 sm:p-6 flex-1">
         <div className="flex justify-between items-start mb-4">
           <div className="flex items-center gap-3">
             <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-primary to-accent flex items-center justify-center text-white text-lg font-bold shadow-lg shrink-0 overflow-hidden">
@@ -322,29 +322,29 @@ function TutorCard({ tutor, onBook, onMessage, onReview }: { tutor: Tutor; onBoo
         </AnimatePresence>
       </div>
 
-      <div className="flex items-center justify-between px-6 pb-5 gap-3 border-t border-white/10 pt-4">
-        <div className="text-white font-bold text-sm">
+      <div className="flex items-center justify-between px-4 sm:px-6 pb-4 sm:pb-5 gap-2 sm:gap-3 border-t border-white/10 pt-3 sm:pt-4">
+        <div className="text-white font-bold text-xs sm:text-sm">
           ₦{Number(tutor.hourlyRate || 1500).toLocaleString()}<span className="text-muted-foreground font-normal text-xs">/hr</span>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-1.5 sm:gap-2">
           <button
             onClick={onReview}
             title="Leave a review"
             className="p-2 bg-white/10 hover:bg-yellow-500/20 border border-white/10 hover:border-yellow-500/30 text-muted-foreground hover:text-yellow-400 rounded-xl transition-all"
           >
-            <Star className="w-4 h-4" />
+            <Star className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
           </button>
           <button
             onClick={onMessage}
             title="Send a message"
-            className="px-3 py-2 bg-white/10 hover:bg-primary/30 hover:border-primary border border-white/10 text-white rounded-xl text-sm font-bold transition-all flex items-center gap-1.5"
+            className="px-2.5 sm:px-3 py-2 bg-white/10 hover:bg-primary/30 hover:border-primary border border-white/10 text-white rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-1.5"
           >
             <MessageSquare className="w-3.5 h-3.5" />
             <span className="hidden sm:inline">Chat</span>
           </button>
           <button
             onClick={onBook}
-            className="px-3 py-2 bg-white/10 hover:bg-accent hover:text-background text-white rounded-xl text-sm font-bold transition-all flex items-center gap-1.5"
+            className="px-3 sm:px-4 py-2 bg-white/10 hover:bg-accent hover:text-background text-white rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-1.5"
           >
             <BookOpen className="w-3.5 h-3.5" />
             <span>Book</span>
@@ -381,8 +381,8 @@ function ReviewModal({ tutorId, onClose }: { tutorId: number; onClose: () => voi
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm" onClick={onClose}>
-      <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="glass-panel w-full max-w-md rounded-3xl p-6" onClick={e => e.stopPropagation()}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3.5 sm:p-4 bg-background/80 backdrop-blur-sm" onClick={onClose}>
+      <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="glass-panel w-full max-w-md rounded-3xl p-5 sm:p-6 max-h-[90dvh] overflow-y-auto" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-xl font-bold text-white">Rate this Tutor</h2>
           <button onClick={onClose}><X className="w-5 h-5 text-muted-foreground hover:text-white" /></button>
@@ -462,8 +462,8 @@ function BookingModal({ tutor, onClose }: { tutor: Tutor; onClose: () => void })
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm" onClick={onClose}>
-      <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="glass-panel w-full max-w-md rounded-3xl p-6 relative" onClick={e => e.stopPropagation()}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3.5 sm:p-4 bg-background/80 backdrop-blur-sm" onClick={onClose}>
+      <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="glass-panel w-full max-w-md rounded-3xl p-5 sm:p-6 relative max-h-[90dvh] overflow-y-auto" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-5">
           <div>
             <h2 className="text-xl font-bold text-white">Book Session</h2>

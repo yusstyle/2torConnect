@@ -380,10 +380,10 @@ export default function FlashcardsPage() {
 
         {/* Flashcard 3D Interactive Container */}
         {currentCard && (
-          <div className="relative min-h-[320px] sm:min-h-[380px] perspective-1000 flex flex-col justify-center">
+          <div className="relative min-h-[290px] sm:min-h-[380px] perspective-1000 flex flex-col justify-center">
             <div
               onClick={handleFlip}
-              className={`w-full min-h-[320px] sm:min-h-[380px] rounded-3xl p-8 sm:p-12 cursor-pointer transition-all duration-500 transform-style-3d border shadow-2xl relative flex flex-col justify-between ${
+              className={`w-full min-h-[290px] sm:min-h-[380px] rounded-3xl p-5 sm:p-12 cursor-pointer transition-all duration-500 transform-style-3d border shadow-2xl relative flex flex-col justify-between ${
                 isFlipped
                   ? "bg-gradient-to-br from-[#181832] to-[#141426] border-accent/40 shadow-accent/10"
                   : "bg-gradient-to-br from-[#121224] to-[#0d0d1a] border-white/10 hover:border-white/20"
@@ -391,35 +391,35 @@ export default function FlashcardsPage() {
             >
               {/* Card Header */}
               <div className="flex items-center justify-between text-xs">
-                <span className="px-3 py-1 rounded-full bg-white/5 border border-white/10 text-accent font-bold uppercase tracking-wider">
+                <span className="px-3 py-1 rounded-full bg-white/5 border border-white/10 text-accent font-bold uppercase tracking-wider text-[11px] sm:text-xs">
                   {isFlipped ? "Answer & Solution" : "Question / Definition"}
                 </span>
-                <span className="text-muted-foreground font-mono">
+                <span className="text-muted-foreground font-mono text-[11px] sm:text-xs">
                   Card {cardIdx + 1} of {activeDeck.cards.length}
                 </span>
               </div>
 
               {/* Card Body */}
-              <div className="my-auto py-6 text-center">
+              <div className="my-auto py-5 sm:py-6 text-center">
                 {!isFlipped ? (
-                  <h3 className="text-xl sm:text-2xl font-bold text-white leading-relaxed max-w-xl mx-auto">
+                  <h3 className="text-lg sm:text-2xl font-bold text-white leading-relaxed max-w-xl mx-auto">
                     {currentCard.front}
                   </h3>
                 ) : (
-                  <div className="text-sm sm:text-base text-white/95 leading-relaxed max-w-xl mx-auto whitespace-pre-line text-left bg-black/30 p-5 rounded-2xl border border-white/5 font-mono">
+                  <div className="text-xs sm:text-base text-white/95 leading-relaxed max-w-xl mx-auto whitespace-pre-line text-left bg-black/30 p-4 sm:p-5 rounded-2xl border border-white/5 font-mono">
                     {currentCard.back}
                   </div>
                 )}
               </div>
 
               {/* Card Footer Hint */}
-              <div className="flex items-center justify-between text-xs text-muted-foreground border-t border-white/5 pt-4">
-                <span className="flex items-center gap-1.5 text-accent/80">
+              <div className="flex items-center justify-between text-xs text-muted-foreground border-t border-white/5 pt-3.5 sm:pt-4">
+                <span className="flex items-center gap-1.5 text-accent/80 text-[11px] sm:text-xs">
                   <RotateCw className="w-3.5 h-3.5" />
                   Tap card to flip
                 </span>
                 {isMastered && (
-                  <span className="flex items-center gap-1 text-green-400 font-bold">
+                  <span className="flex items-center gap-1 text-green-400 font-bold text-[11px] sm:text-xs">
                     <CheckCircle2 className="w-3.5 h-3.5" /> Mastered
                   </span>
                 )}
@@ -429,19 +429,19 @@ export default function FlashcardsPage() {
         )}
 
         {/* Action Controls */}
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-2.5 sm:gap-3 pt-2">
           {/* Navigation */}
           <div className="flex items-center gap-2 w-full sm:w-auto">
             <button
               onClick={handlePrev}
-              className="p-3 rounded-2xl bg-white/5 hover:bg-white/10 text-white transition-all border border-white/10"
+              className="flex-1 sm:flex-none flex items-center justify-center p-3 rounded-2xl bg-white/5 hover:bg-white/10 text-white transition-all border border-white/10"
               title="Previous Card"
             >
               <ArrowLeft className="w-5 h-5" />
             </button>
             <button
               onClick={handleNext}
-              className="p-3 rounded-2xl bg-white/5 hover:bg-white/10 text-white transition-all border border-white/10"
+              className="flex-1 sm:flex-none flex items-center justify-center p-3 rounded-2xl bg-white/5 hover:bg-white/10 text-white transition-all border border-white/10"
               title="Next Card"
             >
               <ArrowRight className="w-5 h-5" />

@@ -146,7 +146,6 @@ export function DashboardLayout({ children, role: roleProp, title }: DashboardLa
       { label: "Requests", href: "/investor/student-requests", icon: HandCoins },
       { label: "Sponsor", href: "/investor/universities", icon: GraduationCap },
       { label: "Messages", href: "/messages", icon: MessageSquare },
-      { label: "Feed", href: "/socialise", icon: Globe },
     ],
     admin: [
       { label: "Home", href: "/admin/dashboard", icon: LayoutDashboard },
@@ -395,8 +394,8 @@ export function DashboardLayout({ children, role: roleProp, title }: DashboardLa
       {/* Ã¢â€â‚¬Ã¢â€â‚¬ MAIN CONTENT Ã¢â€â‚¬Ã¢â€â‚¬ */}
       <main className="flex-1 overflow-y-auto overflow-x-hidden relative min-w-0">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-primary/10 via-background to-background -z-10" />
-        {/* pb-24 on mobile to clear the bottom nav bar */}
-        <div className="p-4 md:p-8 lg:p-10 max-w-7xl mx-auto pb-24 md:pb-10">
+        {/* pb-28 on mobile to comfortably clear the bottom nav bar */}
+        <div className="p-3.5 sm:p-4 md:p-8 lg:p-10 max-w-7xl mx-auto pb-28 md:pb-10">
           <AnimatePresence mode="wait" custom={slideDir}>
             <motion.div
               key={location}

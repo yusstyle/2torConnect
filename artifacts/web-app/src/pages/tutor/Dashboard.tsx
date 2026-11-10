@@ -140,31 +140,31 @@ export default function TutorDashboardPage() {
         )}
 
         {/* Stats */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           {[
             { label: "Total Earnings", value: `₦${totalEarnings.toLocaleString()}`, icon: DollarSign, color: "text-green-400" },
             { label: "Total Sessions", value: sessionsData?.total ?? 0, icon: Calendar, color: "text-accent" },
             { label: "Pending Requests", value: pendingSessions, icon: Clock, color: "text-yellow-400" },
             { label: "Confirmed Sessions", value: confirmedSessions.length, icon: Users, color: "text-blue-400" },
           ].map(stat => (
-            <div key={stat.label} className="glass-panel rounded-2xl p-5">
-              <div className={`w-9 h-9 rounded-xl flex items-center justify-center mb-3 bg-white/5 ${stat.color}`}>
-                <stat.icon className="w-5 h-5" />
+            <div key={stat.label} className="glass-panel rounded-2xl p-4 sm:p-5">
+              <div className={`w-8 h-8 sm:w-9 sm:h-9 rounded-xl flex items-center justify-center mb-2.5 sm:mb-3 bg-white/5 ${stat.color}`}>
+                <stat.icon className="w-4 h-4 sm:w-5 sm:h-5" />
               </div>
-              <div className="text-2xl font-bold text-white">{stat.value}</div>
-              <div className="text-xs text-muted-foreground mt-1">{stat.label}</div>
+              <div className="text-xl sm:text-2xl font-bold text-white">{stat.value}</div>
+              <div className="text-[11px] sm:text-xs text-muted-foreground mt-1">{stat.label}</div>
             </div>
           ))}
         </div>
 
         {/* Promote on WhatsApp Status Card */}
-        <div className="glass-panel rounded-2xl p-6 border border-emerald-500/20 bg-gradient-to-r from-emerald-950/20 via-background to-purple-950/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div className="glass-panel rounded-2xl p-4 sm:p-6 border border-emerald-500/20 bg-gradient-to-r from-emerald-950/20 via-background to-purple-950/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div className="space-y-1">
             <div className="flex items-center gap-2">
-              <Sparkles className="w-5 h-5 text-emerald-400" />
-              <h3 className="text-white font-bold text-base">Promote Yourself on WhatsApp Status</h3>
+              <Sparkles className="w-5 h-5 text-emerald-400 shrink-0" />
+              <h3 className="text-white font-bold text-sm sm:text-base">Promote Yourself on WhatsApp Status</h3>
               <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/30">
-                Viral Campus Tool
+                Viral
               </span>
             </div>
             <p className="text-xs text-muted-foreground max-w-xl">
@@ -173,7 +173,7 @@ export default function TutorDashboardPage() {
           </div>
           <button
             onClick={() => setShowFlyer(true)}
-            className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-2 shadow-lg shadow-emerald-600/20 transition-all shrink-0"
+            className="w-full sm:w-auto justify-center px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-2 shadow-lg shadow-emerald-600/20 transition-all shrink-0"
           >
             <Camera className="w-4 h-4" /> Generate My Flyer
           </button>
@@ -183,7 +183,7 @@ export default function TutorDashboardPage() {
         <TutorVoiceIntroRecorder />
 
         {/* Tutor Teaching Tools */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3">
           {[
             { title: "2torBoard", desc: "Digital Whiteboard", href: "/whiteboard", icon: PenTool, color: "text-cyan-400", bg: "bg-cyan-500/10" },
             { title: "Past Questions", desc: "CBT Exam Bank", href: "/past-questions", icon: GraduationCap, color: "text-accent", bg: "bg-accent/10" },
@@ -193,7 +193,7 @@ export default function TutorDashboardPage() {
             <div
               key={t.title}
               onClick={() => setLocation(t.href)}
-              className="glass-panel p-4 rounded-2xl cursor-pointer hover:border-white/20 transition-all group flex flex-col justify-between"
+              className="glass-panel p-3.5 sm:p-4 rounded-2xl cursor-pointer hover:border-white/20 transition-all group flex flex-col justify-between"
             >
               <div className={`w-8 h-8 rounded-xl ${t.bg} ${t.color} flex items-center justify-center mb-2`}>
                 <t.icon className="w-4 h-4" />
@@ -207,22 +207,22 @@ export default function TutorDashboardPage() {
         </div>
 
         {/* Set Your Rate */}
-        <div className="glass-panel rounded-2xl p-6 border border-accent/20">
+        <div className="glass-panel rounded-2xl p-4 sm:p-6 border border-accent/20">
           <div className="flex items-center gap-3 mb-4">
-            <div className="w-9 h-9 rounded-xl bg-accent/10 flex items-center justify-center">
+            <div className="w-9 h-9 rounded-xl bg-accent/10 flex items-center justify-center shrink-0">
               <DollarSign className="w-5 h-5 text-accent" />
             </div>
             <div>
-              <h2 className="text-white font-semibold">Your Session Price</h2>
+              <h2 className="text-white font-semibold text-sm sm:text-base">Your Session Price</h2>
               <p className="text-muted-foreground text-xs">Set how much students pay per session</p>
             </div>
             {savedRate && (
-              <span className="ml-auto flex items-center gap-1 text-xs text-green-400 font-semibold bg-green-500/10 px-3 py-1 rounded-full">
-                <BadgeCheck className="w-3.5 h-3.5" /> ₦{Number(savedRate).toLocaleString()} saved
+              <span className="ml-auto flex items-center gap-1 text-[11px] sm:text-xs text-green-400 font-semibold bg-green-500/10 px-2.5 py-1 rounded-full">
+                <BadgeCheck className="w-3.5 h-3.5" /> ₦{Number(savedRate).toLocaleString()}
               </span>
             )}
           </div>
-          <div className="flex gap-3">
+          <div className="flex gap-2 sm:gap-3">
             <div className="relative flex-1">
               <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground font-semibold text-sm">₦</span>
               <input
@@ -231,13 +231,13 @@ export default function TutorDashboardPage() {
                 value={rate}
                 onInput={(e: any) => setRate(e.target.value)}
                 placeholder="e.g. 5000"
-                className="w-full pl-9 pr-4 py-3 rounded-xl bg-black/30 border border-white/10 text-white placeholder:text-muted-foreground focus:outline-none focus:border-accent/50 text-sm"
+                className="w-full pl-9 pr-4 py-2.5 sm:py-3 rounded-xl bg-black/30 border border-white/10 text-white placeholder:text-muted-foreground focus:outline-none focus:border-accent/50 text-sm"
               />
             </div>
             <button
               onClick={saveRate}
               disabled={savingRate || !rate}
-              className="flex items-center gap-2 px-5 py-3 rounded-xl bg-gradient-to-r from-primary to-accent text-white font-bold text-sm hover:opacity-90 transition-all disabled:opacity-50 shrink-0"
+              className="flex items-center justify-center gap-2 px-4 sm:px-5 py-2.5 sm:py-3 rounded-xl bg-gradient-to-r from-primary to-accent text-white font-bold text-xs sm:text-sm hover:opacity-90 transition-all disabled:opacity-50 shrink-0"
             >
               {savingRate ? <Loader2 className="w-4 h-4 animate-spin" /> : "Save Rate"}
             </button>
@@ -245,7 +245,7 @@ export default function TutorDashboardPage() {
         </div>
 
         {/* Sessions list */}
-        <div className="glass-panel rounded-2xl p-6">
+        <div className="glass-panel rounded-2xl p-4 sm:p-6">
           <div className="flex items-center justify-between mb-5">
             <h2 className="text-lg font-semibold text-white">Recent Sessions</h2>
             <button onClick={() => setLocation("/tutor/sessions")} className="text-sm text-accent hover:underline flex items-center gap-1">

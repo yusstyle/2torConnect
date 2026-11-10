@@ -325,21 +325,21 @@ export default function StudentWalletPage() {
         </div>
       )}
 
-      <div className="space-y-6">
+      <div className="space-y-5 sm:space-y-6">
         {/* Balance card */}
-        <div className="relative overflow-hidden glass-panel rounded-3xl p-8 border border-white/10">
+        <div className="relative overflow-hidden glass-panel rounded-3xl p-5 sm:p-8 border border-white/10">
           <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-accent/10 to-transparent pointer-events-none" />
           <div className="relative">
             <div className="flex items-center gap-2 mb-2">
               <Wallet className="w-5 h-5 text-accent" />
-              <span className="text-sm text-muted-foreground font-medium">Available Balance</span>
+              <span className="text-xs sm:text-sm text-muted-foreground font-medium">Available Balance</span>
             </div>
-            <div className="text-5xl font-extrabold text-white mb-6 tracking-tight">
+            <div className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-white mb-5 sm:mb-6 tracking-tight">
               ₦{balance.toLocaleString()}
             </div>
             <button
               onClick={() => setShowFund(true)}
-              className="flex items-center gap-2 px-6 py-3 rounded-2xl bg-gradient-to-r from-primary to-accent text-white font-bold text-sm hover:opacity-90 transition-all shadow-lg shadow-primary/30"
+              className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3 rounded-2xl bg-gradient-to-r from-primary to-accent text-white font-bold text-sm hover:opacity-90 transition-all shadow-lg shadow-primary/30"
             >
               <Plus className="w-4 h-4" />
               Add Money
@@ -348,23 +348,23 @@ export default function StudentWalletPage() {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="grid grid-cols-2 gap-3 sm:gap-4">
           {[
             { label: "Total Funded", value: `₦${totalFunded.toLocaleString()}`, icon: TrendingUp, color: "text-green-400" },
-            { label: "Total Spent on Sessions", value: `₦${totalSpent.toLocaleString()}`, icon: CreditCard, color: "text-red-400" },
+            { label: "Total Spent", value: `₦${totalSpent.toLocaleString()}`, icon: CreditCard, color: "text-red-400" },
           ].map((stat) => (
-            <div key={stat.label} className="glass-panel rounded-2xl p-5">
-              <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-3 ${stat.color}`} style={{ background: "rgba(255,255,255,0.05)" }}>
-                <stat.icon className="w-5 h-5" />
+            <div key={stat.label} className="glass-panel rounded-2xl p-4 sm:p-5">
+              <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center mb-2.5 sm:mb-3 ${stat.color}`} style={{ background: "rgba(255,255,255,0.05)" }}>
+                <stat.icon className="w-4 h-4 sm:w-5 sm:h-5" />
               </div>
-              <div className="text-2xl font-bold text-white">{stat.value}</div>
-              <div className="text-sm text-muted-foreground mt-1">{stat.label}</div>
+              <div className="text-xl sm:text-2xl font-bold text-white">{stat.value}</div>
+              <div className="text-[11px] sm:text-xs text-muted-foreground mt-1">{stat.label}</div>
             </div>
           ))}
         </div>
 
         {/* Transaction history */}
-        <div className="glass-panel rounded-2xl p-6">
+        <div className="glass-panel rounded-2xl p-4 sm:p-6">
           <h2 className="text-lg font-semibold text-white mb-4">Transaction History</h2>
           {isLoading ? (
             <div className="flex justify-center py-8">

@@ -472,27 +472,38 @@ export default function CgpaCalculatorPage() {
           {courses.map((course, index) => (
             <div
               key={course.id}
-              className="grid grid-cols-12 gap-3 items-center p-3 sm:p-3.5 rounded-2xl bg-black/30 border border-white/5 hover:border-white/15 transition-all"
+              className="grid grid-cols-12 gap-2.5 sm:gap-3 items-center p-3 sm:p-3.5 rounded-2xl bg-black/30 border border-white/5 hover:border-white/15 transition-all"
             >
               {/* Course code */}
-              <div className="col-span-12 sm:col-span-5 flex items-center gap-2">
-                <span className="text-xs text-muted-foreground w-5 font-mono">{index + 1}.</span>
+              <div className="col-span-10 sm:col-span-5 flex items-center gap-2">
+                <span className="text-xs text-muted-foreground w-4 sm:w-5 font-mono">{index + 1}.</span>
                 <input
                   type="text"
                   value={course.code}
                   onChange={(e) => updateCourse(course.id, "code", e.target.value)}
                   placeholder="e.g. MTH 101 or Physics"
-                  className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-white text-sm focus:border-accent focus:outline-none"
+                  className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-white text-xs sm:text-sm focus:border-accent focus:outline-none"
                 />
               </div>
 
+              {/* Remove button */}
+              <div className="col-span-2 sm:col-span-1 order-2 sm:order-4 flex justify-end">
+                <button
+                  onClick={() => removeCourse(course.id)}
+                  className="p-2 text-muted-foreground hover:text-rose-400 hover:bg-rose-500/10 rounded-xl transition-colors"
+                  title="Remove Course"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+
               {/* Credit Units */}
-              <div className="col-span-6 sm:col-span-3 flex items-center justify-center gap-2">
-                <span className="sm:hidden text-xs text-muted-foreground">Units:</span>
+              <div className="col-span-6 sm:col-span-3 order-3 sm:order-2 flex items-center justify-center gap-1.5 sm:gap-2">
+                <span className="sm:hidden text-[11px] text-muted-foreground shrink-0">Units:</span>
                 <select
                   value={course.units}
                   onChange={(e) => updateCourse(course.id, "units", Number(e.target.value))}
-                  className="w-full sm:w-28 px-3 py-2 rounded-xl bg-zinc-900 border border-white/10 text-white text-sm focus:border-accent focus:outline-none text-center font-bold"
+                  className="w-full sm:w-28 px-2 sm:px-3 py-2 rounded-xl bg-zinc-900 border border-white/10 text-white text-xs sm:text-sm focus:border-accent focus:outline-none text-center font-bold"
                 >
                   {[1, 2, 3, 4, 5, 6].map(u => (
                     <option key={u} value={u}>{u} {u === 1 ? "Unit" : "Units"}</option>
@@ -501,12 +512,12 @@ export default function CgpaCalculatorPage() {
               </div>
 
               {/* Grade Selector */}
-              <div className="col-span-5 sm:col-span-3 flex items-center justify-center gap-2">
-                <span className="sm:hidden text-xs text-muted-foreground">Grade:</span>
+              <div className="col-span-6 sm:col-span-3 order-4 sm:order-3 flex items-center justify-center gap-1.5 sm:gap-2">
+                <span className="sm:hidden text-[11px] text-muted-foreground shrink-0">Grade:</span>
                 <select
                   value={course.grade}
                   onChange={(e) => updateCourse(course.id, "grade", e.target.value as any)}
-                  className={`w-full sm:w-32 px-3 py-2 rounded-xl border text-sm font-bold text-center focus:outline-none ${
+                  className={`w-full sm:w-32 px-2 sm:px-3 py-2 rounded-xl border text-xs sm:text-sm font-bold text-center focus:outline-none ${
                     course.grade === "A"
                       ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/40"
                       : course.grade === "B"
@@ -523,17 +534,6 @@ export default function CgpaCalculatorPage() {
                   <option value="E" className="bg-zinc-900 text-rose-300">E (1 Pt)</option>
                   <option value="F" className="bg-zinc-900 text-rose-500">F (0 Pts)</option>
                 </select>
-              </div>
-
-              {/* Remove button */}
-              <div className="col-span-1 sm:col-span-1 flex justify-end">
-                <button
-                  onClick={() => removeCourse(course.id)}
-                  className="p-2 text-muted-foreground hover:text-rose-400 hover:bg-rose-500/10 rounded-xl transition-colors"
-                  title="Remove Course"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
               </div>
             </div>
           ))}

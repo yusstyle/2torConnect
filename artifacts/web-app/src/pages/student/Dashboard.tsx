@@ -119,36 +119,36 @@ export default function StudentDashboard() {
         )}
 
         {/* Stats */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div className="glass-panel p-5 rounded-2xl border-l-4 border-l-accent">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
+          <div className="glass-panel p-4 sm:p-5 rounded-2xl border-l-4 border-l-accent">
             <div className="flex items-center gap-3">
-              <div className="p-2.5 rounded-xl bg-accent/20 text-accent"><Clock className="w-5 h-5" /></div>
+              <div className="p-2 sm:p-2.5 rounded-xl bg-accent/20 text-accent"><Clock className="w-4 h-4 sm:w-5 sm:h-5" /></div>
               <div>
-                <p className="text-xs font-medium text-muted-foreground">Upcoming</p>
-                <p className="text-2xl font-bold text-white">{confirmedSessions.length}</p>
+                <p className="text-[11px] sm:text-xs font-medium text-muted-foreground">Upcoming</p>
+                <p className="text-xl sm:text-2xl font-bold text-white">{confirmedSessions.length}</p>
               </div>
             </div>
           </div>
-          <div className="glass-panel p-5 rounded-2xl border-l-4 border-l-primary">
+          <div className="glass-panel p-4 sm:p-5 rounded-2xl border-l-4 border-l-primary">
             <div className="flex items-center gap-3">
-              <div className="p-2.5 rounded-xl bg-primary/20 text-primary"><CheckCircle2 className="w-5 h-5" /></div>
+              <div className="p-2 sm:p-2.5 rounded-xl bg-primary/20 text-primary"><CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5" /></div>
               <div>
-                <p className="text-xs font-medium text-muted-foreground">Completed</p>
-                <p className="text-2xl font-bold text-white">{completedSessions.length}</p>
+                <p className="text-[11px] sm:text-xs font-medium text-muted-foreground">Completed</p>
+                <p className="text-xl sm:text-2xl font-bold text-white">{completedSessions.length}</p>
               </div>
             </div>
           </div>
           <div
             onClick={() => setLocation("/student/find-tutor")}
-            className="glass-panel p-5 rounded-2xl bg-gradient-to-br from-primary/20 to-accent/10 border-white/10 cursor-pointer hover:border-accent/30 transition-all group"
+            className="col-span-2 sm:col-span-1 glass-panel p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-primary/20 to-accent/10 border-white/10 cursor-pointer hover:border-accent/30 transition-all group"
           >
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-white font-bold mb-0.5">Need help?</p>
-                <p className="text-xs text-muted-foreground">Find a tutor now</p>
+                <p className="text-white font-bold mb-0.5 text-sm sm:text-base">Need help?</p>
+                <p className="text-xs text-muted-foreground">Find a verified tutor now</p>
               </div>
-              <div className="p-2.5 rounded-xl bg-white/10 text-white group-hover:bg-accent/20 transition-all">
-                <BookOpen className="w-5 h-5" />
+              <div className="p-2 sm:p-2.5 rounded-xl bg-white/10 text-white group-hover:bg-accent/20 transition-all">
+                <BookOpen className="w-4 h-4 sm:w-5 sm:h-5" />
               </div>
             </div>
           </div>
@@ -157,8 +157,8 @@ export default function StudentDashboard() {
         {/* Study Power Tools Grid */}
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-bold text-white flex items-center gap-2">
-              <Sparkles className="w-5 h-5 text-accent" />
+            <h2 className="text-base sm:text-lg font-bold text-white flex items-center gap-2">
+              <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-accent" />
               Academic Toolkit & Campus Features
             </h2>
             <button
@@ -169,23 +169,23 @@ export default function StudentDashboard() {
             </button>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
             {tools.map((tool) => (
               <div
                 key={tool.title}
                 onClick={() => setLocation(tool.href)}
-                className={`glass-panel p-5 rounded-2xl bg-gradient-to-br ${tool.color} border border-white/10 hover:border-white/20 transition-all duration-300 cursor-pointer flex flex-col justify-between group hover:-translate-y-1 shadow-md`}
+                className={`glass-panel p-4 sm:p-5 rounded-2xl bg-gradient-to-br ${tool.color} border border-white/10 hover:border-white/20 transition-all duration-300 cursor-pointer flex flex-col justify-between group hover:-translate-y-0.5 shadow-md`}
               >
                 <div>
                   <div className="flex items-center justify-between mb-3">
-                    <div className={`p-2.5 rounded-xl bg-white/10 ${tool.iconColor}`}>
-                      <tool.icon className="w-5 h-5" />
+                    <div className={`p-2 rounded-xl bg-white/10 ${tool.iconColor}`}>
+                      <tool.icon className="w-4 h-4 sm:w-5 sm:h-5" />
                     </div>
                     <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-white/10 text-white/90">
                       {tool.badge}
                     </span>
                   </div>
-                  <h3 className="font-bold text-white text-base group-hover:text-accent transition-colors">
+                  <h3 className="font-bold text-white text-sm sm:text-base group-hover:text-accent transition-colors">
                     {tool.title}
                   </h3>
                   <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
@@ -195,7 +195,7 @@ export default function StudentDashboard() {
 
                 <div className="mt-4 pt-3 border-t border-white/5 flex items-center justify-between text-xs font-semibold text-white/80 group-hover:text-white">
                   <span>Open Tool</span>
-                  <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                  <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 group-hover:translate-x-1 transition-transform" />
                 </div>
               </div>
             ))}
@@ -203,7 +203,7 @@ export default function StudentDashboard() {
         </div>
 
         {/* Upcoming Schedule */}
-        <div className="glass-panel rounded-2xl p-6">
+        <div className="glass-panel rounded-2xl p-4 sm:p-6">
           <div className="flex items-center justify-between mb-5">
             <h2 className="text-lg font-bold text-white">Upcoming Sessions</h2>
             <button onClick={() => setLocation("/student/sessions")} className="text-sm text-accent hover:underline flex items-center gap-1">

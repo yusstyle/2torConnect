@@ -190,9 +190,9 @@ function CommentDrawer({ postId, onClose }: { postId: number; onClose: () => voi
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-background/80 backdrop-blur-sm" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-2 sm:p-4 bg-background/80 backdrop-blur-sm" onClick={onClose}>
       <motion.div initial={{ y: 50, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 50, opacity: 0 }}
-        className="glass-panel w-full max-w-lg rounded-3xl p-5 max-h-[70vh] flex flex-col" onClick={e => e.stopPropagation()}>
+        className="glass-panel w-full max-w-lg rounded-t-3xl sm:rounded-3xl p-4 sm:p-5 max-h-[85dvh] flex flex-col pb-safe" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-white font-bold text-lg">Comments</h3>
           <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-white/10 text-muted-foreground"><X className="w-4 h-4" /></button>
