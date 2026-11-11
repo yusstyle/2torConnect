@@ -40,7 +40,7 @@ export default function StudentDashboard() {
       href: "/flashcards",
       color: "from-blue-600/20 to-cyan-500/10",
       iconColor: "text-cyan-400",
-      badge: "High-Yield"
+      badge: "Exam Prep"
     },
     {
       title: "2torBoard: Whiteboard",

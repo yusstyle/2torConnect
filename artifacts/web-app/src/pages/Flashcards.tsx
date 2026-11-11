@@ -260,7 +260,7 @@ export default function FlashcardsPage() {
             id: `ai-${Date.now()}-1`,
             front: `Core Principle of ${aiTopic}`,
             back: `Fundamental definition and practical application of ${aiTopic} in Nigerian semester exams. Review past exam papers for standard derivations.`,
-            hint: `High-yield ${aiTopic} summary`
+            hint: `Essential concept for ${aiTopic}`
           },
           {
             id: `ai-${Date.now()}-2`,
@@ -288,8 +288,8 @@ export default function FlashcardsPage() {
       setAiTopic("");
 
       toast({
-        title: "AI Deck Generated! 🧠",
-        description: `Created ${newCards.length} high-yield flashcards for "${aiTopic}".`,
+        title: "Custom Deck Ready! 🧠",
+        description: `Created ${newCards.length} study flashcards for "${aiTopic}".`,
       });
     } catch {
       toast({
@@ -324,7 +324,7 @@ export default function FlashcardsPage() {
               2torCards: Smart Flashcards
             </h1>
             <p className="text-xs text-muted-foreground mt-0.5">
-              Active recall & spaced repetition for rapid Nigerian university exam mastery.
+              Active recall & spaced repetition for effective exam revision.
             </p>
           </div>
 
@@ -333,7 +333,7 @@ export default function FlashcardsPage() {
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-primary to-accent text-white font-bold text-xs hover:opacity-90 transition-all shadow-lg shadow-primary/20 shrink-0"
           >
             <Sparkles className="w-4 h-4" />
-            AI Deck Generator
+            Create Custom Deck
           </button>
         </div>
 
@@ -485,9 +485,9 @@ export default function FlashcardsPage() {
               <Sparkles className="w-6 h-6" />
             </div>
 
-            <h3 className="text-xl font-bold text-white mb-1">AI Flashcard Generator</h3>
+            <h3 className="text-xl font-bold text-white mb-1">Create Custom Deck</h3>
             <p className="text-xs text-muted-foreground mb-5">
-              Enter any Nigerian university course code or topic to instantly generate an active recall flashcard deck.
+              Enter any university course code or topic to instantly create an active-recall flashcard deck.
             </p>
 
             <form onSubmit={generateAiDeck} className="space-y-4">

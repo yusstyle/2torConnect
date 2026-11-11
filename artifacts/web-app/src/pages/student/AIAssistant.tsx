@@ -24,7 +24,7 @@ const QUICK_PROMPTS = [
   { icon: Camera, label: "Snap & Solve photo homework", prompt: "Please inspect and solve this problem step-by-step with clear working and explanations: " },
   { icon: Calculator, label: "Solve a maths problem", prompt: "Help me solve this maths problem step by step: " },
   { icon: ImageIcon, label: "Draw an educational diagram", prompt: "Draw a detailed educational diagram showing: " },
-  { icon: BookOpen, label: "Summarise an exam topic", prompt: "Give me a high-yield exam summary of: " },
+  { icon: BookOpen, label: "Summarise an exam topic", prompt: "Give me a concise exam summary of: " },
   { icon: Code2, label: "Explain code", prompt: "Explain this code to me: " },
 ];
 
@@ -405,7 +405,7 @@ export default function AIAssistantPage() {
   const hasMessages = messages.length > 0;
 
   return (
-    <DashboardLayout role="student" title="AI Study Assistant">
+    <DashboardLayout role="student" title="Study Assistant & Homework Solver">
       <div className="flex flex-col h-[calc(100dvh-13.5rem)] md:h-[calc(100vh-8rem)] max-w-3xl mx-auto">
 
         {/* Header */}
@@ -416,7 +416,7 @@ export default function AIAssistantPage() {
             </div>
             <div>
               <h2 className="text-white font-bold text-base sm:text-lg leading-tight">2torAssist</h2>
-              <p className="text-muted-foreground text-[11px] sm:text-xs">Snap & Solve Homework · FLUX Diagrams · GPT-4o</p>
+              <p className="text-muted-foreground text-[11px] sm:text-xs">Step-by-step problem solver & educational illustrations</p>
             </div>
           </div>
           {hasMessages && (
@@ -444,7 +444,7 @@ export default function AIAssistantPage() {
               </div>
               <h3 className="text-white font-bold text-xl mb-2">Hi! I'm 2torAssist</h3>
               <p className="text-muted-foreground text-sm mb-6 max-w-md">
-                Your AI-powered university study partner. Upload a photo of any difficult homework problem, ask for step-by-step calculus working, or generate educational diagrams.
+                Your interactive study partner. Upload a photo of any difficult homework problem, ask for step-by-step calculations, or request helpful visual diagrams.
               </p>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-lg">

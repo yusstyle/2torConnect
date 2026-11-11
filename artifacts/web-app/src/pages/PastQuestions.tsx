@@ -286,13 +286,13 @@ export default function PastQuestionsPage() {
           <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
             <div className="space-y-2 max-w-xl">
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
-                <Sparkles className="w-3.5 h-3.5 text-accent" /> 1,250,000+ Exam Questions Bank & AI Generator
+                <Sparkles className="w-3.5 h-3.5 text-accent" /> JAMB, Post-UTME & University Past Questions Bank
               </div>
               <h1 className="text-2xl md:text-3xl font-extrabold text-white tracking-tight">
                 National & University Past Questions Hub
               </h1>
               <p className="text-sm text-muted-foreground leading-relaxed">
-                JAMB UTME, WAEC, Post-UTME (UNILAG, UI, OAU, ABU, UNN), and 100L–400L university semester exam questions. Practice timed CBT mocks, generate infinite custom tests with AI, or snap photos of past papers to digitize them instantly.
+                JAMB UTME, WAEC, Post-UTME (UNILAG, UI, OAU, ABU, UNN), and 100L–400L university semester exam questions. Practice timed CBT mocks, create custom practice quizzes for your courses, or snap photos of physical past papers to solve them directly.
               </p>
             </div>
             <div className="flex flex-col sm:flex-row gap-3">
@@ -308,8 +308,8 @@ export default function PastQuestionsPage() {
           {/* Quick Metrics */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-6 pt-5 border-t border-white/10">
             <div className="p-3 rounded-2xl bg-black/40 border border-white/5">
-              <p className="text-[11px] text-muted-foreground">Total Questions</p>
-              <p className="text-base font-bold text-cyan-400 mt-0.5">1,250,000+</p>
+              <p className="text-[11px] text-muted-foreground">Solved Questions</p>
+              <p className="text-base font-bold text-cyan-400 mt-0.5">5,000+ Practice Items</p>
             </div>
             <div className="p-3 rounded-2xl bg-black/40 border border-white/5">
               <p className="text-[11px] text-muted-foreground">National Boards</p>
@@ -320,8 +320,8 @@ export default function PastQuestionsPage() {
               <p className="text-base font-bold text-accent mt-0.5">UNILAG • UI • OAU • ABU</p>
             </div>
             <div className="p-3 rounded-2xl bg-black/40 border border-white/5">
-              <p className="text-[11px] text-muted-foreground">AI Exam Engine</p>
-              <p className="text-base font-bold text-purple-400 mt-0.5">Infinite On-Demand</p>
+              <p className="text-[11px] text-muted-foreground">Custom Quiz Builder</p>
+              <p className="text-base font-bold text-purple-400 mt-0.5">Any Course On-Demand</p>
             </div>
           </div>
         </div>
@@ -638,7 +638,7 @@ export default function PastQuestionsPage() {
                     : "text-muted-foreground hover:text-white hover:bg-white/5"
                 }`}
               >
-                <Zap className="w-4 h-4 text-amber-400" /> AI Infinite Exam Generator
+                <Zap className="w-4 h-4 text-amber-400" /> Practice Test Builder
               </button>
 
               <button
@@ -714,7 +714,7 @@ export default function PastQuestionsPage() {
                           <div className="flex items-center gap-2">
                             {c.isAiGenerated && (
                               <span className="text-[10px] px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30 font-bold">
-                                ⚡ AI Generated
+                                Custom Practice Set
                               </span>
                             )}
                             <span className="text-xs px-2.5 py-0.5 rounded-full bg-white/5 border border-white/10 text-muted-foreground">
@@ -772,23 +772,23 @@ export default function PastQuestionsPage() {
                     <GraduationCap className="w-12 h-12 mx-auto text-muted-foreground mb-3" />
                     <p className="text-white font-bold">No past questions matched your filter</p>
                     <p className="text-xs text-muted-foreground mt-1">
-                      You can instantly generate this exam using the <strong>AI Infinite Exam Generator</strong> tab above!
+                      You can instantly build practice questions for this exam using the <strong>Practice Test Builder</strong> tab above!
                     </p>
                   </div>
                 )}
               </div>
             )}
 
-            {/* TAB 2: AI Infinite Exam Generator */}
+            {/* TAB 2: Practice Test Builder */}
             {activeTab === "generator" && (
               <div className="glass-panel rounded-3xl p-6 md:p-8 border border-white/10 space-y-6">
                 <div>
                   <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30 mb-2">
-                    <Zap className="w-3.5 h-3.5" /> Powered by 2torConnect AI Engine
+                    <Zap className="w-3.5 h-3.5" /> Build a Custom Practice Quiz
                   </div>
-                  <h2 className="text-xl font-bold text-white">Generate Any CBT Exam Question On-Demand</h2>
+                  <h2 className="text-xl font-bold text-white">Generate Practice Questions for Any Course or Topic</h2>
                   <p className="text-xs text-muted-foreground mt-1 max-w-2xl">
-                    Need practice for a specific course or topic not in the bank? Enter your course code, topic, and university below. Our AI generates verified multiple-choice questions with step-by-step explanations in seconds.
+                    Need practice for a specific course or topic not yet in the bank? Enter your course code, topic, and university below to generate verified multiple-choice questions with step-by-step explanations.
                   </p>
                 </div>
 
@@ -876,12 +876,12 @@ export default function PastQuestionsPage() {
                       {generating ? (
                         <>
                           <Loader2 className="w-5 h-5 animate-spin" />
-                          Synthesizing CBT Exam Questions & Explanations...
+                          Preparing Practice Questions & Explanations...
                         </>
                       ) : (
                         <>
                           <Zap className="w-5 h-5" />
-                          Generate Custom CBT Exam & Start Test
+                          Create Practice Quiz & Start Test
                         </>
                       )}
                     </button>
@@ -895,11 +895,11 @@ export default function PastQuestionsPage() {
               <div className="glass-panel rounded-3xl p-6 md:p-8 border border-white/10 space-y-6">
                 <div>
                   <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 mb-2">
-                    <Camera className="w-3.5 h-3.5" /> AI Vision Past Question Paper Scanner
+                    <Camera className="w-3.5 h-3.5" /> Snap & Practice Past Exam Paper
                   </div>
-                  <h2 className="text-xl font-bold text-white">Snap & Digitize Physical Past Question Papers</h2>
+                  <h2 className="text-xl font-bold text-white">Scan or Snap a Past Question Paper</h2>
                   <p className="text-xs text-muted-foreground mt-1 max-w-2xl">
-                    Take a photo of any physical exam paper, departmental test, or textbook question. Our AI reads the text, extracts the questions, calculates the answers, and converts it into a playable CBT mock quiz in 5 seconds.
+                    Take a photo of any printed exam paper, departmental test, or textbook question. The scanner reads the questions, extracts the options, and converts them into an interactive practice quiz.
                   </p>
                 </div>
 

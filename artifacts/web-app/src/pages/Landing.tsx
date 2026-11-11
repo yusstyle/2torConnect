@@ -111,7 +111,7 @@ export default function LandingPage() {
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             <button
               onClick={() => setShowInstallApp(true)}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-xl bg-white/5 hover:bg-white/10 text-emerald-400 text-xs font-bold border border-emerald-500/30 transition-all shadow-sm"
+              className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-xl bg-white/5 hover:bg-white/10 text-emerald-400 text-xs font-bold border border-emerald-500/30 transition-all shadow-sm"
               title="Install Android / iOS Mobile App"
             >
               <Smartphone className="w-3.5 h-3.5" />
@@ -121,7 +121,7 @@ export default function LandingPage() {
             <Link href="/login" className="px-2 py-2 sm:px-3 text-sm font-semibold text-white/80 hover:text-white transition-colors whitespace-nowrap hidden sm:inline-block">
               Sign In
             </Link>
-            <Link href="/register" className="px-3 py-2 sm:px-4 sm:py-2.5 rounded-xl text-sm font-bold bg-gradient-to-r from-primary to-accent text-white hover:opacity-90 hover:shadow-lg hover:shadow-accent/30 transition-all duration-300 whitespace-nowrap">
+            <Link href="/register" className="px-3 py-2 sm:px-4 sm:py-2.5 rounded-xl text-xs sm:text-sm font-bold bg-gradient-to-r from-primary to-accent text-white hover:opacity-90 hover:shadow-lg hover:shadow-accent/30 transition-all duration-300 whitespace-nowrap hidden xs:inline-flex">
               <span className="hidden sm:inline">Get Started Free</span>
               <span className="sm:hidden">Join Free</span>
             </Link>
@@ -165,6 +165,16 @@ export default function LandingPage() {
               <a href="#features" onClick={() => setMobileMenuOpen(false)} className="py-1.5 hover:text-white">Campus Tools & Features</a>
               <Link href="/about" onClick={() => setMobileMenuOpen(false)} className="py-1.5 hover:text-white">About 2torConnect</Link>
             </div>
+            <button
+              onClick={() => {
+                setShowInstallApp(true);
+                setMobileMenuOpen(false);
+              }}
+              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 text-xs font-bold"
+            >
+              <Smartphone className="w-4 h-4" />
+              <span>Install Mobile App (Android / iOS)</span>
+            </button>
             <div className="pt-2 border-t border-white/10 flex items-center gap-2">
               <Link
                 href="/login"
@@ -206,7 +216,7 @@ export default function LandingPage() {
           >
             <div className="inline-flex items-center gap-2 px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-full bg-accent/10 border border-accent/30 mb-6 sm:mb-8">
               <span className="flex w-2 h-2 rounded-full bg-accent animate-pulse" />
-              <span className="text-[11px] sm:text-xs font-semibold text-accent tracking-wider uppercase">The Global Peer Tutoring Platform</span>
+              <span className="text-[11px] sm:text-xs font-semibold text-accent tracking-wider uppercase">Connecting University Students With Verified Campus Tutors</span>
             </div>
 
             <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-display font-extrabold leading-tight mb-4 sm:mb-6">
@@ -408,7 +418,7 @@ export default function LandingPage() {
               Turn your academic excellence into a real income stream.
             </h2>
             <p className="text-white/70 text-lg leading-relaxed mb-8">
-              You've worked hard for your grades — now let them pay you back. 2torConnect lets you monetise your knowledge by teaching the courses you've already aced. Set your own hours, your own rates, and build a student base that keeps coming back.
+              You've worked hard for your grades — now put that experience to work. 2torConnect lets you earn money on your own schedule teaching courses you've already passed. Set your own hourly rate, choose your hours, and help fellow students succeed.
             </p>
 
             <div className="space-y-3 mb-10">
@@ -535,7 +545,7 @@ export default function LandingPage() {
               { icon: PenTool, title: "2torBoard: Live Whiteboard", desc: "Collaborate and sketch math derivations, physics formulas, and science diagrams live during video calls and export notes as high-res images.", color: "from-cyan-500/20 to-cyan-500/5" },
               { icon: Mic, title: "In-Call Voice Notes & Chat", desc: "Send WhatsApp-style voice notes in chat and inside live video sessions so you never have to talk over the tutor.", color: "from-emerald-500/20 to-emerald-500/5" },
               { icon: Flame, title: "2torArena: Daily Speed Battles", desc: "5 rapid-fire questions every day. Build daily study streaks, earn tutor discounts, and rank your university on the national leaderboard.", color: "from-red-500/20 to-red-500/5" },
-              { icon: Layers, title: "2torCards: Smart Flashcards", desc: "Active recall 3D flip cards for MTH101, PHY101, CHM101 and GST101, plus an AI Deck Generator for any custom course code.", color: "from-purple-500/20 to-purple-500/5" },
+              { icon: Layers, title: "2torCards: Smart Flashcards", desc: "Active recall 3D flip cards for MTH101, PHY101, CHM101 and GST101, plus custom deck creation for any university course.", color: "from-purple-500/20 to-purple-500/5" },
               { icon: Headphones, title: "24/7 Virtual Study Lounge", desc: "Customizable Pomodoro timer paired with ambient Nigerian tropical rain and 432Hz deep focus alpha waves.", color: "from-yellow-500/20 to-yellow-500/5" },
               { icon: GraduationCap, title: "10,000+ Past Questions & CBT", desc: "Comprehensive CBT exam simulator for JAMB UTME, Post-UTME, and Nigerian university 100-level core courses.", color: "from-primary/20 to-primary/5" },
             ].map((feature, i) => (
@@ -638,7 +648,7 @@ export default function LandingPage() {
                 <span className="font-display font-bold text-xl text-white">2tor<span className="text-accent">Connect</span></span>
               </div>
               <p className="text-white/50 text-sm leading-relaxed max-w-xs">
-                The global peer tutoring marketplace, connecting university students worldwide with top-performing peers for personalized academic support.
+                Connecting university students with verified tutors who have taken and excelled in their exact courses.
               </p>
             </div>
             <div>

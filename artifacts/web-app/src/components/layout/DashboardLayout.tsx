@@ -75,7 +75,7 @@ export function DashboardLayout({ children, role: roleProp, title }: DashboardLa
       { label: "Past Questions & CBT", href: "/past-questions", icon: GraduationCap },
       { label: "5.0 CGPA Calculator", href: "/cgpa-calculator", icon: Calculator },
       { label: "Study Materials", href: "/student/materials", icon: FileText },
-      { label: "AI Study Assistant", href: "/student/ai-assistant", icon: Sparkles },
+      { label: "Study Assistant & Homework Solver", href: "/student/ai-assistant", icon: Sparkles },
       { label: "My Wallet", href: "/student/wallet", icon: Wallet },
       { label: "Sponsorship", href: "/student/sponsorship", icon: HandCoins },
       { label: "Assignments Board", href: "/student/assignments", icon: ClipboardList },
@@ -286,21 +286,21 @@ export function DashboardLayout({ children, role: roleProp, title }: DashboardLa
       {/* Ã¢â€â‚¬Ã¢â€â‚¬ MOBILE TOP HEADER Ã¢â€â‚¬Ã¢â€â‚¬ */}
       <div className="md:hidden flex items-center justify-between px-4 py-3 border-b border-white/10 bg-card/90 backdrop-blur-md sticky top-0 z-40">
         {/* Left: avatar + greeting */}
-        <Link href="/profile" className="flex items-center gap-3">
+        <Link href="/profile" className="flex items-center gap-3 min-w-0 mr-2">
           <div className={`w-10 h-10 rounded-full bg-gradient-to-tr ${roleGradient[user.role] ?? "from-primary to-accent"} flex items-center justify-center font-bold text-white shrink-0 overflow-hidden border-2 border-white/20`}>
             {user.avatarUrl
               ? <img src={user.avatarUrl} alt="avatar" className="w-full h-full object-cover" />
               : <span>{user.name.split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase()}</span>
             }
           </div>
-          <div>
+          <div className="min-w-0">
             <p className="text-xs text-muted-foreground leading-none mb-0.5">Welcome back</p>
-            <p className="text-sm font-bold text-white leading-none">{firstName}</p>
+            <p className="text-sm font-bold text-white leading-none truncate max-w-[120px] sm:max-w-[160px]">{firstName}</p>
           </div>
         </Link>
 
         {/* Right: install app + theme toggle + notification bell */}
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1.5 shrink-0">
           <button
             onClick={() => setShowInstallApp(true)}
             className="flex items-center gap-1 px-2 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[11px] font-bold"

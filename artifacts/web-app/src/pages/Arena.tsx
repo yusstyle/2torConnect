@@ -232,7 +232,7 @@ export default function ArenaPage() {
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
                   <div className="p-3 bg-white/5 rounded-xl border border-white/5">
                     <p className="text-xs text-muted-foreground">Questions</p>
-                    <p className="text-lg font-bold text-white">5 High-Yield</p>
+                    <p className="text-lg font-bold text-white">5 Exam Questions</p>
                   </div>
                   <div className="p-3 bg-white/5 rounded-xl border border-white/5">
                     <p className="text-xs text-muted-foreground">Timer</p>
