@@ -11,7 +11,6 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import NotificationBell from "@/components/NotificationBell";
-import { ThemeToggle } from "@/components/ThemeToggle";
 import InstallAppModal from "@/components/InstallAppModal";
 
 interface NavItem {
@@ -227,7 +226,6 @@ export function DashboardLayout({ children, role: roleProp, title }: DashboardLa
         <div className="p-5 flex items-center justify-between border-b border-white/5">
           <Logo size={44} />
           <div className="flex items-center gap-1">
-            <ThemeToggle />
             <NotificationBell />
           </div>
         </div>
@@ -328,7 +326,6 @@ export function DashboardLayout({ children, role: roleProp, title }: DashboardLa
           >
             <Smartphone className="w-3.5 h-3.5" />
           </button>
-          <ThemeToggle />
           <NotificationBell />
         </div>
       </div>

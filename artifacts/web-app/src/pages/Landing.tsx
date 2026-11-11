@@ -2,7 +2,6 @@ import { Link } from "wouter";
 import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
 import { Logo } from "@/components/Logo";
-import { ThemeToggle } from "@/components/ThemeToggle";
 import {
   BookOpen, Users, Star, ArrowRight, ShieldCheck, Zap, CheckCircle,
   TrendingUp, Clock, MessageSquare, Award, Target, GraduationCap,
@@ -117,7 +116,6 @@ export default function LandingPage() {
               <Smartphone className="w-3.5 h-3.5" />
               <span>Get App</span>
             </button>
-            <ThemeToggle />
             <Link href="/login" className="px-2 py-2 sm:px-3 text-sm font-semibold text-white/80 hover:text-white transition-colors whitespace-nowrap hidden sm:inline-block">
               Sign In
             </Link>
