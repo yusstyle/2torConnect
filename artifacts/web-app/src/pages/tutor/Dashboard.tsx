@@ -287,7 +287,7 @@ export default function TutorDashboardPage() {
           {[
             { title: "2torBoard", desc: "Digital Whiteboard", href: "/whiteboard", icon: PenTool, color: "text-cyan-400", bg: "bg-cyan-500/10" },
             { title: "Past Questions", desc: "CBT Exam Bank", href: "/past-questions", icon: GraduationCap, color: "text-accent", bg: "bg-accent/10" },
-            { title: "2torArena", desc: "Daily Speed Battle", href: "/arena", icon: Zap, color: "text-red-400", bg: "bg-red-500/10" },
+            { title: "Daily Quiz", desc: "Daily Exam Practice", href: "/arena", icon: Zap, color: "text-amber-400", bg: "bg-amber-500/10" },
             { title: "2torCards", desc: "Flashcard Decks", href: "/flashcards", icon: Layers, color: "text-purple-400", bg: "bg-purple-500/10" },
           ].map((t) => (
             <div

@@ -542,7 +542,7 @@ export default function LandingPage() {
             {[
               { icon: PenTool, title: "2torBoard: Live Whiteboard", desc: "Collaborate and sketch math derivations, physics formulas, and science diagrams live during video calls and export notes as high-res images.", color: "from-cyan-500/20 to-cyan-500/5" },
               { icon: Mic, title: "In-Call Voice Notes & Chat", desc: "Send WhatsApp-style voice notes in chat and inside live video sessions so you never have to talk over the tutor.", color: "from-emerald-500/20 to-emerald-500/5" },
-              { icon: Flame, title: "2torArena: Daily Speed Battles", desc: "5 rapid-fire questions every day. Build daily study streaks, earn tutor discounts, and rank your university on the national leaderboard.", color: "from-red-500/20 to-red-500/5" },
+              { icon: Flame, title: "Daily Practice Quiz & Streaks", desc: "5 quick exam questions every day from real university past papers. Build daily study streaks and earn discounts on tutor sessions.", color: "from-emerald-500/20 to-teal-500/5" },
               { icon: Layers, title: "2torCards: Smart Flashcards", desc: "Active recall 3D flip cards for MTH101, PHY101, CHM101 and GST101, plus custom deck creation for any university course.", color: "from-purple-500/20 to-purple-500/5" },
               { icon: Headphones, title: "24/7 Virtual Study Lounge", desc: "Customizable Pomodoro timer paired with ambient Nigerian tropical rain and 432Hz deep focus alpha waves.", color: "from-yellow-500/20 to-yellow-500/5" },
               { icon: GraduationCap, title: "10,000+ Past Questions & CBT", desc: "Comprehensive CBT exam simulator for JAMB UTME, Post-UTME, and Nigerian university 100-level core courses.", color: "from-primary/20 to-primary/5" },

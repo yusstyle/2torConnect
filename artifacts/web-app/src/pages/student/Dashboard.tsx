@@ -146,7 +146,7 @@ export default function StudentDashboard() {
                 <Flame className="w-3.5 h-3.5" />
               </div>
               <p className="text-xs text-white/90 truncate font-medium">
-                Daily Speed Battle: Take today's 5-question speed quiz
+                Daily Practice Quiz: Test your knowledge in 5 quick questions
               </p>
             </div>
             <span className="flex items-center gap-0.5 text-xs text-accent font-bold shrink-0">
