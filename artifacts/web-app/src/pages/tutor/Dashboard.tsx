@@ -3,7 +3,7 @@ import { useListSessions, useListTransactions } from "@workspace/api-client-reac
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { useLocation } from "wouter";
 import { format } from "date-fns";
-import { Calendar, DollarSign, Users, Clock, Video, ArrowRight, Loader2, BadgeCheck, XCircle, Sparkles, Camera, PenTool, Zap, Layers, Headphones, GraduationCap } from "lucide-react";
+import { Calendar, DollarSign, Users, Clock, Video, ArrowRight, Loader2, BadgeCheck, XCircle, Sparkles, Camera, PenTool, Zap, Layers, Headphones, GraduationCap, Eye, EyeOff, ChevronRight, BookOpen, CreditCard } from "lucide-react";
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
 import { getApiUrl } from "@/lib/api";
@@ -28,6 +28,7 @@ export default function TutorDashboardPage() {
   const [savedRate, setSavedRate] = useState<string | null>(null);
   const [savingRate, setSavingRate] = useState(false);
   const [showFlyer, setShowFlyer] = useState(false);
+  const [showBalance, setShowBalance] = useState(true);
 
   useEffect(() => {
     const token = useAuthStore.getState().token;
@@ -139,22 +140,121 @@ export default function TutorDashboardPage() {
           </motion.div>
         )}
 
-        {/* Stats */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-          {[
-            { label: "Total Earnings", value: `₦${totalEarnings.toLocaleString()}`, icon: DollarSign, color: "text-green-400" },
-            { label: "Total Sessions", value: sessionsData?.total ?? 0, icon: Calendar, color: "text-accent" },
-            { label: "Pending Requests", value: pendingSessions, icon: Clock, color: "text-yellow-400" },
-            { label: "Confirmed Sessions", value: confirmedSessions.length, icon: Users, color: "text-blue-400" },
-          ].map(stat => (
-            <div key={stat.label} className="glass-panel rounded-2xl p-4 sm:p-5">
-              <div className={`w-8 h-8 sm:w-9 sm:h-9 rounded-xl flex items-center justify-center mb-2.5 sm:mb-3 bg-white/5 ${stat.color}`}>
-                <stat.icon className="w-4 h-4 sm:w-5 sm:h-5" />
+        {/* ── 1. Top Dual Balance & Sessions Cards (OPay structure) ── */}
+        <div className="grid grid-cols-2 gap-3">
+          {/* Card 1: Total Earnings */}
+          <div className="relative overflow-hidden rounded-3xl p-4 sm:p-5 bg-gradient-to-br from-emerald-600 via-emerald-700 to-teal-800 text-white shadow-lg shadow-emerald-950/20 flex flex-col justify-between min-h-[125px] sm:min-h-[140px]">
+            <div className="relative z-10">
+              <div className="flex items-center justify-between gap-1 mb-1">
+                <div className="flex items-center gap-1.5 text-xs text-emerald-100 font-medium">
+                  <span>Total Earnings</span>
+                  <button
+                    onClick={() => setShowBalance(!showBalance)}
+                    className="p-0.5 hover:text-white transition-colors"
+                  >
+                    {showBalance ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
+                  </button>
+                </div>
+                <button
+                  onClick={() => setLocation("/tutor/earnings")}
+                  className="px-2 py-0.5 rounded-full bg-white/20 hover:bg-white/30 text-white text-[10px] font-bold tracking-wide transition-colors"
+                >
+                  Withdraw
+                </button>
               </div>
-              <div className="text-xl sm:text-2xl font-bold text-white">{stat.value}</div>
-              <div className="text-[11px] sm:text-xs text-muted-foreground mt-1">{stat.label}</div>
+
+              <div
+                onClick={() => setLocation("/tutor/earnings")}
+                className="cursor-pointer group flex items-center gap-1 mt-1"
+              >
+                <p className="text-xl sm:text-2xl font-black tracking-tight">
+                  {showBalance ? `₦${totalEarnings.toLocaleString()}` : "****"}
+                </p>
+                <ChevronRight className="w-4 h-4 text-emerald-200 group-hover:translate-x-0.5 transition-transform" />
+              </div>
             </div>
-          ))}
+
+            <div className="relative z-10 pt-2 border-t border-white/10 flex items-center justify-between text-[10px] sm:text-[11px] text-emerald-100/90 font-medium">
+              <span>{sessionsData?.total ?? 0} Total Sessions</span>
+            </div>
+            <div className="absolute -right-4 -bottom-4 w-24 h-24 rounded-full bg-white/10 blur-xl pointer-events-none" />
+          </div>
+
+          {/* Card 2: Tutoring Sessions */}
+          <div className="relative overflow-hidden rounded-3xl p-4 sm:p-5 bg-gradient-to-br from-purple-700 via-indigo-800 to-primary text-white shadow-lg shadow-purple-950/20 flex flex-col justify-between min-h-[125px] sm:min-h-[140px]">
+            <div className="relative z-10">
+              <div className="flex items-center justify-between gap-1 mb-1">
+                <span className="text-xs text-purple-100 font-medium">Sessions</span>
+                <button
+                  onClick={() => setLocation("/tutor/availability")}
+                  className="px-2 py-0.5 rounded-full bg-white/20 hover:bg-white/30 text-white text-[10px] font-bold tracking-wide transition-colors"
+                >
+                  Schedule
+                </button>
+              </div>
+
+              <div
+                onClick={() => setLocation("/tutor/sessions")}
+                className="cursor-pointer group flex items-center gap-1 mt-1"
+              >
+                <p className="text-xl sm:text-2xl font-black tracking-tight">
+                  {confirmedSessions.length} Confirmed
+                </p>
+                <ChevronRight className="w-4 h-4 text-purple-200 group-hover:translate-x-0.5 transition-transform" />
+              </div>
+            </div>
+
+            <div className="relative z-10 pt-2 border-t border-white/10 flex items-center justify-between text-[10px] sm:text-[11px] text-purple-100/90 font-medium">
+              <span>{pendingSessions} Pending</span>
+              <span className="text-emerald-300 font-bold">Active</span>
+            </div>
+            <div className="absolute -right-4 -bottom-4 w-24 h-24 rounded-full bg-white/10 blur-xl pointer-events-none" />
+          </div>
+        </div>
+
+        {/* ── 2. Primary 4-Action Grid for Tutors (OPay squircle style) ── */}
+        <div className="glass-panel rounded-3xl p-4 sm:p-5 border border-white/10 shadow-sm">
+          <div className="grid grid-cols-4 gap-2 text-center">
+            <button
+              onClick={() => setLocation("/tutor/sessions")}
+              className="flex flex-col items-center gap-2 p-2 rounded-2xl hover:bg-white/5 active:scale-95 transition-all group"
+            >
+              <div className="w-12 h-12 rounded-2xl bg-blue-500/15 border border-blue-500/30 text-blue-400 flex items-center justify-center group-hover:scale-105 transition-transform shadow-sm">
+                <BookOpen className="w-5 h-5" />
+              </div>
+              <span className="text-xs font-semibold text-white/90 leading-tight">Sessions</span>
+            </button>
+
+            <button
+              onClick={() => setLocation("/tutor/earnings")}
+              className="flex flex-col items-center gap-2 p-2 rounded-2xl hover:bg-white/5 active:scale-95 transition-all group"
+            >
+              <div className="w-12 h-12 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 flex items-center justify-center group-hover:scale-105 transition-transform shadow-sm">
+                <CreditCard className="w-5 h-5" />
+              </div>
+              <span className="text-xs font-semibold text-white/90 leading-tight">Earnings</span>
+            </button>
+
+            <button
+              onClick={() => setLocation("/tutor/availability")}
+              className="flex flex-col items-center gap-2 p-2 rounded-2xl hover:bg-white/5 active:scale-95 transition-all group"
+            >
+              <div className="w-12 h-12 rounded-2xl bg-amber-500/15 border border-amber-500/30 text-amber-400 flex items-center justify-center group-hover:scale-105 transition-transform shadow-sm">
+                <Clock className="w-5 h-5" />
+              </div>
+              <span className="text-xs font-semibold text-white/90 leading-tight">Availability</span>
+            </button>
+
+            <button
+              onClick={() => setShowFlyer(true)}
+              className="flex flex-col items-center gap-2 p-2 rounded-2xl hover:bg-white/5 active:scale-95 transition-all group"
+            >
+              <div className="w-12 h-12 rounded-2xl bg-purple-500/15 border border-purple-500/30 text-purple-400 flex items-center justify-center group-hover:scale-105 transition-transform shadow-sm">
+                <Camera className="w-5 h-5" />
+              </div>
+              <span className="text-xs font-semibold text-white/90 leading-tight">Get Flyer</span>
+            </button>
+          </div>
         </div>
 
         {/* Promote on WhatsApp Status Card */}

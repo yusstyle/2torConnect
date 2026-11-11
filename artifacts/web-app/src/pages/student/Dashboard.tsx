@@ -1,232 +1,360 @@
 import { useState } from "react";
 import { useAuthStore } from "@/lib/auth";
 import DashboardLayout from "@/components/layout/DashboardLayout";
-import { useListSessions } from "@workspace/api-client-react";
+import { useListSessions, useListTransactions } from "@workspace/api-client-react";
 import { useLocation } from "wouter";
 import {
   BookOpen, Clock, CheckCircle2, Video, ArrowRight, Loader2,
   Zap, Layers, PenTool, Headphones, GraduationCap, Calculator,
-  Sparkles, Flame, Smartphone
+  Sparkles, Flame, Smartphone, Eye, EyeOff, Plus, Search, Wallet,
+  ChevronRight, Users2, Trophy, Gift
 } from "lucide-react";
 import { format } from "date-fns";
-import { motion } from "framer-motion";
 import InstallAppModal from "@/components/InstallAppModal";
 
 export default function StudentDashboard() {
   const { user } = useAuthStore();
   const [, setLocation] = useLocation();
   const [showInstallApp, setShowInstallApp] = useState(false);
-  const { data: sessionsData, isLoading } = useListSessions({ studentId: user?.id, limit: 10 });
+  const [showBalance, setShowBalance] = useState(true);
+  const [showAcademics, setShowAcademics] = useState(true);
+
+  const { data: sessionsData, isLoading: sessionsLoading } = useListSessions({ studentId: user?.id, limit: 10 });
+  const { data: txData } = useListTransactions({ userId: user?.id, limit: 100 });
 
   const allSessions = sessionsData?.sessions || [];
   const confirmedSessions = allSessions.filter(s => s.status === "confirmed");
   const completedSessions = allSessions.filter(s => s.status === "completed");
   const nextSession = confirmedSessions[0];
 
-  const tools = [
-    {
-      title: "2torArena: Daily Battle",
-      desc: "5-question speed quiz · Earn XP & tutor discounts",
-      icon: Zap,
-      href: "/arena",
-      color: "from-red-600/20 to-orange-500/10",
-      iconColor: "text-red-400",
-      badge: "🔥 Daily Streak"
-    },
-    {
-      title: "2torCards: Flashcards",
-      desc: "3D active recall decks for MTH101, PHY101 & GST101",
-      icon: Layers,
-      href: "/flashcards",
-      color: "from-blue-600/20 to-cyan-500/10",
-      iconColor: "text-cyan-400",
-      badge: "Exam Prep"
-    },
-    {
-      title: "2torBoard: Whiteboard",
-      desc: "Canvas sketchpad for derivations & formulas",
-      icon: PenTool,
-      href: "/whiteboard",
-      color: "from-emerald-600/20 to-teal-500/10",
-      iconColor: "text-emerald-400",
-      badge: "Export PNG"
-    },
-    {
-      title: "24/7 Virtual Study Lounge",
-      desc: "Pomodoro focus timer & ambient Nigerian rain sounds",
-      icon: Headphones,
-      href: "/study-lounge",
-      color: "from-purple-600/20 to-pink-500/10",
-      iconColor: "text-purple-400",
-      badge: "🇳🇬 Live"
-    },
-    {
-      title: "Past Questions & CBT",
-      desc: "Practice 10,000+ national & university exam questions",
-      icon: GraduationCap,
-      href: "/past-questions",
-      color: "from-primary/20 to-accent/10",
-      iconColor: "text-accent",
-      badge: "JAMB & 100L"
-    },
-    {
-      title: "5.0 CGPA Calculator",
-      desc: "Calculate semester GPA & forecast degree classification",
-      icon: Calculator,
-      href: "/cgpa-calculator",
-      color: "from-amber-600/20 to-yellow-500/10",
-      iconColor: "text-amber-400",
-      badge: "University Standard"
-    }
-  ];
+  const transactions = txData?.transactions ?? [];
+  const completedTx = transactions.filter((t) => t.status === "completed");
+  const totalFunded = completedTx.filter((t) => t.type === "bonus").reduce((s, t) => s + Number(t.amount), 0);
+  const totalSpent = completedTx.filter((t) => t.type === "payment").reduce((s, t) => s + Number(t.amount), 0);
+  const balance = Math.max(0, totalFunded - totalSpent);
 
   return (
-    <DashboardLayout role="student" title={`Welcome back, ${user?.name?.split(" ")[0] ?? ""}!`}>
-      <div className="space-y-6">
+    <DashboardLayout role="student">
+      <div className="space-y-4 max-w-4xl mx-auto">
 
-        {/* Live Session Banner — shown when there's a confirmed session */}
-        {nextSession && (
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="relative overflow-hidden rounded-3xl p-6 bg-gradient-to-r from-primary via-primary/80 to-accent shadow-2xl shadow-primary/30 border border-white/10"
-          >
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_rgba(255,255,255,0.1),transparent_60%)]" />
-            <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center gap-4">
-              <div className="w-14 h-14 rounded-2xl bg-white/20 backdrop-blur flex items-center justify-center shrink-0">
-                <Video className="w-7 h-7 text-white" />
-              </div>
-              <div className="flex-1">
-                <div className="flex items-center gap-2 mb-1">
-                  <div className="w-2 h-2 rounded-full bg-white animate-pulse" />
-                  <span className="text-white/80 text-xs font-semibold uppercase tracking-wider">Session Ready</span>
+        {/* ── 1. Top Dual Balance & Academic Cards (OPay structure) ── */}
+        <div className="grid grid-cols-2 gap-3">
+          {/* Card 1: Available Wallet */}
+          <div className="relative overflow-hidden rounded-3xl p-4 sm:p-5 bg-gradient-to-br from-emerald-600 via-emerald-700 to-teal-800 text-white shadow-lg shadow-emerald-950/20 flex flex-col justify-between min-h-[125px] sm:min-h-[140px]">
+            <div className="relative z-10">
+              <div className="flex items-center justify-between gap-1 mb-1">
+                <div className="flex items-center gap-1.5 text-xs text-emerald-100 font-medium">
+                  <span>Available</span>
+                  <button
+                    onClick={() => setShowBalance(!showBalance)}
+                    className="p-0.5 hover:text-white transition-colors"
+                    aria-label="Toggle balance visibility"
+                  >
+                    {showBalance ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
+                  </button>
                 </div>
-                <h3 className="text-white font-bold text-xl leading-tight">{nextSession.subject}</h3>
-                <p className="text-white/70 text-sm mt-0.5">
-                  with <strong className="text-white">{nextSession.tutorName}</strong> ·{" "}
-                  {format(new Date(nextSession.scheduledAt), "MMM d 'at' h:mm a")} · {nextSession.durationMinutes} min
-                </p>
+                <button
+                  onClick={() => setLocation("/student/wallet")}
+                  className="px-2 py-0.5 rounded-full bg-white/20 hover:bg-white/30 text-white text-[10px] font-bold tracking-wide transition-colors flex items-center gap-0.5"
+                >
+                  <Plus className="w-2.5 h-2.5" /> Add
+                </button>
               </div>
-              <button
-                onClick={() => setLocation(`/session/${nextSession.id}`)}
-                className="shrink-0 flex items-center gap-2 px-6 py-3 rounded-2xl bg-white text-primary font-bold hover:bg-white/90 transition-all shadow-lg text-sm"
-              >
-                <Video className="w-4 h-4" />
-                Join Session
-              </button>
-            </div>
-          </motion.div>
-        )}
 
-        {/* Stats */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
-          <div className="glass-panel p-4 sm:p-5 rounded-2xl border-l-4 border-l-accent">
-            <div className="flex items-center gap-3">
-              <div className="p-2 sm:p-2.5 rounded-xl bg-accent/20 text-accent"><Clock className="w-4 h-4 sm:w-5 sm:h-5" /></div>
-              <div>
-                <p className="text-[11px] sm:text-xs font-medium text-muted-foreground">Upcoming</p>
-                <p className="text-xl sm:text-2xl font-bold text-white">{confirmedSessions.length}</p>
+              <div
+                onClick={() => setLocation("/student/wallet")}
+                className="cursor-pointer group flex items-center gap-1 mt-1"
+              >
+                <p className="text-xl sm:text-2xl font-black tracking-tight">
+                  {showBalance ? `₦${balance.toLocaleString()}` : "****"}
+                </p>
+                <ChevronRight className="w-4 h-4 text-emerald-200 group-hover:translate-x-0.5 transition-transform" />
               </div>
             </div>
+
+            <div className="relative z-10 pt-2 border-t border-white/10 flex items-center justify-between text-[10px] sm:text-[11px] text-emerald-100/90 font-medium">
+              <span>Spent {showBalance ? `₦${totalSpent.toLocaleString()}` : "****"}</span>
+            </div>
+            {/* Soft decorative glow */}
+            <div className="absolute -right-4 -bottom-4 w-24 h-24 rounded-full bg-white/10 blur-xl pointer-events-none" />
           </div>
-          <div className="glass-panel p-4 sm:p-5 rounded-2xl border-l-4 border-l-primary">
-            <div className="flex items-center gap-3">
-              <div className="p-2 sm:p-2.5 rounded-xl bg-primary/20 text-primary"><CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5" /></div>
-              <div>
-                <p className="text-[11px] sm:text-xs font-medium text-muted-foreground">Completed</p>
-                <p className="text-xl sm:text-2xl font-bold text-white">{completedSessions.length}</p>
+
+          {/* Card 2: Academic Standing */}
+          <div className="relative overflow-hidden rounded-3xl p-4 sm:p-5 bg-gradient-to-br from-teal-700 via-teal-800 to-cyan-900 text-white shadow-lg shadow-teal-950/20 flex flex-col justify-between min-h-[125px] sm:min-h-[140px]">
+            <div className="relative z-10">
+              <div className="flex items-center justify-between gap-1 mb-1">
+                <div className="flex items-center gap-1.5 text-xs text-teal-100 font-medium">
+                  <span>Academics</span>
+                  <button
+                    onClick={() => setShowAcademics(!showAcademics)}
+                    className="p-0.5 hover:text-white transition-colors"
+                    aria-label="Toggle academics visibility"
+                  >
+                    {showAcademics ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
+                  </button>
+                </div>
+                <span className="px-2 py-0.5 rounded-full bg-white/15 text-white text-[10px] font-bold">
+                  5.0 GPA
+                </span>
+              </div>
+
+              <div
+                onClick={() => setLocation("/student/sessions")}
+                className="cursor-pointer group flex items-center gap-1 mt-1"
+              >
+                <p className="text-xl sm:text-2xl font-black tracking-tight">
+                  {showAcademics ? `${confirmedSessions.length} Booked` : "****"}
+                </p>
+                <ChevronRight className="w-4 h-4 text-teal-200 group-hover:translate-x-0.5 transition-transform" />
               </div>
             </div>
-          </div>
-          <div
-            onClick={() => setLocation("/student/find-tutor")}
-            className="col-span-2 sm:col-span-1 glass-panel p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-primary/20 to-accent/10 border-white/10 cursor-pointer hover:border-accent/30 transition-all group"
-          >
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-white font-bold mb-0.5 text-sm sm:text-base">Need help?</p>
-                <p className="text-xs text-muted-foreground">Find a verified tutor now</p>
-              </div>
-              <div className="p-2 sm:p-2.5 rounded-xl bg-white/10 text-white group-hover:bg-accent/20 transition-all">
-                <BookOpen className="w-4 h-4 sm:w-5 sm:h-5" />
-              </div>
+
+            <div className="relative z-10 pt-2 border-t border-white/10 flex items-center justify-between text-[10px] sm:text-[11px] text-teal-100/90 font-medium">
+              <span>{completedSessions.length} Completed</span>
+              <span className="text-cyan-200 font-bold">Active</span>
             </div>
+            {/* Soft decorative glow */}
+            <div className="absolute -right-4 -bottom-4 w-24 h-24 rounded-full bg-white/10 blur-xl pointer-events-none" />
           </div>
         </div>
 
-        {/* Study Power Tools Grid */}
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <h2 className="text-base sm:text-lg font-bold text-white flex items-center gap-2">
-              <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-accent" />
-              Academic Toolkit & Campus Features
+        {/* ── 2. Notice / Status Ticker Strip (OPay SafeBox style) ── */}
+        {nextSession ? (
+          <div
+            onClick={() => setLocation(`/session/${nextSession.id}`)}
+            className="flex items-center justify-between gap-2 p-3 sm:p-3.5 rounded-2xl bg-gradient-to-r from-emerald-500/10 via-card to-accent/10 border border-emerald-500/30 cursor-pointer hover:border-emerald-500/50 transition-all shadow-sm"
+          >
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-7 h-7 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
+                <Video className="w-3.5 h-3.5 animate-pulse" />
+              </div>
+              <p className="text-xs text-white truncate font-medium">
+                Next: <strong className="text-emerald-400">{nextSession.subject}</strong> with {nextSession.tutorName} · {format(new Date(nextSession.scheduledAt), "h:mm a")}
+              </p>
+            </div>
+            <span className="flex items-center gap-0.5 text-xs text-emerald-400 font-bold shrink-0">
+              Join <ChevronRight className="w-3.5 h-3.5" />
+            </span>
+          </div>
+        ) : (
+          <div
+            onClick={() => setLocation("/arena")}
+            className="flex items-center justify-between gap-2 p-3 sm:p-3.5 rounded-2xl bg-card border border-white/10 cursor-pointer hover:border-accent/30 transition-all shadow-sm"
+          >
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-7 h-7 rounded-xl bg-red-500/20 text-red-400 flex items-center justify-center shrink-0">
+                <Flame className="w-3.5 h-3.5" />
+              </div>
+              <p className="text-xs text-white/90 truncate font-medium">
+                Daily Speed Battle: Take today's 5-question speed quiz
+              </p>
+            </div>
+            <span className="flex items-center gap-0.5 text-xs text-accent font-bold shrink-0">
+              Play <ChevronRight className="w-3.5 h-3.5" />
+            </span>
+          </div>
+        )}
+
+        {/* ── 3. Primary Quick Actions (4-Column OPay squircle grid) ── */}
+        <div className="glass-panel rounded-3xl p-4 sm:p-5 border border-white/10 shadow-sm">
+          <div className="grid grid-cols-4 gap-2 text-center">
+            <button
+              onClick={() => setLocation("/student/find-tutor")}
+              className="flex flex-col items-center gap-2 p-2 rounded-2xl hover:bg-white/5 active:scale-95 transition-all group"
+            >
+              <div className="w-12 h-12 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 flex items-center justify-center group-hover:scale-105 transition-transform shadow-sm">
+                <Search className="w-5 h-5" />
+              </div>
+              <span className="text-xs font-semibold text-white/90 leading-tight">Find Tutor</span>
+            </button>
+
+            <button
+              onClick={() => setLocation("/past-questions")}
+              className="flex flex-col items-center gap-2 p-2 rounded-2xl hover:bg-white/5 active:scale-95 transition-all group"
+            >
+              <div className="w-12 h-12 rounded-2xl bg-cyan-500/15 border border-cyan-500/30 text-cyan-400 flex items-center justify-center group-hover:scale-105 transition-transform shadow-sm">
+                <GraduationCap className="w-5 h-5" />
+              </div>
+              <span className="text-xs font-semibold text-white/90 leading-tight">Past Qs</span>
+            </button>
+
+            <button
+              onClick={() => setLocation("/arena")}
+              className="flex flex-col items-center gap-2 p-2 rounded-2xl hover:bg-white/5 active:scale-95 transition-all group"
+            >
+              <div className="w-12 h-12 rounded-2xl bg-red-500/15 border border-red-500/30 text-red-400 flex items-center justify-center group-hover:scale-105 transition-transform shadow-sm">
+                <Zap className="w-5 h-5" />
+              </div>
+              <span className="text-xs font-semibold text-white/90 leading-tight">Daily Quiz</span>
+            </button>
+
+            <button
+              onClick={() => setLocation("/student/wallet")}
+              className="flex flex-col items-center gap-2 p-2 rounded-2xl hover:bg-white/5 active:scale-95 transition-all group"
+            >
+              <div className="w-12 h-12 rounded-2xl bg-teal-500/15 border border-teal-500/30 text-teal-400 flex items-center justify-center group-hover:scale-105 transition-transform shadow-sm">
+                <Wallet className="w-5 h-5" />
+              </div>
+              <span className="text-xs font-semibold text-white/90 leading-tight">My Wallet</span>
+            </button>
+          </div>
+        </div>
+
+        {/* ── 4. Study & Campus Services (4-Column x 2 Rows OPay Grid) ── */}
+        <div className="glass-panel rounded-3xl p-4 sm:p-5 border border-white/10 shadow-sm space-y-3">
+          <div className="flex items-center justify-between px-1">
+            <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+              Campus & Study Tools
             </h2>
             <button
               onClick={() => setShowInstallApp(true)}
-              className="text-xs font-semibold text-accent hover:underline flex items-center gap-1.5"
+              className="text-[11px] font-bold text-emerald-400 flex items-center gap-1 hover:underline"
             >
-              <Smartphone className="w-3.5 h-3.5" /> Install App
+              <Smartphone className="w-3 h-3" /> Get App
             </button>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-            {tools.map((tool) => (
-              <div
-                key={tool.title}
-                onClick={() => setLocation(tool.href)}
-                className={`glass-panel p-4 sm:p-5 rounded-2xl bg-gradient-to-br ${tool.color} border border-white/10 hover:border-white/20 transition-all duration-300 cursor-pointer flex flex-col justify-between group hover:-translate-y-0.5 shadow-md`}
-              >
-                <div>
-                  <div className="flex items-center justify-between mb-3">
-                    <div className={`p-2 rounded-xl bg-white/10 ${tool.iconColor}`}>
-                      <tool.icon className="w-4 h-4 sm:w-5 sm:h-5" />
-                    </div>
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-white/10 text-white/90">
-                      {tool.badge}
-                    </span>
-                  </div>
-                  <h3 className="font-bold text-white text-sm sm:text-base group-hover:text-accent transition-colors">
-                    {tool.title}
-                  </h3>
-                  <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
-                    {tool.desc}
-                  </p>
-                </div>
-
-                <div className="mt-4 pt-3 border-t border-white/5 flex items-center justify-between text-xs font-semibold text-white/80 group-hover:text-white">
-                  <span>Open Tool</span>
-                  <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 group-hover:translate-x-1 transition-transform" />
-                </div>
+          <div className="grid grid-cols-4 gap-y-4 gap-x-2 text-center">
+            {/* Row 1 */}
+            <button
+              onClick={() => setLocation("/flashcards")}
+              className="flex flex-col items-center gap-2 p-1.5 rounded-2xl hover:bg-white/5 active:scale-95 transition-all group"
+            >
+              <div className="w-11 h-11 rounded-2xl bg-purple-500/15 border border-purple-500/25 text-purple-400 flex items-center justify-center group-hover:scale-105 transition-transform">
+                <Layers className="w-5 h-5" />
               </div>
-            ))}
+              <span className="text-[11px] font-semibold text-white/90 leading-tight">Flashcards</span>
+            </button>
+
+            <button
+              onClick={() => setLocation("/whiteboard")}
+              className="flex flex-col items-center gap-2 p-1.5 rounded-2xl hover:bg-white/5 active:scale-95 transition-all group"
+            >
+              <div className="w-11 h-11 rounded-2xl bg-teal-500/15 border border-teal-500/25 text-teal-400 flex items-center justify-center group-hover:scale-105 transition-transform">
+                <PenTool className="w-5 h-5" />
+              </div>
+              <span className="text-[11px] font-semibold text-white/90 leading-tight">Whiteboard</span>
+            </button>
+
+            <button
+              onClick={() => setLocation("/study-lounge")}
+              className="flex flex-col items-center gap-2 p-1.5 rounded-2xl hover:bg-white/5 active:scale-95 transition-all group"
+            >
+              <div className="w-11 h-11 rounded-2xl bg-indigo-500/15 border border-indigo-500/25 text-indigo-400 flex items-center justify-center group-hover:scale-105 transition-transform">
+                <Headphones className="w-5 h-5" />
+              </div>
+              <span className="text-[11px] font-semibold text-white/90 leading-tight">Lounge</span>
+            </button>
+
+            <button
+              onClick={() => setLocation("/cgpa-calculator")}
+              className="flex flex-col items-center gap-2 p-1.5 rounded-2xl hover:bg-white/5 active:scale-95 transition-all group"
+            >
+              <div className="w-11 h-11 rounded-2xl bg-amber-500/15 border border-amber-500/25 text-amber-400 flex items-center justify-center group-hover:scale-105 transition-transform">
+                <Calculator className="w-5 h-5" />
+              </div>
+              <span className="text-[11px] font-semibold text-white/90 leading-tight">CGPA Calc</span>
+            </button>
+
+            {/* Row 2 */}
+            <button
+              onClick={() => setLocation("/student/ai-assistant")}
+              className="flex flex-col items-center gap-2 p-1.5 rounded-2xl hover:bg-white/5 active:scale-95 transition-all group"
+            >
+              <div className="w-11 h-11 rounded-2xl bg-cyan-500/15 border border-cyan-500/25 text-cyan-400 flex items-center justify-center group-hover:scale-105 transition-transform">
+                <Sparkles className="w-5 h-5" />
+              </div>
+              <span className="text-[11px] font-semibold text-white/90 leading-tight">2torAssist</span>
+            </button>
+
+            <button
+              onClick={() => setLocation("/group-sessions")}
+              className="flex flex-col items-center gap-2 p-1.5 rounded-2xl hover:bg-white/5 active:scale-95 transition-all group"
+            >
+              <div className="w-11 h-11 rounded-2xl bg-blue-500/15 border border-blue-500/25 text-blue-400 flex items-center justify-center group-hover:scale-105 transition-transform">
+                <Users2 className="w-5 h-5" />
+              </div>
+              <span className="text-[11px] font-semibold text-white/90 leading-tight">Group Study</span>
+            </button>
+
+            <button
+              onClick={() => setLocation("/leaderboard")}
+              className="flex flex-col items-center gap-2 p-1.5 rounded-2xl hover:bg-white/5 active:scale-95 transition-all group"
+            >
+              <div className="w-11 h-11 rounded-2xl bg-yellow-500/15 border border-yellow-500/25 text-yellow-400 flex items-center justify-center group-hover:scale-105 transition-transform">
+                <Trophy className="w-5 h-5" />
+              </div>
+              <span className="text-[11px] font-semibold text-white/90 leading-tight">Leaderboard</span>
+            </button>
+
+            <button
+              onClick={() => setLocation("/referral")}
+              className="flex flex-col items-center gap-2 p-1.5 rounded-2xl hover:bg-white/5 active:scale-95 transition-all group"
+            >
+              <div className="w-11 h-11 rounded-2xl bg-rose-500/15 border border-rose-500/25 text-rose-400 flex items-center justify-center group-hover:scale-105 transition-transform">
+                <Gift className="w-5 h-5" />
+              </div>
+              <span className="text-[11px] font-semibold text-white/90 leading-tight">Refer & Earn</span>
+            </button>
           </div>
         </div>
 
-        {/* Upcoming Schedule */}
-        <div className="glass-panel rounded-2xl p-4 sm:p-6">
-          <div className="flex items-center justify-between mb-5">
-            <h2 className="text-lg font-bold text-white">Upcoming Sessions</h2>
-            <button onClick={() => setLocation("/student/sessions")} className="text-sm text-accent hover:underline flex items-center gap-1">
-              View all <ArrowRight className="w-3 h-3" />
+        {/* ── 5. Promo / Task Card (OPay style) ── */}
+        <div className="rounded-3xl p-5 bg-gradient-to-r from-emerald-950/40 via-card to-accent/10 border border-emerald-500/30 flex items-center justify-between gap-4 shadow-sm">
+          <div className="space-y-1">
+            <span className="text-[10px] font-extrabold uppercase tracking-wider text-emerald-400">
+              Exam Practice
+            </span>
+            <h3 className="text-sm sm:text-base font-extrabold text-white">
+              JAMB, Post-UTME & 100L Past Questions
+            </h3>
+            <p className="text-xs text-muted-foreground max-w-sm">
+              Practice timed CBT questions with step-by-step solutions for your courses.
+            </p>
+          </div>
+          <button
+            onClick={() => setLocation("/past-questions")}
+            className="px-4 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-extrabold text-xs whitespace-nowrap shadow-md transition-all shrink-0 active:scale-95"
+          >
+            Practice Now
+          </button>
+        </div>
+
+        {/* ── 6. Upcoming Sessions Card ── */}
+        <div className="glass-panel rounded-3xl p-5 border border-white/10 shadow-sm space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-bold text-white flex items-center gap-2">
+              <BookOpen className="w-4 h-4 text-emerald-400" />
+              Upcoming Sessions
+            </h2>
+            <button
+              onClick={() => setLocation("/student/sessions")}
+              className="text-xs text-accent font-semibold flex items-center gap-0.5 hover:underline"
+            >
+              View all <ChevronRight className="w-3 h-3" />
             </button>
           </div>
 
-          {isLoading ? (
-            <div className="flex justify-center py-10"><Loader2 className="w-6 h-6 animate-spin text-accent" /></div>
+          {sessionsLoading ? (
+            <div className="flex justify-center py-6"><Loader2 className="w-5 h-5 animate-spin text-accent" /></div>
           ) : confirmedSessions.length > 0 ? (
-            <div className="space-y-3">
-              {confirmedSessions.slice(0, 4).map(session => (
-                <div key={session.id} className="flex items-center gap-4 p-4 rounded-xl border border-white/10 bg-black/20 hover:bg-black/30 transition-colors">
-                  <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-primary to-accent flex items-center justify-center shrink-0">
-                    <Video className="w-5 h-5 text-white" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-white font-semibold text-sm">{session.subject}</p>
-                    <p className="text-muted-foreground text-xs">with {session.tutorName} · {format(new Date(session.scheduledAt), "MMM d, h:mm a")}</p>
+            <div className="space-y-2.5">
+              {confirmedSessions.slice(0, 3).map(session => (
+                <div key={session.id} className="flex items-center justify-between gap-3 p-3 rounded-2xl bg-white/5 border border-white/5 hover:border-white/10 transition-colors">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-primary to-accent flex items-center justify-center shrink-0">
+                      <Video className="w-4 h-4 text-white" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-white font-bold text-xs truncate">{session.subject}</p>
+                      <p className="text-muted-foreground text-[11px] truncate">
+                        {session.tutorName} · {format(new Date(session.scheduledAt), "MMM d, h:mm a")}
+                      </p>
+                    </div>
                   </div>
                   <button
                     onClick={() => setLocation(`/session/${session.id}`)}
-                    className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-primary to-accent text-white text-xs font-bold hover:opacity-90 transition-all"
+                    className="shrink-0 px-3 py-1.5 rounded-xl bg-emerald-500 text-black text-xs font-bold hover:bg-emerald-400 transition-all flex items-center gap-1"
                   >
                     <Video className="w-3 h-3" /> Join
                   </button>
@@ -234,21 +362,18 @@ export default function StudentDashboard() {
               ))}
             </div>
           ) : (
-            <div className="text-center py-10">
-              <div className="w-16 h-16 mx-auto bg-white/5 rounded-full flex items-center justify-center mb-4">
-                <BookOpen className="w-8 h-8 text-muted-foreground" />
-              </div>
-              <p className="text-white font-medium mb-1">No upcoming sessions</p>
-              <p className="text-sm text-muted-foreground mb-4">Book a session with a tutor to get started.</p>
+            <div className="text-center py-6 space-y-2">
+              <p className="text-xs text-muted-foreground">No upcoming sessions booked.</p>
               <button
                 onClick={() => setLocation("/student/find-tutor")}
-                className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-primary to-accent text-white font-bold text-sm hover:opacity-90 transition-all"
+                className="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white font-bold text-xs transition-colors"
               >
-                Find a Tutor
+                Find & Book a Tutor
               </button>
             </div>
           )}
         </div>
+
       </div>
 
       {showInstallApp && (

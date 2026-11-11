@@ -127,31 +127,35 @@ export function DashboardLayout({ children, role: roleProp, title }: DashboardLa
     ],
   };
 
-  // Primary items shown in mobile bottom bar (max 4, + "More" button = 5 slots)
+  // Primary items shown in mobile bottom bar (5 slots matching modern mobile structure)
   const mobileBottomItems: Record<string, NavItem[]> = {
     student: [
       { label: "Home", href: "/student/dashboard", icon: LayoutDashboard },
       { label: "Tutors", href: "/student/find-tutor", icon: Search },
-      { label: "Wallet", href: "/student/wallet", icon: Wallet },
+      { label: "Past Qs", href: "/past-questions", icon: GraduationCap },
       { label: "Messages", href: "/messages", icon: MessageSquare },
+      { label: "Me", href: "/profile", icon: UserCircle },
     ],
     tutor: [
       { label: "Home", href: "/tutor/dashboard", icon: LayoutDashboard },
       { label: "Sessions", href: "/tutor/sessions", icon: BookOpen },
       { label: "Earnings", href: "/tutor/earnings", icon: CreditCard },
       { label: "Messages", href: "/messages", icon: MessageSquare },
+      { label: "Me", href: "/profile", icon: UserCircle },
     ],
     investor: [
       { label: "Home", href: "/investor/dashboard", icon: LayoutDashboard },
       { label: "Requests", href: "/investor/student-requests", icon: HandCoins },
       { label: "Sponsor", href: "/investor/universities", icon: GraduationCap },
       { label: "Messages", href: "/messages", icon: MessageSquare },
+      { label: "Me", href: "/profile", icon: UserCircle },
     ],
     admin: [
       { label: "Home", href: "/admin/dashboard", icon: LayoutDashboard },
       { label: "Users", href: "/admin/users", icon: Users },
       { label: "Sessions", href: "/admin/sessions", icon: BookOpen },
       { label: "Transactions", href: "/admin/transactions", icon: CreditCard },
+      { label: "Me", href: "/profile", icon: UserCircle },
     ],
   };
 
@@ -284,29 +288,45 @@ export function DashboardLayout({ children, role: roleProp, title }: DashboardLa
       </aside>
 
       {/* Ã¢â€â‚¬Ã¢â€â‚¬ MOBILE TOP HEADER Ã¢â€â‚¬Ã¢â€â‚¬ */}
+      {/* ── MOBILE TOP HEADER ── */}
       <div className="md:hidden flex items-center justify-between px-4 py-3 border-b border-white/10 bg-card/90 backdrop-blur-md sticky top-0 z-40">
-        {/* Left: avatar + greeting */}
-        <Link href="/profile" className="flex items-center gap-3 min-w-0 mr-2">
-          <div className={`w-10 h-10 rounded-full bg-gradient-to-tr ${roleGradient[user.role] ?? "from-primary to-accent"} flex items-center justify-center font-bold text-white shrink-0 overflow-hidden border-2 border-white/20`}>
-            {user.avatarUrl
-              ? <img src={user.avatarUrl} alt="avatar" className="w-full h-full object-cover" />
-              : <span>{user.name.split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase()}</span>
-            }
+        {/* Left: avatar + greeting + status dot */}
+        <Link href="/profile" className="flex items-center gap-2.5 min-w-0 mr-2 group">
+          <div className="relative">
+            <div className={`w-9 h-9 rounded-full bg-gradient-to-tr ${roleGradient[user.role] ?? "from-primary to-accent"} flex items-center justify-center font-bold text-white shrink-0 overflow-hidden border border-emerald-500/40 shadow-sm`}>
+              {user.avatarUrl
+                ? <img src={user.avatarUrl} alt="avatar" className="w-full h-full object-cover" />
+                : <span>{user.name.split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase()}</span>
+              }
+            </div>
+            <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 border border-card" />
           </div>
           <div className="min-w-0">
-            <p className="text-xs text-muted-foreground leading-none mb-0.5">Welcome back</p>
-            <p className="text-sm font-bold text-white leading-none truncate max-w-[120px] sm:max-w-[160px]">{firstName}</p>
+            <p className="text-[10px] text-muted-foreground leading-none mb-0.5">Hi,</p>
+            <p className="text-xs sm:text-sm font-extrabold text-white leading-tight truncate max-w-[130px] sm:max-w-[180px]">
+              {user.name}
+            </p>
           </div>
         </Link>
 
-        {/* Right: install app + theme toggle + notification bell */}
+        {/* Right: Help/Support + App + Notification bell */}
         <div className="flex items-center gap-1.5 shrink-0">
+          <Link
+            href="/messages"
+            className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-white/70 hover:text-white transition-colors relative"
+            title="Help & Support"
+          >
+            <Headphones className="w-4 h-4 text-emerald-400" />
+            <span className="absolute -top-1 -right-1 text-[8px] font-black px-1 rounded-full bg-emerald-500 text-black leading-tight">
+              HELP
+            </span>
+          </Link>
           <button
             onClick={() => setShowInstallApp(true)}
-            className="flex items-center gap-1 px-2 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[11px] font-bold"
+            className="flex items-center gap-1 px-2 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-bold"
+            title="Install Mobile App"
           >
             <Smartphone className="w-3.5 h-3.5" />
-            <span>App</span>
           </button>
           <ThemeToggle />
           <NotificationBell />
@@ -421,7 +441,7 @@ export function DashboardLayout({ children, role: roleProp, title }: DashboardLa
 
       {/* Ã¢â€â‚¬Ã¢â€â‚¬ MOBILE BOTTOM NAV BAR Ã¢â€â‚¬Ã¢â€â‚¬ */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-card/95 backdrop-blur-xl border-t border-white/10">
-        <div className="flex items-stretch">
+        <div className="flex items-stretch justify-around">
           {bottomNav.map((item) => {
             const isActive = location === item.href || location.startsWith(item.href + "/");
             return (
@@ -429,39 +449,22 @@ export function DashboardLayout({ children, role: roleProp, title }: DashboardLa
                 key={item.href}
                 href={item.href}
                 className={`flex-1 flex flex-col items-center justify-center gap-1 py-2.5 px-1 transition-all relative ${
-                  isActive ? "text-accent" : "text-muted-foreground"
+                  isActive ? "text-emerald-400 font-bold" : "text-muted-foreground hover:text-white"
                 }`}
               >
                 {isActive && (
                   <motion.div
                     layoutId="bottomNavIndicator"
-                    className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 rounded-full bg-accent"
+                    className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 rounded-full bg-emerald-400"
                   />
                 )}
-                <item.icon className={`w-5 h-5 ${isActive ? "text-accent" : ""}`} strokeWidth={isActive ? 2.5 : 1.8} />
-                <span className={`text-[10px] font-medium leading-none ${isActive ? "text-accent" : ""}`}>
+                <item.icon className={`w-5 h-5 ${isActive ? "text-emerald-400" : ""}`} strokeWidth={isActive ? 2.5 : 1.8} />
+                <span className={`text-[10px] font-medium leading-none ${isActive ? "text-emerald-400" : ""}`}>
                   {item.label}
                 </span>
               </Link>
             );
           })}
-
-          {/* More button */}
-          <button
-            onClick={() => setMoreOpen(true)}
-            className={`flex-1 flex flex-col items-center justify-center gap-1 py-2.5 px-1 transition-all relative ${
-              moreIsActive ? "text-accent" : "text-muted-foreground"
-            }`}
-          >
-            {moreIsActive && (
-              <motion.div
-                layoutId="bottomNavIndicator"
-                className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 rounded-full bg-accent"
-              />
-            )}
-            <MoreHorizontal className="w-5 h-5" strokeWidth={moreIsActive ? 2.5 : 1.8} />
-            <span className="text-[10px] font-medium leading-none">More</span>
-          </button>
         </div>
 
         {/* iOS safe area spacer */}
