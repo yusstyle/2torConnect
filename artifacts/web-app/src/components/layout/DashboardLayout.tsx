@@ -126,35 +126,35 @@ export function DashboardLayout({ children, role: roleProp, title }: DashboardLa
     ],
   };
 
-  // Primary items shown in mobile bottom bar (5 slots matching modern mobile structure)
+  // Primary items shown in mobile bottom bar (5 slots matching mockup structure)
   const mobileBottomItems: Record<string, NavItem[]> = {
     student: [
       { label: "Home", href: "/student/dashboard", icon: LayoutDashboard },
       { label: "Tutors", href: "/student/find-tutor", icon: Search },
-      { label: "Past Qs", href: "/past-questions", icon: GraduationCap },
-      { label: "Messages", href: "/messages", icon: MessageSquare },
-      { label: "Me", href: "/profile", icon: UserCircle },
+      { label: "Calendar", href: "/student/sessions", icon: Calendar },
+      { label: "Chat", href: "/messages", icon: MessageSquare },
+      { label: "More", href: "/profile", icon: UserCircle },
     ],
     tutor: [
       { label: "Home", href: "/tutor/dashboard", icon: LayoutDashboard },
-      { label: "Sessions", href: "/tutor/sessions", icon: BookOpen },
-      { label: "Earnings", href: "/tutor/earnings", icon: CreditCard },
-      { label: "Messages", href: "/messages", icon: MessageSquare },
-      { label: "Me", href: "/profile", icon: UserCircle },
+      { label: "Students", href: "/tutor/sessions", icon: Users },
+      { label: "Calendar", href: "/tutor/availability", icon: Calendar },
+      { label: "Chat", href: "/messages", icon: MessageSquare },
+      { label: "More", href: "/profile", icon: UserCircle },
     ],
     investor: [
       { label: "Home", href: "/investor/dashboard", icon: LayoutDashboard },
       { label: "Requests", href: "/investor/student-requests", icon: HandCoins },
       { label: "Sponsor", href: "/investor/universities", icon: GraduationCap },
-      { label: "Messages", href: "/messages", icon: MessageSquare },
-      { label: "Me", href: "/profile", icon: UserCircle },
+      { label: "Chat", href: "/messages", icon: MessageSquare },
+      { label: "More", href: "/profile", icon: UserCircle },
     ],
     admin: [
       { label: "Home", href: "/admin/dashboard", icon: LayoutDashboard },
       { label: "Users", href: "/admin/users", icon: Users },
       { label: "Sessions", href: "/admin/sessions", icon: BookOpen },
       { label: "Transactions", href: "/admin/transactions", icon: CreditCard },
-      { label: "Me", href: "/profile", icon: UserCircle },
+      { label: "More", href: "/profile", icon: UserCircle },
     ],
   };
 
@@ -307,7 +307,7 @@ export function DashboardLayout({ children, role: roleProp, title }: DashboardLa
           </div>
         </Link>
 
-        {/* Right: Help/Support + App + Notification bell */}
+        {/* Right: Help/Support + Wallet + App + Notification bell */}
         <div className="flex items-center gap-1.5 shrink-0">
           <Link
             href="/messages"
@@ -318,6 +318,13 @@ export function DashboardLayout({ children, role: roleProp, title }: DashboardLa
             <span className="absolute -top-1 -right-1 text-[8px] font-black px-1 rounded-full bg-emerald-500 text-black leading-tight">
               HELP
             </span>
+          </Link>
+          <Link
+            href={user.role === "tutor" ? "/tutor/earnings" : "/student/wallet"}
+            className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-emerald-400 hover:text-emerald-300 transition-colors"
+            title="Wallet"
+          >
+            <Wallet className="w-4 h-4" />
           </Link>
           <button
             onClick={() => setShowInstallApp(true)}

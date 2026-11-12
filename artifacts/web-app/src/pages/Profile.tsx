@@ -7,7 +7,7 @@ import {
   Camera, Loader2, Check, User, Mail, Phone, ShieldCheck,
   Building2, Hash, CreditCard, AtSign, Eye, EyeOff, ChevronRight,
   Headphones, Settings, LogOut, BookOpen, Gift, Globe, FileText,
-  Sparkles, X, Receipt
+  Sparkles, X, Receipt, Clock
 } from "lucide-react";
 import { useListTransactions } from "@workspace/api-client-react";
 import { Link, useLocation } from "wouter";
@@ -163,75 +163,91 @@ export default function ProfilePage() {
     <DashboardLayout role={user.role as any}>
       <div className="max-w-xl mx-auto space-y-4">
 
-        {/* ── 1. Top User Profile Card (OPay 'Me' Header) ── */}
-        <div className="glass-panel rounded-3xl p-5 border border-white/10 shadow-sm flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3.5 min-w-0">
-            {/* Avatar with camera badge */}
-            <div className="relative shrink-0">
-              <div className="w-16 h-16 rounded-full bg-gradient-to-tr from-emerald-500 to-teal-400 p-0.5 shadow-md">
-                <div className="w-full h-full rounded-full bg-card overflow-hidden flex items-center justify-center font-bold text-white text-lg">
-                  {preview ? (
-                    <img src={preview} alt="avatar" className="w-full h-full object-cover" />
+        {/* ── 1. Top User Profile Card (OPay 'Me' Header + Mockup Mode Indicator) ── */}
+        <div className="glass-panel rounded-3xl p-5 border border-white/10 shadow-sm space-y-4">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3.5 min-w-0">
+              {/* Avatar with camera badge */}
+              <div className="relative shrink-0">
+                <div className="w-16 h-16 rounded-full bg-gradient-to-tr from-emerald-500 to-teal-400 p-0.5 shadow-md">
+                  <div className="w-full h-full rounded-full bg-card overflow-hidden flex items-center justify-center font-bold text-white text-lg">
+                    {preview ? (
+                      <img src={preview} alt="avatar" className="w-full h-full object-cover" />
+                    ) : (
+                      <span>{initials}</span>
+                    )}
+                  </div>
+                </div>
+                <button
+                  onClick={() => fileRef.current?.click()}
+                  disabled={uploading}
+                  className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-emerald-500 hover:bg-emerald-400 border border-card flex items-center justify-center shadow transition-colors"
+                  title="Change Photo"
+                >
+                  {uploading ? (
+                    <Loader2 className="w-3 h-3 animate-spin text-black" />
                   ) : (
-                    <span>{initials}</span>
+                    <Camera className="w-3 h-3 text-black" />
                   )}
+                </button>
+                <input ref={fileRef} type="file" accept="image/*" onChange={handleAvatarChange} className="hidden" />
+              </div>
+
+              {/* User Name & Tier Badge */}
+              <div className="min-w-0">
+                <div className="flex items-center gap-1.5">
+                  <h1 className="text-base sm:text-lg font-black text-white truncate leading-tight">
+                    {user.name}
+                  </h1>
+                  <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
+                </div>
+                {(user as any)?.username && (
+                  <p className="text-xs text-emerald-400 font-mono mt-0.5">
+                    @{(user as any).username}
+                  </p>
+                )}
+                <div className="mt-1.5 flex items-center gap-1.5">
+                  <span className="text-[10px] font-extrabold px-2.5 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 uppercase tracking-wider">
+                    Tier 3 · {user.role}
+                  </span>
+                  <span className="text-[10px] text-muted-foreground truncate">
+                    {(user as any)?.university || "Verified Scholar"}
+                  </span>
                 </div>
               </div>
-              <button
-                onClick={() => fileRef.current?.click()}
-                disabled={uploading}
-                className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-emerald-500 hover:bg-emerald-400 border border-card flex items-center justify-center shadow transition-colors"
-                title="Change Photo"
-              >
-                {uploading ? (
-                  <Loader2 className="w-3 h-3 animate-spin text-black" />
-                ) : (
-                  <Camera className="w-3 h-3 text-black" />
-                )}
-              </button>
-              <input ref={fileRef} type="file" accept="image/*" onChange={handleAvatarChange} className="hidden" />
             </div>
 
-            {/* User Name & Tier Badge */}
-            <div className="min-w-0">
-              <div className="flex items-center gap-1.5">
-                <h1 className="text-base sm:text-lg font-black text-white truncate leading-tight">
-                  {user.name}
-                </h1>
-                <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
-              </div>
-              {(user as any)?.username && (
-                <p className="text-xs text-emerald-400 font-mono mt-0.5">
-                  @{(user as any).username}
-                </p>
-              )}
-              <div className="mt-1.5 flex items-center gap-1.5">
-                <span className="text-[10px] font-extrabold px-2.5 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 uppercase tracking-wider">
-                  Tier 3 · {user.role}
-                </span>
-                <span className="text-[10px] text-muted-foreground truncate">
-                  {(user as any)?.university || "Verified Student"}
-                </span>
-              </div>
+            {/* Quick Headset & Settings */}
+            <div className="flex items-center gap-1 shrink-0">
+              <Link
+                href="/messages"
+                className="p-2.5 rounded-2xl bg-white/5 hover:bg-white/10 text-white/70 hover:text-white transition-colors"
+                title="Help & Support"
+              >
+                <Headphones className="w-4 h-4 text-emerald-400" />
+              </Link>
+              <button
+                onClick={() => setShowEditModal(true)}
+                className="p-2.5 rounded-2xl bg-white/5 hover:bg-white/10 text-white/70 hover:text-white transition-colors"
+                title="Account Settings"
+              >
+                <Settings className="w-4 h-4 text-white" />
+              </button>
             </div>
           </div>
 
-          {/* Quick Headset & Settings */}
-          <div className="flex items-center gap-1 shrink-0">
-            <Link
-              href="/messages"
-              className="p-2.5 rounded-2xl bg-white/5 hover:bg-white/10 text-white/70 hover:text-white transition-colors"
-              title="Help & Support"
-            >
-              <Headphones className="w-4 h-4 text-emerald-400" />
-            </Link>
-            <button
-              onClick={() => setShowEditModal(true)}
-              className="p-2.5 rounded-2xl bg-white/5 hover:bg-white/10 text-white/70 hover:text-white transition-colors"
-              title="Account Settings"
-            >
-              <Settings className="w-4 h-4 text-white" />
-            </button>
+          {/* Mode Indicator Pill (Student Mode vs Tutor Mode from Mockup) */}
+          <div className="p-2 rounded-2xl bg-black/30 border border-white/5 flex items-center justify-between text-xs font-bold">
+            <span className={`flex-1 text-center py-1.5 rounded-xl transition-all ${
+              user.role === "student" ? "bg-emerald-500 text-black font-extrabold shadow-sm" : "text-muted-foreground"
+            }`}>
+              Student Mode
+            </span>
+            <span className={`flex-1 text-center py-1.5 rounded-xl transition-all ${
+              user.role === "tutor" ? "bg-emerald-500 text-black font-extrabold shadow-sm" : "text-muted-foreground"
+            }`}>
+              Tutor Mode
+            </span>
           </div>
         </div>
 
@@ -304,8 +320,24 @@ export default function ProfilePage() {
           </div>
         </div>
 
-        {/* ── 4. Grouped Menu List (OPay 'Me' list structure) ── */}
+        {/* ── 4. Grouped Menu List (OPay 'Me' + Mockup 'More' list structure) ── */}
         <div className="glass-panel rounded-3xl p-2 border border-white/10 shadow-sm divide-y divide-white/5">
+          {/* User Verification (Mockup) */}
+          <div className="w-full flex items-center justify-between p-3.5 rounded-2xl">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center">
+                <ShieldCheck className="w-4 h-4" />
+              </div>
+              <div>
+                <span className="text-sm font-semibold text-white">User Verification</span>
+                <p className="text-[11px] text-muted-foreground">Campus identity & phone confirmed</p>
+              </div>
+            </div>
+            <span className="px-2.5 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 font-extrabold text-[11px]">
+              Verified
+            </span>
+          </div>
+
           {/* Sessions & Bookings */}
           <button
             onClick={() => setLocation(user.role === "tutor" ? "/tutor/sessions" : "/student/sessions")}
@@ -321,6 +353,25 @@ export default function ProfilePage() {
             </div>
             <ChevronRight className="w-4 h-4 text-muted-foreground" />
           </button>
+
+          {/* If Tutor: Availability & Schedule (Mockup) */}
+          {user.role === "tutor" && (
+            <button
+              onClick={() => setLocation("/tutor/availability")}
+              className="w-full flex items-center justify-between p-3.5 hover:bg-white/5 rounded-2xl transition-colors text-left"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-xl bg-amber-500/10 text-amber-400 flex items-center justify-center">
+                  <Clock className="w-4 h-4" />
+                </div>
+                <div>
+                  <span className="text-sm font-semibold text-white">Weekly Availability & Schedule</span>
+                  <p className="text-[11px] text-muted-foreground">Manage your tutoring hours & days</p>
+                </div>
+              </div>
+              <ChevronRight className="w-4 h-4 text-muted-foreground" />
+            </button>
+          )}
 
           {/* Bank Account Details */}
           {showBankSection && (
@@ -343,6 +394,25 @@ export default function ProfilePage() {
             </button>
           )}
 
+          {/* Invite & Collect (Mockup) */}
+          <button
+            onClick={() => setLocation("/referral")}
+            className="w-full flex items-center justify-between p-3.5 hover:bg-white/5 rounded-2xl transition-colors text-left"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-xl bg-rose-500/10 text-rose-400 flex items-center justify-center">
+                <Gift className="w-4 h-4" />
+              </div>
+              <div>
+                <span className="text-sm font-semibold text-white">Invite Friends & Earn ₦500</span>
+                <p className="text-[11px] text-muted-foreground">Get instant cash bonus for every scholar you bring</p>
+              </div>
+            </div>
+            <span className="px-3 py-1 rounded-xl bg-rose-500 hover:bg-rose-400 text-white font-extrabold text-[11px] transition-colors">
+              Invite
+            </span>
+          </button>
+
           {/* Course Study Materials */}
           <button
             onClick={() => setLocation(user.role === "tutor" ? "/tutor/materials" : "/student/materials")}
@@ -357,25 +427,6 @@ export default function ProfilePage() {
             <ChevronRight className="w-4 h-4 text-muted-foreground" />
           </button>
 
-          {/* Refer & Earn */}
-          <button
-            onClick={() => setLocation("/referral")}
-            className="w-full flex items-center justify-between p-3.5 hover:bg-white/5 rounded-2xl transition-colors text-left"
-          >
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-xl bg-rose-500/10 text-rose-400 flex items-center justify-center">
-                <Gift className="w-4 h-4" />
-              </div>
-              <span className="text-sm font-semibold text-white">Refer & Earn (₦500 Bonus)</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <span className="px-2 py-0.5 rounded-full bg-rose-500 text-white font-extrabold text-[10px]">
-                Hot
-              </span>
-              <ChevronRight className="w-4 h-4 text-muted-foreground" />
-            </div>
-          </button>
-
           {/* ConnectFeed */}
           <button
             onClick={() => setLocation("/socialise")}
@@ -386,6 +437,23 @@ export default function ProfilePage() {
                 <Globe className="w-4 h-4" />
               </div>
               <span className="text-sm font-semibold text-white">ConnectFeed Campus Community</span>
+            </div>
+            <ChevronRight className="w-4 h-4 text-muted-foreground" />
+          </button>
+
+          {/* Help & Contact Support (Mockup) */}
+          <button
+            onClick={() => setLocation("/messages")}
+            className="w-full flex items-center justify-between p-3.5 hover:bg-white/5 rounded-2xl transition-colors text-left"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-xl bg-cyan-500/10 text-cyan-400 flex items-center justify-center">
+                <Headphones className="w-4 h-4" />
+              </div>
+              <div>
+                <span className="text-sm font-semibold text-white">Contact Support & FAQ</span>
+                <p className="text-[11px] text-muted-foreground">Reach our 24/7 student success team</p>
+              </div>
             </div>
             <ChevronRight className="w-4 h-4 text-muted-foreground" />
           </button>

@@ -7,10 +7,21 @@ import {
   BookOpen, Clock, CheckCircle2, Video, ArrowRight, Loader2,
   Zap, Layers, PenTool, Headphones, GraduationCap, Calculator,
   Sparkles, Flame, Smartphone, Eye, EyeOff, Plus, Search, Wallet,
-  ChevronRight, Users2, Trophy, Gift
+  ChevronRight, Users2, Trophy, Gift, Calendar
 } from "lucide-react";
-import { format } from "date-fns";
+import { format, addDays, startOfWeek, isSameDay } from "date-fns";
 import InstallAppModal from "@/components/InstallAppModal";
+
+function getCountdownText(scheduledAt: string | Date): string {
+  const diffMs = new Date(scheduledAt).getTime() - Date.now();
+  if (diffMs <= 0 && diffMs > -3600000) return "Live Now";
+  if (diffMs <= 0) return "Passed";
+  const hours = Math.floor(diffMs / (1000 * 60 * 60));
+  const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+  if (hours < 1) return `⏱️ 00:${minutes.toString().padStart(2, "0")}:00`;
+  if (hours < 24) return `⏱️ ${hours}h ${minutes}m`;
+  return format(new Date(scheduledAt), "MMM d");
+}
 
 export default function StudentDashboard() {
   const { user } = useAuthStore();
@@ -18,8 +29,9 @@ export default function StudentDashboard() {
   const [showInstallApp, setShowInstallApp] = useState(false);
   const [showBalance, setShowBalance] = useState(true);
   const [showAcademics, setShowAcademics] = useState(true);
+  const [selectedDay, setSelectedDay] = useState<Date>(new Date());
 
-  const { data: sessionsData, isLoading: sessionsLoading } = useListSessions({ studentId: user?.id, limit: 10 });
+  const { data: sessionsData, isLoading: sessionsLoading } = useListSessions({ studentId: user?.id, limit: 30 });
   const { data: txData } = useListTransactions({ userId: user?.id, limit: 100 });
 
   const allSessions = sessionsData?.sessions || [];
@@ -32,6 +44,13 @@ export default function StudentDashboard() {
   const totalFunded = completedTx.filter((t) => t.type === "bonus").reduce((s, t) => s + Number(t.amount), 0);
   const totalSpent = completedTx.filter((t) => t.type === "payment").reduce((s, t) => s + Number(t.amount), 0);
   const balance = Math.max(0, totalFunded - totalSpent);
+
+  // 7-day strip for current week
+  const weekStart = startOfWeek(new Date(), { weekStartsOn: 0 });
+  const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
+
+  // Sessions on the selected day
+  const sessionsOnSelectedDay = allSessions.filter(s => isSameDay(new Date(s.scheduledAt), selectedDay));
 
   return (
     <DashboardLayout role="student">
@@ -118,44 +137,179 @@ export default function StudentDashboard() {
           </div>
         </div>
 
-        {/* ── 2. Notice / Status Ticker Strip (OPay SafeBox style) ── */}
-        {nextSession ? (
-          <div
-            onClick={() => setLocation(`/session/${nextSession.id}`)}
-            className="flex items-center justify-between gap-2 p-3 sm:p-3.5 rounded-2xl bg-gradient-to-r from-emerald-500/10 via-card to-accent/10 border border-emerald-500/30 cursor-pointer hover:border-emerald-500/50 transition-all shadow-sm"
-          >
-            <div className="flex items-center gap-2.5 min-w-0">
-              <div className="w-7 h-7 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
-                <Video className="w-3.5 h-3.5 animate-pulse" />
-              </div>
-              <p className="text-xs text-white truncate font-medium">
-                Next: <strong className="text-emerald-400">{nextSession.subject}</strong> with {nextSession.tutorName} · {format(new Date(nextSession.scheduledAt), "h:mm a")}
-              </p>
-            </div>
-            <span className="flex items-center gap-0.5 text-xs text-emerald-400 font-bold shrink-0">
-              Join <ChevronRight className="w-3.5 h-3.5" />
-            </span>
+        {/* ── 2. Upcoming Sessions Section (Mockup Structure) ── */}
+        <div className="space-y-2.5">
+          <div className="flex items-center justify-between px-1">
+            <h2 className="text-sm font-extrabold text-white flex items-center gap-2">
+              <Video className="w-4 h-4 text-emerald-400" />
+              Upcoming Sessions
+            </h2>
+            <button
+              onClick={() => setLocation("/student/sessions")}
+              className="text-xs text-accent font-semibold hover:underline"
+            >
+              See all
+            </button>
           </div>
-        ) : (
-          <div
-            onClick={() => setLocation("/arena")}
-            className="flex items-center justify-between gap-2 p-3 sm:p-3.5 rounded-2xl bg-card border border-white/10 cursor-pointer hover:border-accent/30 transition-all shadow-sm"
-          >
-            <div className="flex items-center gap-2.5 min-w-0">
-              <div className="w-7 h-7 rounded-xl bg-red-500/20 text-red-400 flex items-center justify-center shrink-0">
-                <Flame className="w-3.5 h-3.5" />
-              </div>
-              <p className="text-xs text-white/90 truncate font-medium">
-                Daily Practice Quiz: Test your knowledge in 5 quick questions
-              </p>
-            </div>
-            <span className="flex items-center gap-0.5 text-xs text-accent font-bold shrink-0">
-              Play <ChevronRight className="w-3.5 h-3.5" />
-            </span>
-          </div>
-        )}
 
-        {/* ── 3. Primary Quick Actions (4-Column OPay squircle grid) ── */}
+          {nextSession ? (
+            <div className="relative overflow-hidden rounded-3xl p-4 sm:p-5 bg-card border border-white/10 shadow-lg space-y-3.5 group hover:border-emerald-500/30 transition-all">
+              <div className="flex items-start justify-between gap-3">
+                <div className="space-y-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-sm sm:text-base font-bold text-white truncate">
+                      {nextSession.subject}
+                    </h3>
+                    <span className="px-2 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-[10px] font-extrabold uppercase shrink-0">
+                      {nextSession.durationMinutes}m
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+                    <Clock className="w-3.5 h-3.5 text-accent" />
+                    {format(new Date(nextSession.scheduledAt), "EEE d MMM · hh:mm a")}
+                  </p>
+                </div>
+
+                <span className="text-xs font-mono font-bold px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shrink-0">
+                  {getCountdownText(nextSession.scheduledAt)}
+                </span>
+              </div>
+
+              <div className="pt-3 border-t border-white/5 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-primary to-accent flex items-center justify-center font-bold text-white text-xs shrink-0">
+                    {nextSession.tutorName?.slice(0, 2).toUpperCase() || "TU"}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-xs font-bold text-white truncate">{nextSession.tutorName}</p>
+                    <p className="text-[10px] text-muted-foreground truncate">Verified Tutor</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3 shrink-0">
+                  {nextSession.amount && (
+                    <span className="text-xs sm:text-sm font-black text-emerald-400">
+                      ₦{Number(nextSession.amount).toLocaleString()}
+                    </span>
+                  )}
+                  <button
+                    onClick={() => setLocation(`/session/${nextSession.id}`)}
+                    className="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-extrabold text-xs shadow-md transition-all active:scale-95 flex items-center gap-1.5"
+                  >
+                    <Video className="w-3.5 h-3.5" /> Join
+                  </button>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="rounded-3xl p-4 sm:p-5 bg-card border border-white/10 text-center py-6 space-y-2">
+              <div className="w-9 h-9 rounded-2xl bg-white/5 mx-auto flex items-center justify-center text-muted-foreground">
+                <BookOpen className="w-4 h-4" />
+              </div>
+              <p className="text-xs text-white/90 font-medium">No upcoming sessions booked</p>
+              <p className="text-[11px] text-muted-foreground">Find an expert university tutor for 1-on-1 exam prep</p>
+              <button
+                onClick={() => setLocation("/student/find-tutor")}
+                className="mt-1 px-3.5 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-extrabold text-xs transition-colors inline-block"
+              >
+                Find Tutor
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* ── 3. Weekly Schedule with Horizontal 7-Day Strip ── */}
+        <div className="space-y-2.5">
+          <div className="flex items-center justify-between px-1">
+            <h2 className="text-sm font-extrabold text-white flex items-center gap-2">
+              <Calendar className="w-4 h-4 text-emerald-400" />
+              My Schedule
+            </h2>
+            <button
+              onClick={() => setLocation("/student/sessions")}
+              className="text-xs text-accent font-semibold hover:underline"
+            >
+              See all
+            </button>
+          </div>
+
+          {/* Horizontal 7-Day Calendar Strip */}
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none -mx-1 px-1">
+            {weekDays.map((day) => {
+              const isSelected = isSameDay(day, selectedDay);
+              const isToday = isSameDay(day, new Date());
+              const hasSessionOnDay = allSessions.some(s => isSameDay(new Date(s.scheduledAt), day));
+
+              return (
+                <button
+                  key={day.toISOString()}
+                  onClick={() => setSelectedDay(day)}
+                  className={`flex-1 min-w-[46px] sm:min-w-[54px] py-2 px-1 rounded-2xl flex flex-col items-center gap-1 transition-all border ${
+                    isSelected
+                      ? "bg-emerald-500 text-black border-emerald-400 font-extrabold shadow-md shadow-emerald-500/20"
+                      : isToday
+                      ? "bg-white/10 text-white border-emerald-500/50"
+                      : "bg-card text-muted-foreground border-white/5 hover:border-white/20"
+                  }`}
+                >
+                  <span className={`text-[10px] uppercase font-bold ${isSelected ? "text-black" : ""}`}>
+                    {format(day, "EEE")}
+                  </span>
+                  <span className={`text-sm sm:text-base font-extrabold ${isSelected ? "text-black" : "text-white"}`}>
+                    {format(day, "d")}
+                  </span>
+                  {hasSessionOnDay && (
+                    <span className={`w-1 h-1 rounded-full ${isSelected ? "bg-black" : "bg-emerald-400"}`} />
+                  )}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Selected Day's Sessions */}
+          {sessionsOnSelectedDay.length > 0 ? (
+            <div className="space-y-2.5">
+              {sessionsOnSelectedDay.map((session) => (
+                <div
+                  key={session.id}
+                  className="rounded-3xl p-4 bg-card border border-white/10 shadow-sm flex items-center justify-between gap-3 hover:border-white/20 transition-all"
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-9 h-9 rounded-2xl bg-gradient-to-tr from-primary to-accent flex items-center justify-center shrink-0">
+                      <Video className="w-4 h-4 text-white" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-white font-bold text-xs truncate">{session.subject}</p>
+                      <p className="text-muted-foreground text-[11px] truncate">
+                        {session.tutorName} · {format(new Date(session.scheduledAt), "h:mm a")} ({session.durationMinutes}m)
+                      </p>
+                    </div>
+                  </div>
+                  {session.status === "confirmed" ? (
+                    <button
+                      onClick={() => setLocation(`/session/${session.id}`)}
+                      className="shrink-0 px-3 py-1.5 rounded-xl bg-emerald-500 text-black text-xs font-bold hover:bg-emerald-400 transition-all flex items-center gap-1"
+                    >
+                      <Video className="w-3 h-3" /> Join
+                    </button>
+                  ) : (
+                    <span className="shrink-0 text-[10px] font-bold px-2 py-1 rounded-full bg-yellow-500/10 text-yellow-400 border border-yellow-500/30">
+                      Pending Confirmation
+                    </span>
+                  )}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="rounded-3xl p-4 bg-card border border-white/5 text-center py-5">
+              <p className="text-xs text-muted-foreground">
+                No classes scheduled for {isSameDay(selectedDay, new Date()) ? "today" : format(selectedDay, "EEEE, MMM d")}.
+              </p>
+            </div>
+          )}
+        </div>
+
+        {/* ── 4. Primary Quick Actions (4-Column OPay squircle grid) ── */}
         <div className="glass-panel rounded-3xl p-4 sm:p-5 border border-white/10 shadow-sm">
           <div className="grid grid-cols-4 gap-2 text-center">
             <button
@@ -200,7 +354,7 @@ export default function StudentDashboard() {
           </div>
         </div>
 
-        {/* ── 4. Study & Campus Services (4-Column x 2 Rows OPay Grid) ── */}
+        {/* ── 5. Study & Campus Services (4-Column x 2 Rows OPay Grid) ── */}
         <div className="glass-panel rounded-3xl p-4 sm:p-5 border border-white/10 shadow-sm space-y-3">
           <div className="flex items-center justify-between px-1">
             <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
@@ -299,7 +453,7 @@ export default function StudentDashboard() {
           </div>
         </div>
 
-        {/* ── 5. Promo / Task Card (OPay style) ── */}
+        {/* ── 6. Promo / Task Card (OPay style) ── */}
         <div className="rounded-3xl p-5 bg-gradient-to-r from-emerald-950/40 via-card to-accent/10 border border-emerald-500/30 flex items-center justify-between gap-4 shadow-sm">
           <div className="space-y-1">
             <span className="text-[10px] font-extrabold uppercase tracking-wider text-emerald-400">
@@ -318,60 +472,6 @@ export default function StudentDashboard() {
           >
             Practice Now
           </button>
-        </div>
-
-        {/* ── 6. Upcoming Sessions Card ── */}
-        <div className="glass-panel rounded-3xl p-5 border border-white/10 shadow-sm space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-sm font-bold text-white flex items-center gap-2">
-              <BookOpen className="w-4 h-4 text-emerald-400" />
-              Upcoming Sessions
-            </h2>
-            <button
-              onClick={() => setLocation("/student/sessions")}
-              className="text-xs text-accent font-semibold flex items-center gap-0.5 hover:underline"
-            >
-              View all <ChevronRight className="w-3 h-3" />
-            </button>
-          </div>
-
-          {sessionsLoading ? (
-            <div className="flex justify-center py-6"><Loader2 className="w-5 h-5 animate-spin text-accent" /></div>
-          ) : confirmedSessions.length > 0 ? (
-            <div className="space-y-2.5">
-              {confirmedSessions.slice(0, 3).map(session => (
-                <div key={session.id} className="flex items-center justify-between gap-3 p-3 rounded-2xl bg-white/5 border border-white/5 hover:border-white/10 transition-colors">
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-primary to-accent flex items-center justify-center shrink-0">
-                      <Video className="w-4 h-4 text-white" />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-white font-bold text-xs truncate">{session.subject}</p>
-                      <p className="text-muted-foreground text-[11px] truncate">
-                        {session.tutorName} · {format(new Date(session.scheduledAt), "MMM d, h:mm a")}
-                      </p>
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => setLocation(`/session/${session.id}`)}
-                    className="shrink-0 px-3 py-1.5 rounded-xl bg-emerald-500 text-black text-xs font-bold hover:bg-emerald-400 transition-all flex items-center gap-1"
-                  >
-                    <Video className="w-3 h-3" /> Join
-                  </button>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-6 space-y-2">
-              <p className="text-xs text-muted-foreground">No upcoming sessions booked.</p>
-              <button
-                onClick={() => setLocation("/student/find-tutor")}
-                className="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white font-bold text-xs transition-colors"
-              >
-                Find & Book a Tutor
-              </button>
-            </div>
-          )}
         </div>
 
       </div>
