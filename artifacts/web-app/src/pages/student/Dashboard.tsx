@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuthStore } from "@/lib/auth";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { useListSessions, useListTransactions } from "@workspace/api-client-react";
@@ -24,12 +24,25 @@ function getCountdownText(scheduledAt: string | Date): string {
 }
 
 export default function StudentDashboard() {
-  const { user } = useAuthStore();
+  const { user, token } = useAuthStore();
   const [, setLocation] = useLocation();
   const [showInstallApp, setShowInstallApp] = useState(false);
   const [showBalance, setShowBalance] = useState(true);
   const [showAcademics, setShowAcademics] = useState(true);
   const [selectedDay, setSelectedDay] = useState<Date>(new Date());
+  const [pendingInvitesCount, setPendingInvitesCount] = useState(0);
+
+  useEffect(() => {
+    if (!token) return;
+    fetch(`${import.meta.env.BASE_URL.replace(/\/$/, "")}/api/groups/my-invitations`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((r) => r.json())
+      .then((d) => {
+        if (Array.isArray(d)) setPendingInvitesCount(d.length);
+      })
+      .catch(() => {});
+  }, [token]);
 
   const { data: sessionsData, isLoading: sessionsLoading } = useListSessions({ studentId: user?.id, limit: 30 });
   const { data: txData } = useListTransactions({ userId: user?.id, limit: 100 });
@@ -136,6 +149,33 @@ export default function StudentDashboard() {
             <div className="absolute -right-4 -bottom-4 w-24 h-24 rounded-full bg-white/10 blur-xl pointer-events-none" />
           </div>
         </div>
+
+        {/* ── Pending Group Invitations Banner ── */}
+        {pendingInvitesCount > 0 && (
+          <button
+            onClick={() => setLocation("/group-sessions")}
+            className="w-full text-left rounded-3xl p-3.5 sm:p-4 bg-emerald-950/40 border border-emerald-500/40 hover:border-emerald-500/60 transition-all flex items-center justify-between gap-3 shadow-lg group"
+          >
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-10 h-10 rounded-2xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shrink-0">
+                <Users2 className="w-5 h-5" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-white font-bold text-xs sm:text-sm flex items-center gap-2">
+                  <span>Group Study Invitation ({pendingInvitesCount})</span>
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+                </p>
+                <p className="text-emerald-300/80 text-[11px] truncate">
+                  A tutor invited you to a study group. Tap to approve or decline.
+                </p>
+              </div>
+            </div>
+            <div className="shrink-0 flex items-center gap-1 text-emerald-400 text-xs font-bold group-hover:translate-x-0.5 transition-transform">
+              <span>View</span>
+              <ChevronRight className="w-4 h-4" />
+            </div>
+          </button>
+        )}
 
         {/* ── 2. Upcoming Sessions Section (Mockup Structure) ── */}
         <div className="space-y-2.5">
@@ -425,8 +465,13 @@ export default function StudentDashboard() {
               onClick={() => setLocation("/group-sessions")}
               className="flex flex-col items-center gap-2 p-1.5 rounded-2xl hover:bg-white/5 active:scale-95 transition-all group"
             >
-              <div className="w-11 h-11 rounded-2xl bg-blue-500/15 border border-blue-500/25 text-blue-400 flex items-center justify-center group-hover:scale-105 transition-transform">
+              <div className="w-11 h-11 rounded-2xl bg-blue-500/15 border border-blue-500/25 text-blue-400 flex items-center justify-center group-hover:scale-105 transition-transform relative">
                 <Users2 className="w-5 h-5" />
+                {pendingInvitesCount > 0 && (
+                  <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-emerald-500 text-black text-[9px] font-black flex items-center justify-center shadow-sm">
+                    {pendingInvitesCount}
+                  </span>
+                )}
               </div>
               <span className="text-[11px] font-semibold text-white/90 leading-tight">Group Study</span>
             </button>

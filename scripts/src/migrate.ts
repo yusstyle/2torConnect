@@ -18,7 +18,8 @@ async function migrate() {
     { name: "assignments table", q: `CREATE TABLE IF NOT EXISTS assignments (id SERIAL PRIMARY KEY, student_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE, subject TEXT NOT NULL, title TEXT NOT NULL, description TEXT NOT NULL, deadline TIMESTAMP, status assignment_status NOT NULL DEFAULT 'open', created_at TIMESTAMP DEFAULT NOW() NOT NULL)` },
     { name: "assignment_responses table", q: `CREATE TABLE IF NOT EXISTS assignment_responses (id SERIAL PRIMARY KEY, assignment_id INTEGER NOT NULL REFERENCES assignments(id) ON DELETE CASCADE, tutor_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE, response TEXT NOT NULL, created_at TIMESTAMP DEFAULT NOW() NOT NULL)` },
     { name: "referrals table", q: `CREATE TABLE IF NOT EXISTS referrals (id SERIAL PRIMARY KEY, referrer_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE, referred_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE, status referral_status NOT NULL DEFAULT 'credited', created_at TIMESTAMP DEFAULT NOW() NOT NULL)` },
-    { name: "session_participants table", q: `CREATE TABLE IF NOT EXISTS session_participants (id SERIAL PRIMARY KEY, session_id INTEGER NOT NULL REFERENCES sessions(id) ON DELETE CASCADE, student_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE, joined_at TIMESTAMP DEFAULT NOW() NOT NULL)` },
+    { name: "session_participants table", q: `CREATE TABLE IF NOT EXISTS session_participants (id SERIAL PRIMARY KEY, session_id INTEGER NOT NULL REFERENCES sessions(id) ON DELETE CASCADE, student_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE, status TEXT NOT NULL DEFAULT 'accepted', joined_at TIMESTAMP DEFAULT NOW() NOT NULL)` },
+    { name: "session_participants status column", q: `ALTER TABLE session_participants ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'accepted'` },
     { name: "groups table alias (session_participants already covers groups)", q: `SELECT 1` },
   ];
 

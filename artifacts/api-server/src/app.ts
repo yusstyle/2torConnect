@@ -6,10 +6,30 @@ import router from "./routes";
 import { logger } from "./lib/logger";
 import { db } from "@workspace/db";
 import { usersTable } from "@workspace/db";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import { optionalAuth, requireAuth } from "./lib/auth-middleware";
 import { globalApiRateLimiter } from "./lib/rate-limiter";
+
+let schemaEnsured = false;
+let schemaPromise: Promise<void> | null = null;
+
+export async function ensureDbSchema() {
+  if (schemaEnsured) return;
+  if (!schemaPromise) {
+    schemaPromise = (async () => {
+      try {
+        await db.execute(sql`ALTER TABLE session_participants ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'accepted'`);
+        schemaEnsured = true;
+      } catch (err) {
+        logger.error({ err }, "Failed to ensure session_participants status column");
+      }
+    })();
+  }
+  return schemaPromise;
+}
+
+ensureDbSchema().catch(() => {});
 
 export async function seedAdmins() {
   const seedPass = process.env.ADMIN_SEED_PASSWORD;

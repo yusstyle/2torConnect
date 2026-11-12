@@ -64,7 +64,10 @@ CREATE TABLE IF NOT EXISTS session_participants (
   id SERIAL PRIMARY KEY,
   session_id INTEGER NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
   student_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  status TEXT NOT NULL DEFAULT 'accepted',
   joined_at TIMESTAMP DEFAULT NOW() NOT NULL
 );
+
+ALTER TABLE session_participants ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'accepted';
 
 SELECT 1;

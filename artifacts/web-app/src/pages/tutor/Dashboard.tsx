@@ -511,8 +511,9 @@ export default function TutorDashboardPage() {
         <TutorVoiceIntroRecorder />
 
         {/* Tutor Teaching Tools */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5 sm:gap-3">
           {[
+            { title: "Group Study", desc: "Create & Invite", href: "/group-sessions", icon: Users, color: "text-emerald-400", bg: "bg-emerald-500/10" },
             { title: "2torBoard", desc: "Digital Whiteboard", href: "/whiteboard", icon: PenTool, color: "text-cyan-400", bg: "bg-cyan-500/10" },
             { title: "Past Questions", desc: "CBT Exam Bank", href: "/past-questions", icon: GraduationCap, color: "text-accent", bg: "bg-accent/10" },
             { title: "Daily Quiz", desc: "Daily Exam Practice", href: "/arena", icon: Zap, color: "text-amber-400", bg: "bg-amber-500/10" },
