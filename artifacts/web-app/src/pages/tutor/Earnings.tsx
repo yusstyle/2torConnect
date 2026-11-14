@@ -15,12 +15,12 @@ const typeColors: Record<string, string> = {
 };
 
 const NIGERIAN_BANKS = [
-  "Access Bank", "Citibank", "Ecobank", "Fidelity Bank", "First Bank",
-  "First City Monument Bank", "Globus Bank", "GT Bank", "Heritage Bank",
-  "Keystone Bank", "Parallex Bank", "Polaris Bank", "Providus Bank",
-  "Stanbic IBTC Bank", "Standard Chartered", "Sterling Bank", "SunTrust Bank",
-  "Union Bank", "United Bank for Africa", "Unity Bank", "Wema Bank", "Zenith Bank",
-  "Kuda Bank", "Opay", "PalmPay", "Moniepoint",
+  "Access Bank", "Citibank Nigeria", "Ecobank Nigeria", "Fidelity Bank", "First Bank of Nigeria",
+  "First City Monument Bank (FCMB)", "Globus Bank", "Guaranty Trust Bank (GTBank)", "Heritage Bank",
+  "Keystone Bank", "Kuda Bank", "Moniepoint MFB", "OPay Digital Services (Paycom)", "PalmPay",
+  "Parallex Bank", "Polaris Bank", "Premium Trust Bank", "Providus Bank",
+  "Stanbic IBTC Bank", "Standard Chartered Bank", "Sterling Bank", "SunTrust Bank", "Taj Bank",
+  "Union Bank of Nigeria", "United Bank for Africa (UBA)", "Unity Bank", "Wema Bank", "Zenith Bank",
 ];
 
 function WithdrawModal({
@@ -36,14 +36,40 @@ function WithdrawModal({
   const [bankName, setBankName] = useState("");
   const [accountNumber, setAccountNumber] = useState("");
   const [accountName, setAccountName] = useState("");
+  const [resolving, setResolving] = useState(false);
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
   const { token } = useAuthStore();
 
+  const handleResolveAccount = async () => {
+    if (!accountNumber || accountNumber.length !== 10 || !bankName) {
+      toast({ variant: "destructive", title: "Select bank & enter 10-digit account number" });
+      return;
+    }
+    setResolving(true);
+    try {
+      const res = await fetch(`${getApiUrl()}/wallet/resolve-account`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ accountNumber, bankName }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Could not resolve account");
+      if (data.accountName) {
+        setAccountName(data.accountName);
+        toast({ title: "Account Verified! ✅", description: data.accountName });
+      }
+    } catch (e: any) {
+      toast({ variant: "destructive", title: "Resolution failed", description: e.message });
+    } finally {
+      setResolving(false);
+    }
+  };
+
   const handleWithdraw = async () => {
     const parsed = Number(amount);
-    if (!parsed || parsed <= 0) {
-      toast({ variant: "destructive", title: "Enter a valid amount" });
+    if (!parsed || parsed < 500) {
+      toast({ variant: "destructive", title: "Minimum withdrawal is ₦500" });
       return;
     }
     if (parsed > availableBalance) {
@@ -65,11 +91,14 @@ function WithdrawModal({
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ amount: parsed, bankName, accountNumber, accountName }),
       });
+      const data = await res.json();
       if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error ?? "Withdrawal failed");
+        throw new Error(data.error ?? "Withdrawal failed");
       }
-      toast({ title: "Withdrawal requested!", description: `₦${parsed.toLocaleString()} will be sent to ${accountName} at ${bankName}.` });
+      toast({
+        title: "Payout Initiated via Paystack! 🚀",
+        description: data.message || `₦${parsed.toLocaleString()} transfer initiated to ${accountName} at ${bankName}.`,
+      });
       onWithdrawn();
     } catch (e: any) {
       toast({ variant: "destructive", title: "Withdrawal failed", description: e.message });
@@ -130,16 +159,30 @@ function WithdrawModal({
         </div>
 
         <div>
-          <label className="text-xs text-muted-foreground mb-1.5 flex items-center gap-1.5">
-            <Hash className="w-3.5 h-3.5" /> Account Number
+          <label className="text-xs text-muted-foreground mb-1.5 flex items-center justify-between">
+            <span className="flex items-center gap-1.5">
+              <Hash className="w-3.5 h-3.5" /> Account Number
+            </span>
+            {accountNumber.length === 10 && bankName && (
+              <button
+                type="button"
+                onClick={handleResolveAccount}
+                disabled={resolving}
+                className="text-[11px] text-emerald-400 font-bold hover:underline"
+              >
+                {resolving ? "Verifying..." : "Verify Name"}
+              </button>
+            )}
           </label>
-          <input
-            type="text"
-            value={accountNumber}
-            onChange={(e) => setAccountNumber(e.target.value.replace(/\D/g, "").slice(0, 10))}
-            placeholder="10-digit account number"
-            className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder:text-muted-foreground focus:outline-none focus:border-accent/50"
-          />
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={accountNumber}
+              onChange={(e) => setAccountNumber(e.target.value.replace(/\D/g, "").slice(0, 10))}
+              placeholder="10-digit account number"
+              className="flex-1 px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder:text-muted-foreground focus:outline-none focus:border-emerald-500 font-mono tracking-wider"
+            />
+          </div>
         </div>
 
         <div>
@@ -150,8 +193,8 @@ function WithdrawModal({
             type="text"
             value={accountName}
             onChange={(e) => setAccountName(e.target.value)}
-            placeholder="Account holder name"
-            className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder:text-muted-foreground focus:outline-none focus:border-accent/50"
+            placeholder="Verified account holder name"
+            className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder:text-muted-foreground focus:outline-none focus:border-emerald-500"
           />
         </div>
 

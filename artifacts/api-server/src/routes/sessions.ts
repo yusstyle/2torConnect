@@ -10,6 +10,7 @@ import {
   sendSessionConfirmedEmailToStudent,
 } from "../lib/email";
 import { pushNotification } from "./notifications";
+import { initializePaystackPayment } from "../lib/paystack";
 
 const router: IRouter = Router();
 
@@ -309,6 +310,51 @@ router.post("/:id/pay", requireAuth, async (req: any, res) => {
   } catch (err) {
     req.log.error({ err }, "pay session error");
     res.status(500).json({ error: "Failed to process payment", message: String(err) });
+  }
+});
+
+// POST /sessions/:id/paystack-initiate - Direct Paystack checkout (Visa, Mastercard, Verve, Transfer)
+router.post("/:id/paystack-initiate", requireAuth, async (req: any, res) => {
+  try {
+    const id = Number(req.params.id);
+    const [session] = await db.select().from(sessionsTable).where(eq(sessionsTable.id, id)).limit(1);
+    if (!session) return res.status(404).json({ error: "Session not found" });
+    if (session.isPaid === 1) return res.status(400).json({ error: "Session is already paid" });
+
+    const [student] = await db.select().from(usersTable).where(eq(usersTable.id, session.studentId)).limit(1);
+    const amount = Number(session.amount ?? "0");
+    if (amount <= 0) {
+      await db.update(sessionsTable).set({ isPaid: 1, status: "confirmed" }).where(eq(sessionsTable.id, id));
+      return res.json({ success: true, message: "Free session confirmed" });
+    }
+
+    const host = req.get("host");
+    const protocol = req.protocol === "https" || req.get("x-forwarded-proto") === "https" ? "https" : "http";
+    const domain = process.env.PUBLIC_URL || (host ? `${protocol}://${host}` : "https://www.2torconnect.com");
+    const ref = `2tor-sess-${id}-${Date.now()}`;
+
+    const result = await initializePaystackPayment({
+      amount,
+      email: student?.email || req.user?.email || "student@2torconnect.com",
+      reference: ref,
+      callbackUrl: `${domain}/student/sessions?sessionPaid=${id}&reference=${ref}`,
+      description: `Payment for session #${id}: ${session.subject}`,
+      metadata: {
+        type: "session_payment",
+        sessionId: id,
+        studentId: session.studentId,
+        tutorId: session.tutorId,
+      },
+    });
+
+    return res.json({
+      checkoutUrl: result.authorizationUrl,
+      reference: result.reference,
+      accessCode: result.accessCode,
+    });
+  } catch (err: any) {
+    req.log?.error({ err }, "paystack initiate session error");
+    return res.status(500).json({ error: err.message || "Failed to initiate payment" });
   }
 });
 
