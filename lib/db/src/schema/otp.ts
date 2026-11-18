@@ -4,6 +4,7 @@ export const otpCodesTable = pgTable("otp_codes", {
   id: serial("id").primaryKey(),
   email: text("email").notNull(),
   code: text("code").notNull(),
+  purpose: text("purpose").notNull().default("login"),
   used: boolean("used").notNull().default(false),
   expiresAt: timestamp("expires_at").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),

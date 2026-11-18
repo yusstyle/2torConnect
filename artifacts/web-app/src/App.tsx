@@ -7,6 +7,7 @@ import { Toaster } from "@/components/ui/toaster";
 import LandingPage from "@/pages/Landing";
 import AboutPage from "@/pages/About";
 import LoginPage from "@/pages/auth/Login";
+import ForgotPasswordPage from "@/pages/auth/ForgotPassword";
 import RegisterChoicePage from "@/pages/auth/Register";
 import RegisterStudentPage from "@/pages/auth/RegisterStudent";
 import RegisterTutorPage from "@/pages/auth/RegisterTutor";
@@ -76,6 +77,7 @@ function Router() {
       <Route path="/" component={LandingPage} />
       <Route path="/about" component={AboutPage} />
       <Route path="/login" component={LoginPage} />
+      <Route path="/forgot-password" component={ForgotPasswordPage} />
       <Route path="/register" component={RegisterChoicePage} />
       <Route path="/register/student" component={RegisterStudentPage} />
       <Route path="/register/tutor" component={RegisterTutorPage} />

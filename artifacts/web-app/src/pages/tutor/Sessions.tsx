@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useAuthStore } from "@/lib/auth";
 import { useListSessions, useUpdateSession } from "@workspace/api-client-react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
@@ -114,6 +114,12 @@ export default function TutorSessionsPage() {
   const { toast } = useToast();
   const [, setLocation] = useLocation();
   const [confirmingId, setConfirmingId] = useState<number | null>(null);
+  const [now, setNow] = useState(Date.now());
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(Date.now()), 30_000);
+    return () => window.clearInterval(timer);
+  }, []);
 
   const { data, isLoading, refetch } = useListSessions({ tutorId: user?.id });
 
@@ -149,6 +155,7 @@ export default function TutorSessionsPage() {
           sessions.map(session => {
             const isPaid = (session as any).isPaid === 1;
             const liveUrl = (session as any).liveUrl;
+            const canComplete = now >= new Date(session.scheduledAt).getTime() + session.durationMinutes * 60_000;
 
             return (
               <div key={session.id} className="glass-panel rounded-2xl p-5 flex flex-col sm:flex-row sm:items-start gap-4">
@@ -225,7 +232,8 @@ export default function TutorSessionsPage() {
                         <Video className="w-4 h-4" />
                         Start Session
                       </button>
-                      <button onClick={() => updateMutation.mutate({ id: session.id, data: { status: "completed" } })} disabled={updateMutation.isPending}
+                      <button onClick={() => updateMutation.mutate({ id: session.id, data: { status: "completed" } })} disabled={updateMutation.isPending || !canComplete}
+                        title={canComplete ? "Mark this class complete" : "Available after the scheduled class duration ends"}
                         className="flex items-center gap-1 px-3 py-2 rounded-xl bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 transition-colors text-sm font-medium disabled:opacity-50">
                         <CheckCircle className="w-4 h-4" /> Mark Complete
                       </button>

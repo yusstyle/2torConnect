@@ -349,12 +349,12 @@ router.post("/send-otp", authRateLimiter, async (req, res) => {
       res.status(200).json({ success: true, message: "If that email is registered, an OTP has been sent." }); return;
     }
 
-    await db.delete(otpCodesTable).where(eq(otpCodesTable.email, normalizedEmail));
+    await db.delete(otpCodesTable).where(and(eq(otpCodesTable.email, normalizedEmail), eq(otpCodesTable.purpose, "login")));
 
     const code = generateOtp();
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
 
-    await db.insert(otpCodesTable).values({ email: normalizedEmail, code, expiresAt });
+    await db.insert(otpCodesTable).values({ email: normalizedEmail, code, purpose: "login", expiresAt });
 
     const emailSent = await sendOtpEmail(normalizedEmail, code);
     const emailConfigured = !!(process.env["SMTP_USER"] && process.env["SMTP_PASS"]);
@@ -380,6 +380,7 @@ router.post("/verify-otp", authRateLimiter, async (req, res) => {
       .where(and(
         eq(otpCodesTable.email, normalizedEmail),
         eq(otpCodesTable.code, code.trim()),
+        eq(otpCodesTable.purpose, "login"),
         eq(otpCodesTable.used, false)
       ))
       .limit(1);
@@ -405,6 +406,50 @@ router.post("/verify-otp", authRateLimiter, async (req, res) => {
     console.error(err);
     req.log.error({ err }, "verify otp error");
     res.status(500).json({ error: "Failed to verify OTP" });
+  }
+});
+
+router.post("/forgot-password", authRateLimiter, async (req, res) => {
+  try {
+    const email = typeof req.body?.email === "string" ? req.body.email.trim().toLowerCase() : "";
+    if (!email) return res.status(400).json({ error: "Email is required" });
+    const [user] = await db.select({ email: usersTable.email }).from(usersTable).where(eq(usersTable.email, email)).limit(1);
+    if (user) {
+      await db.delete(otpCodesTable).where(and(eq(otpCodesTable.email, email), eq(otpCodesTable.purpose, "password_reset")));
+      const code = generateOtp();
+      await db.insert(otpCodesTable).values({ email, code, purpose: "password_reset", expiresAt: new Date(Date.now() + 10 * 60 * 1000) });
+      await sendOtpEmail(email, code, "password_reset");
+    }
+    return res.json({ success: true, message: "If an account exists for that email, a password reset code has been sent." });
+  } catch (err: any) {
+    req.log.error({ err }, "forgot password error");
+    return res.status(500).json({ error: "Could not start password reset" });
+  }
+});
+
+router.post("/reset-password", authRateLimiter, async (req, res) => {
+  try {
+    const email = typeof req.body?.email === "string" ? req.body.email.trim().toLowerCase() : "";
+    const code = typeof req.body?.code === "string" ? req.body.code.trim() : "";
+    const password = typeof req.body?.password === "string" ? req.body.password.trim() : "";
+    if (!email || !code || !password) return res.status(400).json({ error: "Email, reset code, and new password are required" });
+    const passwordError = validatePasswordStrength(password);
+    if (passwordError) return res.status(400).json({ error: passwordError });
+    const [otpRecord] = await db.select().from(otpCodesTable).where(and(
+      eq(otpCodesTable.email, email),
+      eq(otpCodesTable.code, code),
+      eq(otpCodesTable.purpose, "password_reset"),
+      eq(otpCodesTable.used, false)
+    )).limit(1);
+    if (!otpRecord) return res.status(400).json({ error: "Invalid reset code" });
+    if (otpRecord.expiresAt < new Date()) return res.status(400).json({ error: "Reset code expired. Request a new one." });
+    const passwordHash = await bcrypt.hash(password, 10);
+    await db.update(usersTable).set({ passwordHash }).where(eq(usersTable.email, email));
+    await db.update(otpCodesTable).set({ used: true }).where(eq(otpCodesTable.email, email));
+    return res.json({ success: true, message: "Password reset successfully. You can now sign in." });
+  } catch (err: any) {
+    req.log.error({ err }, "reset password error");
+    return res.status(500).json({ error: "Could not reset password" });
   }
 });
 

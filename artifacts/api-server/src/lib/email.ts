@@ -61,7 +61,7 @@ export async function verifyEmailTransporter(): Promise<{ ok: boolean; message: 
   }
 }
 
-export async function sendOtpEmail(to: string, otp: string): Promise<boolean> {
+export async function sendOtpEmail(to: string, otp: string, purpose: "login" | "password_reset" = "login"): Promise<boolean> {
   const transporter = createTransporter();
 
   if (!transporter) {
@@ -73,11 +73,11 @@ export async function sendOtpEmail(to: string, otp: string): Promise<boolean> {
     await transporter.sendMail({
       from: getFromAddress(),
       to,
-      subject: "Your 2torConnect Verification Code",
+      subject: purpose === "password_reset" ? "Reset your 2torConnect password" : "Your 2torConnect Verification Code",
       html: `
         <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px;background:#0f0f1b;border-radius:16px;color:#fff">
           <h2 style="color:#a855f7;margin-bottom:8px">2torConnect</h2>
-          <p style="color:#aaa;margin-bottom:24px">Your one-time verification code is:</p>
+          <p style="color:#aaa;margin-bottom:24px">${purpose === "password_reset" ? "Use this one-time code to reset your password:" : "Your one-time verification code is:"}</p>
           <div style="background:#1a1a2e;border-radius:12px;padding:24px;text-align:center;margin-bottom:24px">
             <span style="font-size:40px;font-weight:bold;letter-spacing:12px;color:#a855f7">${otp}</span>
           </div>

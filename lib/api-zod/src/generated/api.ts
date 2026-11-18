@@ -366,6 +366,7 @@ export const CreateSessionBody = zod.object({
   durationMinutes: zod.number().optional(),
   amount: zod.string().optional(),
   notes: zod.string().optional(),
+  payWithWallet: zod.boolean().optional(),
 });
 
 /**

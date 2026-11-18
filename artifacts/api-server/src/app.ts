@@ -20,6 +20,7 @@ export async function ensureDbSchema() {
     schemaPromise = (async () => {
       try {
         await db.execute(sql`ALTER TABLE session_participants ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'accepted'`);
+        await db.execute(sql`ALTER TABLE otp_codes ADD COLUMN IF NOT EXISTS purpose TEXT NOT NULL DEFAULT 'login'`);
         schemaEnsured = true;
       } catch (err) {
         logger.error({ err }, "Failed to ensure session_participants status column");

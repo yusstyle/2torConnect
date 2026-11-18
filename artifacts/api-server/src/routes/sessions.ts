@@ -1,12 +1,10 @@
 import { Router, type IRouter } from "express";
 import { db } from "@workspace/db";
-import { sessionsTable, transactionsTable, usersTable, studentsTable } from "@workspace/db";
+import { sessionsTable, transactionsTable, usersTable, tutorsTable } from "@workspace/db";
 import { eq, and, count, or } from "drizzle-orm";
 import { CreateSessionBody, UpdateSessionBody } from "@workspace/api-zod";
 import { requireAuth } from "../lib/auth-middleware";
 import {
-  sendSessionBookingNotificationToTutor,
-  sendSessionBookingConfirmationToStudent,
   sendSessionConfirmedEmailToStudent,
 } from "../lib/email";
 import { pushNotification } from "./notifications";
@@ -60,7 +58,16 @@ router.get("/", requireAuth, async (req: any, res) => {
 router.post("/", requireAuth, async (req: any, res) => {
   try {
     const body = CreateSessionBody.parse(req.body);
-    const studentId = req.user?.role === "admin" ? (body.studentId || req.user.id) : req.user.id;
+    if (req.user?.role !== "student") {
+      res.status(403).json({ error: "Only students can book tutor sessions" });
+      return;
+    }
+    const studentId = req.user.id;
+    const [tutorProfile] = await db.select().from(tutorsTable).where(eq(tutorsTable.userId, body.tutorId)).limit(1);
+    if (!tutorProfile || Number(tutorProfile.hourlyRate ?? 0) <= 0) {
+      res.status(400).json({ error: "This tutor has not set a session price" });
+      return;
+    }
 
     const [session] = await db.insert(sessionsTable).values({
       tutorId: body.tutorId,
@@ -68,72 +75,11 @@ router.post("/", requireAuth, async (req: any, res) => {
       subject: body.subject,
       scheduledAt: new Date(body.scheduledAt),
       durationMinutes: body.durationMinutes ?? 60,
-      amount: body.amount ?? null,
+      amount: String(tutorProfile.hourlyRate),
       notes: body.notes ?? null,
       status: "pending",
     }).returning();
     const enriched = await enrichSession(session);
-
-    // Fetch tutor and student profiles to send email notifications & in-app alerts
-    try {
-      const [tutorUser] = await db.select().from(usersTable).where(eq(usersTable.id, session.tutorId)).limit(1);
-      const [studentUser] = await db.select().from(usersTable).where(eq(usersTable.id, session.studentId)).limit(1);
-      const [studentProfile] = await db.select().from(studentsTable).where(eq(studentsTable.userId, session.studentId)).limit(1);
-
-      if (tutorUser && studentUser) {
-        // 1. Send detailed email to Tutor with the message from the student
-        sendSessionBookingNotificationToTutor({
-          tutorName: tutorUser.name,
-          tutorEmail: tutorUser.email,
-          studentName: studentUser.name,
-          studentEmail: studentUser.email,
-          studentUniversity: studentProfile?.university || null,
-          subject: session.subject,
-          scheduledAt: session.scheduledAt,
-          durationMinutes: session.durationMinutes,
-          amount: session.amount,
-          notes: session.notes,
-          sessionId: session.id,
-        }).catch((emailErr) => {
-          req.log.warn({ err: emailErr }, "Failed sending tutor booking email notification");
-        });
-
-        // 2. Send booking confirmation email to Student
-        sendSessionBookingConfirmationToStudent({
-          studentName: studentUser.name,
-          studentEmail: studentUser.email,
-          tutorName: tutorUser.name,
-          tutorEmail: tutorUser.email,
-          subject: session.subject,
-          scheduledAt: session.scheduledAt,
-          durationMinutes: session.durationMinutes,
-          notes: session.notes,
-          sessionId: session.id,
-        }).catch((emailErr) => {
-          req.log.warn({ err: emailErr }, "Failed sending student booking confirmation email");
-        });
-
-        // 3. In-app notifications
-        const snippet = (session.notes || "No message provided").trim().slice(0, 75);
-        pushNotification(
-          tutorUser.id,
-          "session_request",
-          `New Booking: ${session.subject}`,
-          `${studentUser.name} requested a session: "${snippet}"`,
-          "/tutor/sessions"
-        ).catch(() => {});
-
-        pushNotification(
-          studentUser.id,
-          "session_request",
-          `Request Sent: ${session.subject}`,
-          `Your session request with message has been sent to ${tutorUser.name}.`,
-          "/student/sessions"
-        ).catch(() => {});
-      }
-    } catch (notifyErr) {
-      req.log.warn({ err: notifyErr }, "Session notification dispatch warning");
-    }
 
     res.status(201).json(enriched);
   } catch (err) {
@@ -178,6 +124,25 @@ router.patch("/:id", requireAuth, async (req: any, res) => {
     }
 
     const body = UpdateSessionBody.parse(req.body);
+    if (req.user?.role !== "admin" && req.user?.id === session.tutorId && body.status === "confirmed" && session.isPaid !== 1) {
+      res.status(400).json({ error: "Student payment is required before confirming this booking" });
+      return;
+    }
+    if (body.status === "completed") {
+      if (req.user?.role !== "admin" && req.user?.id !== session.tutorId) {
+        res.status(403).json({ error: "Only the tutor can complete this class" });
+        return;
+      }
+      if (session.status !== "confirmed" || session.isPaid !== 1) {
+        res.status(400).json({ error: "Only a confirmed, paid class can be completed" });
+        return;
+      }
+      const classEnd = new Date(session.scheduledAt).getTime() + session.durationMinutes * 60_000;
+      if (Date.now() < classEnd) {
+        res.status(400).json({ error: "The class can be completed after its scheduled end time" });
+        return;
+      }
+    }
     const updateData: any = {};
     if (body.status) updateData.status = body.status;
     if (body.notes !== undefined) updateData.notes = body.notes;
@@ -319,6 +284,9 @@ router.post("/:id/paystack-initiate", requireAuth, async (req: any, res) => {
     const id = Number(req.params.id);
     const [session] = await db.select().from(sessionsTable).where(eq(sessionsTable.id, id)).limit(1);
     if (!session) return res.status(404).json({ error: "Session not found" });
+    if (req.user?.role !== "admin" && (req.user?.role !== "student" || req.user?.id !== session.studentId)) {
+      return res.status(403).json({ error: "Only the student who booked this session can pay" });
+    }
     if (session.isPaid === 1) return res.status(400).json({ error: "Session is already paid" });
 
     const [student] = await db.select().from(usersTable).where(eq(usersTable.id, session.studentId)).limit(1);
@@ -340,7 +308,7 @@ router.post("/:id/paystack-initiate", requireAuth, async (req: any, res) => {
       callbackUrl: `${domain}/student/sessions?sessionPaid=${id}&reference=${ref}`,
       description: `Payment for session #${id}: ${session.subject}`,
       metadata: {
-        type: "session_payment",
+        type: "session_booking_payment",
         sessionId: id,
         studentId: session.studentId,
         tutorId: session.tutorId,

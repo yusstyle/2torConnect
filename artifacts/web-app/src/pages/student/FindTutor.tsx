@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import DashboardLayout from "@/components/layout/DashboardLayout";
-import { useCreateSession } from "@workspace/api-client-react";
 import { useAuthStore } from "@/lib/auth";
 import { Search, Star, BookOpen, MessageSquare, Loader2, Filter, X, ChevronDown } from "lucide-react";
 import { VerifiedBadge } from "@/components/VerifiedBadge";
@@ -434,36 +433,33 @@ function ReviewModal({ tutorId, onClose }: { tutorId: number; onClose: () => voi
 }
 
 function BookingModal({ tutor, onClose }: { tutor: Tutor; onClose: () => void }) {
-  const { user } = useAuthStore();
+  const { user, token } = useAuthStore();
   const { toast } = useToast();
   const [subject, setSubject] = useState(tutor.subjects?.[0] ?? "");
   const [date, setDate] = useState("");
   const [time, setTime] = useState("");
   const [notes, setNotes] = useState("");
 
-  const bookMutation = useCreateSession({
-    mutation: {
-      onSuccess: () => {
-        toast({
-          title: "Booking Request Sent! 📬",
-          description: `An email notification with your message has been sent to ${tutor.name}.`,
-        });
-        onClose();
-      },
-      onError: (err: any) => {
-        const msg = err?.data?.error || err?.data?.message || "Could not book session.";
-        toast({ variant: "destructive", title: "Error", description: msg });
-      }
-    }
-  });
+  const [booking, setBooking] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user) return;
-    const scheduledAt = new Date(`${date}T${time}`).toISOString();
-    bookMutation.mutate({ data: { tutorId: tutor.userId, studentId: user.id, subject, scheduledAt, durationMinutes: 60, notes } });
+    if (!user || !token) return;
+    setBooking(true);
+    try {
+      const headers = { "Content-Type": "application/json", Authorization: `Bearer ${token}` };
+      const created = await fetch(`${API}/sessions`, { method: "POST", headers, body: JSON.stringify({ tutorId: tutor.userId, subject, scheduledAt: new Date(`${date}T${time}`).toISOString(), durationMinutes: 60, notes }) });
+      const session = await created.json();
+      if (!created.ok) throw new Error(session.message || session.error || "Could not create booking.");
+      const checkout = await fetch(`${API}/sessions/${session.id}/paystack-initiate`, { method: "POST", headers });
+      const payment = await checkout.json();
+      if (!checkout.ok || !payment.checkoutUrl) throw new Error(payment.error || "Could not start secure payment.");
+      window.location.href = payment.checkoutUrl;
+    } catch (err: any) {
+      toast({ variant: "destructive", title: "Booking payment failed", description: err.message || "Could not book session." });
+      setBooking(false);
+    }
   };
-
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3.5 sm:p-4 bg-background/80 backdrop-blur-sm" onClick={onClose}>
       <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="glass-panel w-full max-w-md rounded-3xl p-5 sm:p-6 relative max-h-[90dvh] overflow-y-auto" onClick={e => e.stopPropagation()}>
@@ -475,6 +471,7 @@ function BookingModal({ tutor, onClose }: { tutor: Tutor; onClose: () => void })
           <button onClick={onClose}><X className="w-5 h-5 text-muted-foreground hover:text-white" /></button>
         </div>
         <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="rounded-xl border border-accent/20 bg-accent/5 px-4 py-3 text-sm text-white/80">Tutor rate: <strong className="text-accent">NGN {Number(tutor.hourlyRate || 0).toLocaleString()}</strong> for this 60 minute class. Pay now to send your booking request.</div>
           <div>
             <label className="block text-sm font-medium text-white/80 mb-2">Subject</label>
             <input required value={subject} onChange={e => setSubject(e.target.value)} list="subjects-list" className="w-full bg-black/40 border border-white/10 rounded-xl py-3 px-4 text-white focus:border-accent focus:outline-none" placeholder="e.g. Calculus 101" />
@@ -503,13 +500,13 @@ function BookingModal({ tutor, onClose }: { tutor: Tutor; onClose: () => void })
               placeholder="e.g. Hi! I need help preparing for my calculus exam, specifically integration by parts and differential equations..."
             />
             <p className="text-[11px] text-muted-foreground mt-1.5 flex items-center gap-1.5">
-              <span>✉️</span> This message will be emailed directly to {tutor.name} with your booking request.
+              <span>✉️</span> The tutor will receive this message by email after your payment succeeds.
             </p>
           </div>
           <div className="flex gap-3 mt-2">
             <button type="button" onClick={onClose} className="flex-1 py-3 rounded-xl border border-white/10 text-white font-medium hover:bg-white/5 transition-colors">Cancel</button>
-            <button type="submit" disabled={bookMutation.isPending} className="flex-1 py-3 rounded-xl bg-accent text-background font-bold hover:opacity-90 flex justify-center items-center gap-2 disabled:opacity-50">
-              {bookMutation.isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : "Confirm Booking"}
+            <button type="submit" disabled={booking || Number(tutor.hourlyRate || 0) <= 0} className="flex-1 py-3 rounded-xl bg-accent text-background font-bold hover:opacity-90 flex justify-center items-center gap-2 disabled:opacity-50">
+              {booking ? <Loader2 className="w-5 h-5 animate-spin" /> : `Pay NGN ${Number(tutor.hourlyRate || 0).toLocaleString()} & Book`}
             </button>
           </div>
         </form>

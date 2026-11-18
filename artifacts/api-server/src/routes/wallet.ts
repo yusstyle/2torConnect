@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { db } from "@workspace/db";
-import { transactionsTable, sessionsTable, usersTable } from "@workspace/db";
+import { transactionsTable, sessionsTable, usersTable, studentsTable } from "@workspace/db";
 import { eq, and } from "drizzle-orm";
 import { randomUUID } from "crypto";
 import { requireAuth } from "../lib/auth-middleware";
@@ -18,7 +18,7 @@ import {
   PAYSTACK_BANK_CODES,
 } from "../lib/paystack";
 import { pushNotification } from "./notifications";
-import { sendSessionConfirmedEmailToStudent } from "../lib/email";
+import { sendSessionConfirmedEmailToStudent, sendSessionBookingNotificationToTutor } from "../lib/email";
 
 const router: IRouter = Router();
 
@@ -40,7 +40,7 @@ export async function computeBalance(userId: number, role: string) {
     return { earned, withdrawn, balance: Math.max(0, earned - withdrawn) };
   } else {
     const funded = txns
-      .filter((t) => t.type === "bonus")
+      .filter((t) => t.type === "bonus" || t.type === "refund")
       .reduce((s, t) => s + Number(t.amount), 0);
     const spent = txns
       .filter((t) => t.type === "payment")
@@ -193,14 +193,16 @@ router.post("/verify", authMiddleware, async (req: any, res: any): Promise<any> 
 
     // Check if this payment was for a direct session booking
     const meta = payment.metadata || {};
-    if (meta.type === "session_payment" && meta.sessionId) {
+    if ((meta.type === "session_payment" || meta.type === "session_booking_payment") && meta.sessionId) {
       const sessionId = Number(meta.sessionId);
       const [session] = await db.select().from(sessionsTable).where(eq(sessionsTable.id, sessionId)).limit(1);
 
       if (session && session.isPaid !== 1) {
+        // For upfront booking payments: mark as paid but keep status "pending" so tutor can review & accept
+        const isUpfrontBooking = meta.type === "session_booking_payment";
         await db
           .update(sessionsTable)
-          .set({ isPaid: 1, status: "confirmed" })
+          .set({ isPaid: 1, ...(isUpfrontBooking ? {} : { status: "confirmed" }) })
           .where(eq(sessionsTable.id, sessionId));
 
         // Insert student payment transaction
@@ -209,50 +211,78 @@ router.post("/verify", authMiddleware, async (req: any, res: any): Promise<any> 
           sessionId,
           type: "payment",
           amount: payment.amount.toFixed(2),
-          description: `Direct Payment for session #${sessionId} — ${session.subject} (Paystack ${payment.cardType || payment.channel})`,
+          description: `${isUpfrontBooking ? "Upfront " : "Direct "}Payment for session #${sessionId} — ${session.subject} (Paystack ${payment.cardType || payment.channel})`,
           reference: ref,
           status: "completed",
         });
 
-        // Insert tutor earnings transaction
-        await db.insert(transactionsTable).values({
-          userId: session.tutorId,
-          sessionId,
-          type: "payment",
-          amount: payment.amount.toFixed(2),
-          description: `Earnings for session #${sessionId} — ${session.subject}`,
-          reference: `earn-${ref}`,
-          status: "completed",
-        });
+        // For upfront bookings, do NOT credit tutor yet (wait for tutor to accept)
+        if (!isUpfrontBooking) {
+          await db.insert(transactionsTable).values({
+            userId: session.tutorId,
+            sessionId,
+            type: "payment",
+            amount: payment.amount.toFixed(2),
+            description: `Earnings for session #${sessionId} — ${session.subject}`,
+            reference: `earn-${ref}`,
+            status: "completed",
+          });
+        }
 
         try {
           const [tutorUser] = await db.select().from(usersTable).where(eq(usersTable.id, session.tutorId)).limit(1);
           const [studentUser] = await db.select().from(usersTable).where(eq(usersTable.id, session.studentId)).limit(1);
           if (studentUser && tutorUser) {
-            sendSessionConfirmedEmailToStudent({
-              studentName: studentUser.name,
-              studentEmail: studentUser.email,
-              tutorName: tutorUser.name,
-              subject: session.subject,
-              scheduledAt: session.scheduledAt,
-              sessionId: session.id,
-            }).catch(() => {});
+            if (isUpfrontBooking) {
+              const [studentProfile] = await db.select().from(studentsTable).where(eq(studentsTable.userId, session.studentId)).limit(1);
+              sendSessionBookingNotificationToTutor({
+                tutorName: tutorUser.name,
+                tutorEmail: tutorUser.email,
+                studentName: studentUser.name,
+                studentEmail: studentUser.email,
+                studentUniversity: studentProfile?.university || null,
+                subject: session.subject,
+                scheduledAt: session.scheduledAt,
+                durationMinutes: session.durationMinutes,
+                amount: session.amount,
+                notes: session.notes,
+                sessionId: session.id,
+              }).catch(() => {});
+              pushNotification(
+                tutorUser.id,
+                "session_request",
+                `💰 Paid Booking: ${session.subject}`,
+                `${studentUser.name} paid ₦${payment.amount.toLocaleString()} upfront via Paystack. Review and accept!`,
+                "/tutor/sessions"
+              ).catch(() => {});
+            } else {
+              sendSessionConfirmedEmailToStudent({
+                studentName: studentUser.name,
+                studentEmail: studentUser.email,
+                tutorName: tutorUser.name,
+                subject: session.subject,
+                scheduledAt: session.scheduledAt,
+                sessionId: session.id,
+              }).catch(() => {});
 
-            pushNotification(
-              tutorUser.id,
-              "payment_received",
-              `Payment Confirmed: ${session.subject}`,
-              `${studentUser.name} paid ₦${payment.amount.toLocaleString()} via Paystack for session #${sessionId}. Session confirmed!`,
-              "/tutor/sessions"
-            ).catch(() => {});
+              pushNotification(
+                tutorUser.id,
+                "payment_received",
+                `Payment Confirmed: ${session.subject}`,
+                `${studentUser.name} paid ₦${payment.amount.toLocaleString()} via Paystack for session #${sessionId}. Session confirmed!`,
+                "/tutor/sessions"
+              ).catch(() => {});
+            }
           }
         } catch {}
 
         return res.json({
           success: true,
-          type: "session_payment",
+          type: meta.type,
           sessionId,
-          message: `Payment of ₦${payment.amount.toLocaleString()} confirmed via Paystack! Session unlocked.`,
+          message: isUpfrontBooking
+            ? `Payment of ₦${payment.amount.toLocaleString()} confirmed! Your booking request has been sent to the tutor for approval.`
+            : `Payment of ₦${payment.amount.toLocaleString()} confirmed via Paystack! Session unlocked.`,
         });
       }
     }
