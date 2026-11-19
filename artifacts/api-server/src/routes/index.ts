@@ -23,6 +23,8 @@ import referralsRouter from "./referrals";
 import groupsRouter from "./groups";
 import pastQuestionsRouter from "./past-questions";
 import { processEmailQueue } from "../lib/email-queue";
+import { requireAdmin } from "../lib/auth-middleware";
+import { timingSafeEqual } from "node:crypto";
 
 const router: IRouter = Router();
 
@@ -50,13 +52,29 @@ router.use("/referrals", referralsRouter);
 router.use("/groups", groupsRouter);
 router.use("/past-questions", pastQuestionsRouter);
 
-// Automated Hourly Email Queue Runner (triggered by Vercel Cron or monitoring ping)
-router.get("/cron/process-email-queue", async (_req, res) => {
+// Vercel Cron can authenticate with CRON_SECRET. Admins can also trigger the
+// worker manually when the deployment has no cron secret configured.
+router.get("/cron/process-email-queue", (req, res, next) => {
+  const configuredSecret = process.env.CRON_SECRET;
+  const authorization = req.get("authorization") ?? "";
+  const suppliedSecret = authorization.startsWith("Bearer ") ? authorization.slice(7) : "";
+
+  if (configuredSecret && suppliedSecret) {
+    const expected = Buffer.from(configuredSecret);
+    const supplied = Buffer.from(suppliedSecret);
+    if (expected.length === supplied.length && timingSafeEqual(expected, supplied)) {
+      next();
+      return;
+    }
+  }
+
+  requireAdmin(req, res, () => next());
+}, async (_req, res) => {
   try {
     const result = await processEmailQueue(85);
     res.json({ success: true, result });
-  } catch (err: any) {
-    res.status(500).json({ error: err?.message || "Failed to process email queue" });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to process email queue" });
   }
 });
 

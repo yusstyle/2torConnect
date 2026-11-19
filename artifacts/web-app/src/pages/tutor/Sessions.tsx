@@ -18,11 +18,13 @@ const statusColors: Record<string, string> = {
 
 interface ConfirmModalProps {
   sessionId: number;
+  isPaid: boolean;
+  sessionAmount?: string | null;
   onClose: () => void;
   onConfirmed: () => void;
 }
 
-function ConfirmModal({ sessionId, onClose, onConfirmed }: ConfirmModalProps) {
+function ConfirmModal({ sessionId, isPaid, sessionAmount, onClose, onConfirmed }: ConfirmModalProps) {
   const [liveUrl, setLiveUrl] = useState("");
   const [amount, setAmount] = useState("");
   const [loading, setLoading] = useState(false);
@@ -40,7 +42,7 @@ function ConfirmModal({ sessionId, onClose, onConfirmed }: ConfirmModalProps) {
         body: JSON.stringify(body),
       });
       if (!res.ok) throw new Error("Failed");
-      toast({ title: "Session confirmed", description: liveUrl ? "YouTube Live link saved." : "Students can now pay to join." });
+      toast({ title: "Session confirmed", description: isPaid ? "Payment is received and the session is confirmed." : liveUrl ? "YouTube Live link saved." : "Student can now pay to join." });
       onConfirmed();
     } catch {
       toast({ variant: "destructive", title: "Could not confirm session" });
@@ -60,19 +62,25 @@ function ConfirmModal({ sessionId, onClose, onConfirmed }: ConfirmModalProps) {
         </div>
 
         <div className="space-y-4">
-          <div>
-            <label className="text-sm text-muted-foreground mb-1.5 block flex items-center gap-1.5">
-              <DollarSign className="w-4 h-4" /> Session Price (USD or local currency)
-            </label>
-            <input
-              type="number"
-              value={amount}
-              onChange={e => setAmount(e.target.value)}
-              placeholder="e.g. 25"
-              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-muted-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
-            />
-            <p className="text-xs text-muted-foreground mt-1">Student must pay this before joining the session.</p>
-          </div>
+          {isPaid ? (
+            <div className="rounded-xl border border-green-500/20 bg-green-500/5 px-4 py-3 text-sm text-green-300">
+              Student paid {sessionAmount ? `NGN ${Number(sessionAmount).toLocaleString()}` : "the session price"} upfront.
+            </div>
+          ) : (
+            <div>
+              <label className="text-sm text-muted-foreground mb-1.5 block flex items-center gap-1.5">
+                <DollarSign className="w-4 h-4" /> Session Price (USD or local currency)
+              </label>
+              <input
+                type="number"
+                value={amount}
+                onChange={e => setAmount(e.target.value)}
+                placeholder="e.g. 25"
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-muted-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+              />
+              <p className="text-xs text-muted-foreground mt-1">Student must pay this before joining the session.</p>
+            </div>
+          )}
 
           <div>
             <label className="text-sm text-muted-foreground mb-1.5 block flex items-center gap-1.5">
@@ -137,6 +145,8 @@ export default function TutorSessionsPage() {
       {confirmingId !== null && (
         <ConfirmModal
           sessionId={confirmingId}
+          isPaid={Number((sessions.find((session) => session.id === confirmingId) as any)?.isPaid ?? 0) === 1}
+          sessionAmount={sessions.find((session) => session.id === confirmingId)?.amount}
           onClose={() => setConfirmingId(null)}
           onConfirmed={() => { setConfirmingId(null); refetch(); }}
         />

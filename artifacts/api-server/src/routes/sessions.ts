@@ -1,10 +1,11 @@
 import { Router, type IRouter } from "express";
 import { db } from "@workspace/db";
-import { sessionsTable, transactionsTable, usersTable, tutorsTable } from "@workspace/db";
+import { sessionsTable, transactionsTable, usersTable, studentsTable, tutorsTable } from "@workspace/db";
 import { eq, and, count, or } from "drizzle-orm";
 import { CreateSessionBody, UpdateSessionBody } from "@workspace/api-zod";
 import { requireAuth } from "../lib/auth-middleware";
 import {
+  sendSessionBookingNotificationToTutor,
   sendSessionConfirmedEmailToStudent,
 } from "../lib/email";
 import { pushNotification } from "./notifications";
@@ -124,9 +125,15 @@ router.patch("/:id", requireAuth, async (req: any, res) => {
     }
 
     const body = UpdateSessionBody.parse(req.body);
-    if (req.user?.role !== "admin" && req.user?.id === session.tutorId && body.status === "confirmed" && session.isPaid !== 1) {
-      res.status(400).json({ error: "Student payment is required before confirming this booking" });
-      return;
+    if (body.status === "confirmed") {
+      if (req.user?.role !== "admin" && req.user?.id !== session.tutorId) {
+        res.status(403).json({ error: "Only the tutor can confirm this session" });
+        return;
+      }
+      if (session.isPaid !== 1) {
+        res.status(400).json({ error: "Student payment is required before confirming this booking" });
+        return;
+      }
     }
     if (body.status === "completed") {
       if (req.user?.role !== "admin" && req.user?.id !== session.tutorId) {
@@ -147,9 +154,46 @@ router.patch("/:id", requireAuth, async (req: any, res) => {
     if (body.status) updateData.status = body.status;
     if (body.notes !== undefined) updateData.notes = body.notes;
     if (req.body.liveUrl !== undefined) updateData.liveUrl = req.body.liveUrl;
-    if (req.body.amount !== undefined) updateData.amount = req.body.amount;
+    if (req.body.amount !== undefined) {
+      if (req.user?.role !== "admin" && req.user?.id !== session.tutorId) {
+        res.status(403).json({ error: "Only the tutor can change a session price" });
+        return;
+      }
+      if (session.isPaid === 1) {
+        res.status(400).json({ error: "The session price cannot be changed after payment" });
+        return;
+      }
+      updateData.amount = req.body.amount;
+    }
     const [updated] = await db.update(sessionsTable).set(updateData).where(eq(sessionsTable.id, id)).returning();
     const enriched = await enrichSession(updated);
+
+    // Release upfront booking earnings to the tutor when they accept a paid request.
+    if (body.status === "confirmed" && session.isPaid === 1) {
+      const [studentPayment] = await db.select().from(transactionsTable).where(and(
+        eq(transactionsTable.userId, session.studentId),
+        eq(transactionsTable.sessionId, session.id),
+        eq(transactionsTable.type, "payment"),
+        eq(transactionsTable.status, "completed")
+      )).limit(1);
+      const [tutorEarning] = await db.select({ id: transactionsTable.id }).from(transactionsTable).where(and(
+        eq(transactionsTable.userId, session.tutorId),
+        eq(transactionsTable.sessionId, session.id),
+        eq(transactionsTable.type, "payment"),
+        eq(transactionsTable.status, "completed")
+      )).limit(1);
+      if (studentPayment && !tutorEarning) {
+        await db.insert(transactionsTable).values({
+          userId: session.tutorId,
+          sessionId: session.id,
+          type: "payment",
+          amount: String(session.amount ?? studentPayment.amount),
+          description: `Earnings for session #${session.id} — ${session.subject}`,
+          reference: studentPayment.reference ? `earn-${studentPayment.reference}` : undefined,
+          status: "completed",
+        });
+      }
+    }
 
     // If session status was updated to confirmed, notify the student via email & in-app
     if (body.status === "confirmed" && session.status !== "confirmed") {
@@ -250,6 +294,21 @@ router.post("/:id/pay", requireAuth, async (req: any, res) => {
       const [tutorUser] = await db.select().from(usersTable).where(eq(usersTable.id, session.tutorId)).limit(1);
       const [studentUser] = await db.select().from(usersTable).where(eq(usersTable.id, session.studentId)).limit(1);
       if (studentUser && tutorUser) {
+        const [studentProfile] = await db.select().from(studentsTable).where(eq(studentsTable.userId, session.studentId)).limit(1);
+        sendSessionBookingNotificationToTutor({
+          tutorName: tutorUser.name,
+          tutorEmail: tutorUser.email,
+          studentName: studentUser.name,
+          studentEmail: studentUser.email,
+          studentUniversity: studentProfile?.university || null,
+          subject: session.subject,
+          scheduledAt: session.scheduledAt,
+          durationMinutes: session.durationMinutes,
+          amount: session.amount,
+          notes: session.notes,
+          sessionId: session.id,
+        }).catch(() => {});
+
         sendSessionConfirmedEmailToStudent({
           studentName: studentUser.name,
           studentEmail: studentUser.email,

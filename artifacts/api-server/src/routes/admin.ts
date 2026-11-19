@@ -6,6 +6,7 @@ import { sendCustomEmail } from "../lib/email";
 import { requireAdmin } from "../lib/auth-middleware";
 import { initSecurityTable } from "../lib/security";
 import { pushNotification } from "./notifications";
+import { sendWebPushNotification } from "../lib/web-push";
 import { enqueueBroadcast, processEmailQueue, getEmailQueueStatus } from "../lib/email-queue";
 
 const router: IRouter = Router();
@@ -294,6 +295,7 @@ router.post("/send-email", requireAdmin, async (req: any, res) => {
           );
         }
         inAppDelivered = uniqueUsers.length;
+        void Promise.all(uniqueUsers.map((user) => sendWebPushNotification(user.id, subject, message, mediaUrl || undefined))).catch(() => {});
       } catch (notifErr) {
         console.error("Failed to insert in-app notifications:", notifErr);
       }

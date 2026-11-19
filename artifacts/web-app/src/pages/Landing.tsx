@@ -538,7 +538,7 @@ export default function LandingPage() {
       {/* ── Footer ── */}
       <footer className="border-t border-white/5 py-8 sm:py-12 px-4 sm:px-6">
         <div className="max-w-7xl mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-8 mb-8">
             <div className="md:col-span-2">
               <div className="flex items-center gap-2.5 mb-3">
                 <Logo size={32} />
@@ -561,6 +561,14 @@ export default function LandingPage() {
               <ul className="space-y-2 text-white/50 text-xs">
                 <li><Link href="/about" className="hover:text-white transition-colors">About 2torConnect</Link></li>
                 <li><Link href="/messages" className="hover:text-white transition-colors">Contact Support</Link></li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="text-white font-semibold mb-3 text-xs uppercase tracking-wider">Follow us</h4>
+              <ul className="space-y-2 text-white/50 text-xs">
+                <li><a href="https://x.com/2torConnect1" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">2torConnect on X</a></li>
+                <li><a href="https://www.facebook.com/profile.php?id=61596113167063" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">2torConnect on Facebook</a></li>
+                <li><a href="https://x.com/yusstyle13" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">Founder on X</a></li>
               </ul>
             </div>
           </div>

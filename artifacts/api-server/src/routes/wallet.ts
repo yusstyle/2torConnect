@@ -24,6 +24,33 @@ const router: IRouter = Router();
 
 const authMiddleware = requireAuth;
 
+async function notifyTutorOfPaidBooking(session: typeof sessionsTable.$inferSelect, amount: number) {
+  const [tutorUser] = await db.select().from(usersTable).where(eq(usersTable.id, session.tutorId)).limit(1);
+  const [studentUser] = await db.select().from(usersTable).where(eq(usersTable.id, session.studentId)).limit(1);
+  if (!tutorUser || !studentUser) return;
+  const [studentProfile] = await db.select().from(studentsTable).where(eq(studentsTable.userId, session.studentId)).limit(1);
+  sendSessionBookingNotificationToTutor({
+    tutorName: tutorUser.name,
+    tutorEmail: tutorUser.email,
+    studentName: studentUser.name,
+    studentEmail: studentUser.email,
+    studentUniversity: studentProfile?.university || null,
+    subject: session.subject,
+    scheduledAt: session.scheduledAt,
+    durationMinutes: session.durationMinutes,
+    amount: session.amount,
+    notes: session.notes,
+    sessionId: session.id,
+  }).catch(() => {});
+  void pushNotification(
+    tutorUser.id,
+    "session_request",
+    `Paid Booking: ${session.subject}`,
+    `${studentUser.name} paid NGN ${amount.toLocaleString()} upfront. Review and accept!`,
+    "/tutor/sessions"
+  );
+}
+
 export async function computeBalance(userId: number, role: string) {
   const txns = await db
     .select()
@@ -197,7 +224,18 @@ router.post("/verify", authMiddleware, async (req: any, res: any): Promise<any> 
       const sessionId = Number(meta.sessionId);
       const [session] = await db.select().from(sessionsTable).where(eq(sessionsTable.id, sessionId)).limit(1);
 
-      if (session && session.isPaid !== 1) {
+      if (!session) return res.status(404).json({ error: "The session for this payment was not found" });
+      if (req.authUser.role !== "admin" && req.authUser.id !== session.studentId) {
+        return res.status(403).json({ error: "Only the student who booked this session can verify payment" });
+      }
+      if (Number(session.amount ?? 0).toFixed(2) !== payment.amount.toFixed(2)) {
+        return res.status(400).json({ error: "The verified payment amount does not match the session price" });
+      }
+      if (session.isPaid === 1) {
+        return res.json({ success: true, alreadyVerified: true, sessionId, message: "Session payment was already processed" });
+      }
+
+      if (session.isPaid !== 1) {
         // For upfront booking payments: mark as paid but keep status "pending" so tutor can review & accept
         const isUpfrontBooking = meta.type === "session_booking_payment";
         await db
@@ -349,7 +387,35 @@ router.post(["/paystack-webhook", "/webhook"], async (req: any, res) => {
         .limit(1);
 
       if (!existing || existing.status !== "completed") {
-        if (meta.type === "session_payment" && meta.sessionId) {
+        if (meta.type === "session_booking_payment" && meta.sessionId) {
+          const sessionId = Number(meta.sessionId);
+          const [session] = await db.select().from(sessionsTable).where(eq(sessionsTable.id, sessionId)).limit(1);
+          const paymentMatchesBooking = session
+            && Number(meta.studentId) === session.studentId
+            && Number(meta.tutorId) === session.tutorId
+            && Number(session.amount ?? 0).toFixed(2) === amountInNgn.toFixed(2);
+
+          if (!paymentMatchesBooking) {
+            req.log?.error({ reference: ref, sessionId }, "Paystack booking webhook did not match the session price or participants");
+          } else {
+            await db.update(sessionsTable).set({ isPaid: 1 }).where(eq(sessionsTable.id, sessionId));
+            const studentPayment = {
+              userId: session.studentId,
+              sessionId,
+              type: "payment" as const,
+              amount: amountInNgn.toFixed(2),
+              description: `Upfront payment for session #${sessionId} — ${session.subject} (Paystack ${data.channel || "card"})`,
+              reference: ref,
+              status: "completed" as const,
+            };
+            if (existing) {
+              await db.update(transactionsTable).set(studentPayment).where(eq(transactionsTable.id, existing.id));
+            } else {
+              await db.insert(transactionsTable).values(studentPayment);
+            }
+            await notifyTutorOfPaidBooking(session, amountInNgn);
+          }
+        } else if (meta.type === "session_payment" && meta.sessionId) {
           const sessionId = Number(meta.sessionId);
           await db
             .update(sessionsTable)
@@ -357,7 +423,7 @@ router.post(["/paystack-webhook", "/webhook"], async (req: any, res) => {
             .where(eq(sessionsTable.id, sessionId));
         }
 
-        if (existing) {
+        if (meta.type !== "session_booking_payment" && existing) {
           await db
             .update(transactionsTable)
             .set({
@@ -366,7 +432,7 @@ router.post(["/paystack-webhook", "/webhook"], async (req: any, res) => {
               description: `Wallet top-up via Paystack (${data.channel || "card"})`,
             })
             .where(eq(transactionsTable.id, existing.id));
-        } else if (meta.userId) {
+        } else if (meta.type !== "session_booking_payment" && meta.userId) {
           await db.insert(transactionsTable).values({
             userId: Number(meta.userId),
             type: "bonus",

@@ -1,7 +1,8 @@
 import { Router, type IRouter } from "express";
 import { db } from "@workspace/db";
 import { usersTable, tutorsTable, studentsTable, otpCodesTable } from "@workspace/db";
-import { eq, and, lt } from "drizzle-orm";
+import { eq, and, gt, lt } from "drizzle-orm";
+import { randomInt } from "crypto";
 import bcrypt from "bcryptjs";
 import multer from "multer";
 import path from "path";
@@ -135,7 +136,7 @@ router.post("/register/student", authRateLimiter, async (req, res) => {
   } catch (err: any) {
     console.error(err);
     console.error("REGISTER ERROR:", err); req.log.error({ err }, "register student error");
-    res.status(400).json({ error: "Registration failed", message: err?.message, cause: err?.cause, stack: err?.stack });
+    res.status(400).json({ error: "Registration failed" });
   }
 });
 
@@ -199,7 +200,7 @@ router.post("/register/tutor", authRateLimiter, (req, res) => {
     } catch (err: any) {
     console.error(err);
       req.log.error({ err }, "register tutor error");
-      res.status(400).json({ error: "Registration failed", message: err?.message, cause: err?.cause, stack: err?.stack });
+      res.status(400).json({ error: "Registration failed" });
     }
   });
 });
@@ -240,7 +241,7 @@ router.post("/register/investor", authRateLimiter, (req, res) => {
     } catch (err: any) {
     console.error(err);
       req.log.error({ err }, "register investor error");
-      res.status(400).json({ error: "Registration failed", message: err?.message, cause: err?.cause, stack: err?.stack });
+      res.status(400).json({ error: "Registration failed" });
     }
   });
 });
@@ -329,12 +330,12 @@ router.post("/login", authRateLimiter, async (req, res) => {
   } catch (err: any) {
     console.error(err);
     req.log.error({ err }, "login error");
-    res.status(401).json({ error: "Login failed", message: err?.message, cause: err?.cause, stack: err?.stack });
+    res.status(500).json({ error: "Login failed. Please try again." });
   }
 });
 
 function generateOtp(): string {
-  return Math.floor(100000 + Math.random() * 900000).toString();
+  return randomInt(100000, 1000000).toString();
 }
 
 router.post("/send-otp", authRateLimiter, async (req, res) => {
@@ -444,8 +445,27 @@ router.post("/reset-password", authRateLimiter, async (req, res) => {
     if (!otpRecord) return res.status(400).json({ error: "Invalid reset code" });
     if (otpRecord.expiresAt < new Date()) return res.status(400).json({ error: "Reset code expired. Request a new one." });
     const passwordHash = await bcrypt.hash(password, 10);
-    await db.update(usersTable).set({ passwordHash }).where(eq(usersTable.email, email));
-    await db.update(otpCodesTable).set({ used: true }).where(eq(otpCodesTable.email, email));
+    const resetCompleted = await db.transaction(async (tx) => {
+      const [claimedCode] = await tx.update(otpCodesTable)
+        .set({ used: true })
+        .where(and(
+          eq(otpCodesTable.id, otpRecord.id),
+          eq(otpCodesTable.used, false),
+          gt(otpCodesTable.expiresAt, new Date())
+        ))
+        .returning({ id: otpCodesTable.id });
+      if (!claimedCode) return false;
+
+      const [updatedUser] = await tx.update(usersTable)
+        .set({ passwordHash })
+        .where(eq(usersTable.email, email))
+        .returning({ id: usersTable.id });
+      if (!updatedUser) throw new Error("Account no longer exists");
+
+      await tx.update(otpCodesTable).set({ used: true }).where(eq(otpCodesTable.email, email));
+      return true;
+    });
+    if (!resetCompleted) return res.status(400).json({ error: "Reset code is invalid, expired, or already used" });
     return res.json({ success: true, message: "Password reset successfully. You can now sign in." });
   } catch (err: any) {
     req.log.error({ err }, "reset password error");
