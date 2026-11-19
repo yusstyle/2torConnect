@@ -10,7 +10,6 @@ import {
 } from "../lib/email";
 import { pushNotification } from "./notifications";
 import { initializePaystackPayment } from "../lib/paystack";
-import { computeBalance } from "./wallet";
 
 const router: IRouter = Router();
 
@@ -75,84 +74,16 @@ router.post("/", requireAuth, async (req: any, res) => {
     const hourly = Number(tutorProfile.hourlyRate);
     const calculatedAmount = Math.round(hourly * (duration / 60));
 
-    // Option A: Pay upfront using Wallet Balance
-    if (body.payWithWallet) {
-      const { balance } = await computeBalance(studentId, "student");
-      if (balance < calculatedAmount) {
-        res.status(400).json({
-          error: "Insufficient wallet balance",
-          message: `Your wallet balance (₦${balance.toLocaleString()}) is less than the session fee (₦${calculatedAmount.toLocaleString()}). Please top up your wallet or pay via Card/Paystack.`,
-        });
-        return;
-      }
-
-      const [session] = await db.insert(sessionsTable).values({
-        tutorId: body.tutorId,
-        studentId,
-        subject: body.subject,
-        scheduledAt: new Date(body.scheduledAt),
-        durationMinutes: duration,
-        amount: String(calculatedAmount),
-        notes: body.notes ?? null,
-        status: "pending",
-        isPaid: 1,
-      }).returning();
-
-      // Deduct from student's wallet via completed payment transaction
-      await db.insert(transactionsTable).values({
-        userId: studentId,
-        sessionId: session.id,
-        type: "payment",
-        amount: String(calculatedAmount),
-        description: `Upfront payment for session #${session.id} — ${session.subject} (Wallet Balance)`,
-        status: "completed",
+    // Wallet balance is not accepted as a bypass for Paystack verification.
+    if ((body as any).payWithWallet) {
+      res.status(400).json({
+        error: "Wallet balance payments are disabled",
+        message: "Please pay through Paystack to book this session.",
       });
-
-      // Notify tutor of paid booking request awaiting acceptance
-      try {
-        const [tutorUser] = await db.select().from(usersTable).where(eq(usersTable.id, session.tutorId)).limit(1);
-        const [studentUser] = await db.select().from(usersTable).where(eq(usersTable.id, session.studentId)).limit(1);
-        const [studentProfile] = await db.select().from(studentsTable).where(eq(studentsTable.userId, session.studentId)).limit(1);
-
-        if (tutorUser && studentUser) {
-          sendSessionBookingNotificationToTutor({
-            tutorName: tutorUser.name,
-            tutorEmail: tutorUser.email,
-            studentName: studentUser.name,
-            studentEmail: studentUser.email,
-            studentUniversity: studentProfile?.university || null,
-            subject: session.subject,
-            scheduledAt: session.scheduledAt,
-            durationMinutes: session.durationMinutes,
-            amount: session.amount,
-            notes: session.notes,
-            sessionId: session.id,
-          }).catch(() => {});
-
-          pushNotification(
-            tutorUser.id,
-            "session_request",
-            `💰 Paid Booking: ${session.subject}`,
-            `${studentUser.name} paid ₦${calculatedAmount.toLocaleString()} upfront. Review and accept!`,
-            "/tutor/sessions"
-          ).catch(() => {});
-
-          pushNotification(
-            studentUser.id,
-            "session_request",
-            `Booking Sent & Paid: ${session.subject}`,
-            `₦${calculatedAmount.toLocaleString()} paid upfront from wallet. Waiting for ${tutorUser.name} to accept.`,
-            "/student/sessions"
-          ).catch(() => {});
-        }
-      } catch {}
-
-      const enriched = await enrichSession(session);
-      res.status(201).json({ ...enriched, paidWithWallet: true });
       return;
     }
 
-    // Option B: Booking created, student will proceed to Paystack checkout
+    // Booking is created unpaid; payment must be completed through Paystack.
     const [session] = await db.insert(sessionsTable).values({
       tutorId: body.tutorId,
       studentId,
@@ -377,20 +308,11 @@ router.post("/:id/pay", requireAuth, async (req: any, res) => {
     const amount = Number(session.amount ?? "0");
 
     if (amount > 0) {
-      const studentTxns = await db
-        .select()
-        .from(transactionsTable)
-        .where(and(eq(transactionsTable.userId, session.studentId), eq(transactionsTable.status, "completed")));
-      const funded = studentTxns.filter((t) => t.type === "bonus").reduce((s, t) => s + Number(t.amount), 0);
-      const spent = studentTxns.filter((t) => t.type === "payment").reduce((s, t) => s + Number(t.amount), 0);
-      const walletBalance = funded - spent;
-      if (walletBalance < amount) {
-        res.status(400).json({
-          error: "Insufficient wallet balance",
-          message: `Your wallet balance (₦${walletBalance.toLocaleString()}) is less than the session amount (₦${amount.toLocaleString()}). Please top up your wallet first.`,
-        });
-        return;
-      }
+      res.status(400).json({
+        error: "Direct wallet payment is disabled",
+        message: "Please complete the session payment through Paystack.",
+      });
+      return;
     }
 
     await db.update(sessionsTable)

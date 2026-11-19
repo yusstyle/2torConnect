@@ -134,7 +134,7 @@ export default function ReferralPage() {
         {/* Claim a referral code */}
         <div className="glass-panel rounded-2xl p-6">
           <h3 className="text-white font-bold mb-1">Have a referral code?</h3>
-          <p className="text-muted-foreground text-sm mb-4">Enter a friend's code to get your ₦200 welcome bonus</p>
+          <p className="text-muted-foreground text-sm mb-4">Enter a friend's code to connect referrals</p>
           <div className="flex gap-3">
             <input
               value={claimCode}

@@ -41,51 +41,11 @@ interface PayModalProps {
 }
 
 function PayModal({ sessionId, subject, amount, tutorName, onClose, onPaid }: PayModalProps) {
-  const [loadingWallet, setLoadingWallet] = useState(false);
   const [loadingPaystack, setLoadingPaystack] = useState(false);
-  const [walletBalance, setWalletBalance] = useState<number | null>(null);
   const { toast } = useToast();
   const { token } = useAuthStore();
 
   const numAmount = Number(amount ?? 0);
-
-  // Fetch current wallet balance
-  useEffect(() => {
-    if (!token) return;
-    fetch(`${getApiUrl()}/wallet/balance`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then((r) => r.json())
-      .then((d) => {
-        if (typeof d.balance === "number") setWalletBalance(d.balance);
-      })
-      .catch(() => {});
-  }, [token]);
-
-  // Option 1: Pay using Wallet Balance
-  const handlePayWallet = async () => {
-    setLoadingWallet(true);
-    try {
-      const res = await fetch(`${getApiUrl()}/sessions/${sessionId}/pay`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ currency: "NGN" }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.message || data.error || "Payment failed");
-      }
-      toast({
-        title: "Payment Successful! 🎉",
-        description: `₦${numAmount.toLocaleString()} paid. Tutor ${tutorName} has been notified and session is confirmed!`,
-      });
-      onPaid();
-    } catch (e: any) {
-      toast({ variant: "destructive", title: "Wallet Payment Failed", description: e.message });
-    } finally {
-      setLoadingWallet(false);
-    }
-  };
 
   // Option 2: Pay directly using Paystack (Visa, Mastercard, Verve, Transfer, USSD)
   const handlePayPaystack = async () => {
@@ -110,8 +70,6 @@ function PayModal({ sessionId, subject, amount, tutorName, onClose, onPaid }: Pa
       setLoadingPaystack(false);
     }
   };
-
-  const hasEnoughBalance = walletBalance !== null && walletBalance >= numAmount;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md">
@@ -182,39 +140,11 @@ function PayModal({ sessionId, subject, amount, tutorName, onClose, onPaid }: Pa
 
           <button
             onClick={handlePayPaystack}
-            disabled={loadingPaystack || loadingWallet}
+            disabled={loadingPaystack}
             className="w-full py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 text-black font-extrabold text-xs hover:opacity-90 transition-all flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20 active:scale-95 disabled:opacity-50"
           >
             {loadingPaystack ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4 fill-black" />}
             {loadingPaystack ? "Redirecting to Paystack…" : `Pay ₦${numAmount.toLocaleString()} with Paystack`}
-          </button>
-        </div>
-
-        {/* Option B: Pay with Wallet Balance */}
-        <div className="p-3.5 rounded-2xl bg-white/5 border border-white/10 space-y-2">
-          <div className="flex items-center justify-between text-xs">
-            <div className="flex items-center gap-1.5 text-white/80">
-              <Wallet className="w-3.5 h-3.5 text-accent" />
-              <span className="font-semibold">2torConnect Wallet</span>
-            </div>
-            <span className="font-bold text-white">
-              Balance: {walletBalance !== null ? `₦${walletBalance.toLocaleString()}` : "Loading..."}
-            </span>
-          </div>
-
-          <button
-            onClick={handlePayWallet}
-            disabled={loadingWallet || loadingPaystack || !hasEnoughBalance}
-            className={`w-full py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 ${
-              hasEnoughBalance
-                ? "bg-white/15 hover:bg-white/20 text-white border border-white/20"
-                : "bg-white/5 text-muted-foreground border border-white/5 cursor-not-allowed"
-            }`}
-          >
-            {loadingWallet ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle className="w-3.5 h-3.5" />}
-            {hasEnoughBalance
-              ? `Deduct ₦${numAmount.toLocaleString()} from Wallet`
-              : "Insufficient Wallet Balance"}
           </button>
         </div>
 

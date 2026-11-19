@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { useAuthStore } from "@/lib/auth";
-import { Search, Star, BookOpen, MessageSquare, Loader2, Filter, X, ChevronDown, CreditCard, Wallet, ShieldCheck, CheckCircle2 } from "lucide-react";
+import { Search, Star, BookOpen, MessageSquare, Loader2, Filter, X, ChevronDown, CreditCard, ShieldCheck, CheckCircle2 } from "lucide-react";
 import { VerifiedBadge } from "@/components/VerifiedBadge";
 import { TutorVoiceIntroPlayer } from "@/components/TutorVoiceIntro";
 import { useToast } from "@/hooks/use-toast";
@@ -441,31 +441,11 @@ function BookingModal({ tutor, onClose }: { tutor: Tutor; onClose: () => void })
   const [time, setTime] = useState("");
   const [durationMinutes, setDurationMinutes] = useState(60);
   const [notes, setNotes] = useState("");
-  const [paymentMethod, setPaymentMethod] = useState<"paystack" | "wallet">("paystack");
-  const [walletBalance, setWalletBalance] = useState<number | null>(null);
   const [booking, setBooking] = useState(false);
 
   const hourlyRate = Number(tutor.hourlyRate || 0);
   const totalAmount = Math.round(hourlyRate * (durationMinutes / 60));
 
-  useEffect(() => {
-    if (!token) return;
-    fetch(`${API}/wallet/balance`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then((r) => r.json())
-      .then((d) => {
-        if (typeof d.balance === "number") {
-          setWalletBalance(d.balance);
-          if (d.balance >= totalAmount && totalAmount > 0) {
-            setPaymentMethod("wallet");
-          }
-        }
-      })
-      .catch(() => {});
-  }, [token, totalAmount]);
-
-  const hasWalletFunds = walletBalance !== null && walletBalance >= totalAmount;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -480,34 +460,6 @@ function BookingModal({ tutor, onClose }: { tutor: Tutor; onClose: () => void })
       const headers = { "Content-Type": "application/json", Authorization: `Bearer ${token}` };
       const scheduledAt = new Date(`${date}T${time}`).toISOString();
 
-      // Path A: Pay with 2torConnect Wallet Balance
-      if (paymentMethod === "wallet") {
-        if (!hasWalletFunds) {
-          throw new Error(`Insufficient wallet balance. You have ₦${(walletBalance ?? 0).toLocaleString()} but need ₦${totalAmount.toLocaleString()}.`);
-        }
-        const created = await fetch(`${API}/sessions`, {
-          method: "POST",
-          headers,
-          body: JSON.stringify({
-            tutorId: tutor.userId,
-            subject,
-            scheduledAt,
-            durationMinutes,
-            notes,
-            payWithWallet: true,
-          }),
-        });
-        const data = await created.json();
-        if (!created.ok) throw new Error(data.message || data.error || "Could not book session.");
-
-        toast({
-          title: "Session Paid & Request Sent! 📬",
-          description: `₦${totalAmount.toLocaleString()} paid from your wallet. ${tutor.name} has been notified to review and accept!`,
-        });
-        onClose();
-        setLocation("/student/sessions");
-        return;
-      }
 
       // Path B: Pay directly with Card / Paystack
       const created = await fetch(`${API}/sessions`, {
@@ -625,12 +577,7 @@ function BookingModal({ tutor, onClose }: { tutor: Tutor; onClose: () => void })
                 {/* Paystack Card/Transfer */}
                 <button
                   type="button"
-                  onClick={() => setPaymentMethod("paystack")}
-                  className={`p-2.5 rounded-xl border text-left flex flex-col justify-between transition-all ${
-                    paymentMethod === "paystack"
-                      ? "bg-white/10 border-accent text-white ring-1 ring-accent"
-                      : "bg-black/30 border-white/10 text-white/70 hover:bg-white/5"
-                  }`}
+                  className="p-2.5 rounded-xl border text-left flex flex-col justify-between transition-all bg-white/10 border-accent text-white ring-1 ring-accent"
                 >
                   <div className="flex items-center gap-1.5">
                     <CreditCard className="w-3.5 h-3.5 text-emerald-400" />
@@ -639,24 +586,6 @@ function BookingModal({ tutor, onClose }: { tutor: Tutor; onClose: () => void })
                   <span className="text-[10px] text-muted-foreground mt-1">Visa, Mastercard, Verve</span>
                 </button>
 
-                {/* Wallet Balance */}
-                <button
-                  type="button"
-                  onClick={() => setPaymentMethod("wallet")}
-                  className={`p-2.5 rounded-xl border text-left flex flex-col justify-between transition-all ${
-                    paymentMethod === "wallet"
-                      ? "bg-white/10 border-accent text-white ring-1 ring-accent"
-                      : "bg-black/30 border-white/10 text-white/70 hover:bg-white/5"
-                  }`}
-                >
-                  <div className="flex items-center gap-1.5">
-                    <Wallet className="w-3.5 h-3.5 text-accent" />
-                    <span className="text-xs font-bold text-white">My Wallet</span>
-                  </div>
-                  <span className={`text-[10px] mt-1 ${hasWalletFunds ? "text-emerald-400 font-semibold" : "text-amber-400"}`}>
-                    Bal: ₦{(walletBalance ?? 0).toLocaleString()}
-                  </span>
-                </button>
               </div>
             </div>
 
@@ -683,7 +612,7 @@ function BookingModal({ tutor, onClose }: { tutor: Tutor; onClose: () => void })
               ) : (
                 <>
                   <CheckCircle2 className="w-4 h-4" />
-                  {paymentMethod === "wallet" ? `Pay ₦${totalAmount.toLocaleString()} & Book` : `Pay ₦${totalAmount.toLocaleString()} via Paystack`}
+                  Pay ₦{totalAmount.toLocaleString()} via Paystack
                 </>
               )}
             </button>

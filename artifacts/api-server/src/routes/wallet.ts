@@ -67,7 +67,13 @@ export async function computeBalance(userId: number, role: string) {
     return { earned, withdrawn, balance: Math.max(0, earned - withdrawn) };
   } else {
     const funded = txns
-      .filter((t) => t.type === "bonus" || t.type === "refund")
+      .filter((t) =>
+        t.type === "refund" ||
+        (t.type === "bonus" && (
+          t.description?.includes("Wallet top-up via Paystack") ||
+          t.reference?.startsWith("2tor-fund-")
+        ))
+      )
       .reduce((s, t) => s + Number(t.amount), 0);
     const spent = txns
       .filter((t) => t.type === "payment")

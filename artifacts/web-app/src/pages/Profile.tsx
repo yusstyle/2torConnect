@@ -404,8 +404,8 @@ export default function ProfilePage() {
                 <Gift className="w-4 h-4" />
               </div>
               <div>
-                <span className="text-sm font-semibold text-white">Invite Friends & Earn ₦500</span>
-                <p className="text-[11px] text-muted-foreground">Get instant cash bonus for every scholar you bring</p>
+                <span className="text-sm font-semibold text-white">Invite Friends</span>
+                <p className="text-[11px] text-muted-foreground">Share 2torConnect with another scholar</p>
               </div>
             </div>
             <span className="px-3 py-1 rounded-xl bg-rose-500 hover:bg-rose-400 text-white font-extrabold text-[11px] transition-colors">
