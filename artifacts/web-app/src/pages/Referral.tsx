@@ -66,9 +66,9 @@ export default function ReferralPage() {
             <div className="w-16 h-16 mx-auto rounded-2xl bg-gradient-to-br from-accent/30 to-primary/30 border border-white/10 flex items-center justify-center mb-4">
               <Gift className="w-8 h-8 text-accent" />
             </div>
-            <h2 className="text-2xl font-bold text-white mb-2">Refer Friends, Earn Cash</h2>
+            <h2 className="text-2xl font-bold text-white mb-2">Refer Friends</h2>
             <p className="text-muted-foreground max-w-sm mx-auto">
-              Invite friends to 2torConnect. You earn <strong className="text-white">₦500</strong> for every successful referral, and your friend gets a <strong className="text-white">₦200</strong> welcome bonus.
+              Invite friends to 2torConnect and help them discover tutors and learning resources.
             </p>
           </div>
         </motion.div>
@@ -78,7 +78,7 @@ export default function ReferralPage() {
           {[
             { step: "1", title: "Share your link", desc: "Copy your unique referral link below" },
             { step: "2", title: "Friend signs up", desc: "They register and enter your code" },
-            { step: "3", title: "Both earn!", desc: "You get ₦500, they get ₦200" },
+            { step: "3", title: "Start learning", desc: "Discover tutors and learning resources" },
           ].map(({ step, title, desc }) => (
             <div key={step} className="glass-panel rounded-2xl p-4 text-center">
               <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center text-white font-bold text-sm mx-auto mb-2">{step}</div>
@@ -126,17 +126,6 @@ export default function ReferralPage() {
                   {copied ? <CheckCircle2 className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
                   Copy
                 </button>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4 pt-2">
-              <div className="bg-green-500/10 border border-green-500/20 rounded-xl p-4 text-center">
-                <p className="text-green-400 font-bold text-2xl">₦500</p>
-                <p className="text-muted-foreground text-xs mt-1">Per successful referral</p>
-              </div>
-              <div className="bg-accent/10 border border-accent/20 rounded-xl p-4 text-center">
-                <p className="text-accent font-bold text-2xl">{data.referralCount}</p>
-                <p className="text-muted-foreground text-xs mt-1">Total referrals made</p>
               </div>
             </div>
           </div>

@@ -360,7 +360,7 @@ export const ListSessionsResponse = zod.object({
  */
 export const CreateSessionBody = zod.object({
   tutorId: zod.number(),
-  studentId: zod.number(),
+  studentId: zod.number().optional(),
   subject: zod.string(),
   scheduledAt: zod.coerce.date(),
   durationMinutes: zod.number().optional(),

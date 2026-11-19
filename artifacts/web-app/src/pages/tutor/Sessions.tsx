@@ -175,8 +175,8 @@ export default function TutorSessionsPage() {
                       {session.status}
                     </span>
                     {isPaid && (
-                      <span className="flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold bg-green-500/20 text-green-400">
-                        <BadgeCheck className="w-3.5 h-3.5" /> Payment Received
+                      <span className="flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                        <BadgeCheck className="w-3.5 h-3.5" /> PAID UPFRONT
                       </span>
                     )}
                     <span className="text-white font-semibold">{session.subject}</span>
@@ -210,11 +210,18 @@ export default function TutorSessionsPage() {
                   {session.status === "pending" && (
                     <>
                       <button onClick={() => setConfirmingId(session.id)}
-                        className="flex items-center gap-1 px-3 py-2 rounded-xl bg-green-500/10 text-green-400 hover:bg-green-500/20 transition-colors text-sm font-medium">
+                        className="flex items-center gap-1 px-3 py-2 rounded-xl bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 transition-colors text-sm font-semibold border border-emerald-500/20">
                         <CheckCircle className="w-4 h-4" /> Confirm
                       </button>
-                      <button onClick={() => updateMutation.mutate({ id: session.id, data: { status: "cancelled" } })} disabled={updateMutation.isPending}
-                        className="flex items-center gap-1 px-3 py-2 rounded-xl bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors text-sm font-medium disabled:opacity-50">
+                      <button onClick={() => {
+                        const msg = isPaid
+                          ? "Decline this booking? The student paid upfront, so they will be automatically refunded 100% to their wallet."
+                          : "Decline this booking request?";
+                        if (window.confirm(msg)) {
+                          updateMutation.mutate({ id: session.id, data: { status: "cancelled" } });
+                        }
+                      }} disabled={updateMutation.isPending}
+                        className="flex items-center gap-1 px-3 py-2 rounded-xl bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors text-sm font-medium disabled:opacity-50 border border-red-500/20">
                         <XCircle className="w-4 h-4" /> Decline
                       </button>
                     </>

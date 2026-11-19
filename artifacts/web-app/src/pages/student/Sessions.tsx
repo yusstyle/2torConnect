@@ -332,9 +332,14 @@ export default function StudentSessionsPage() {
                     >
                       {session.status}
                     </span>
-                    {isPaid && (
+                    {isPaid ? (
                       <span className="flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-                        <BadgeCheck className="w-3.5 h-3.5" /> Paid
+                        <BadgeCheck className="w-3.5 h-3.5" /> Paid Upfront
+                      </span>
+                    ) : null}
+                    {session.status === "pending" && isPaid && (
+                      <span className="text-[11px] font-medium text-amber-300 bg-amber-500/10 border border-amber-500/20 px-2.5 py-0.5 rounded-full flex items-center gap-1">
+                        <Clock className="w-3 h-3" /> Awaiting Tutor Approval
                       </span>
                     )}
                     <span className="text-white font-bold text-base tracking-tight">{session.subject}</span>
@@ -399,7 +404,14 @@ export default function StudentSessionsPage() {
 
                   {session.status === "pending" && (
                     <button
-                      onClick={() => cancelMutation.mutate({ id: session.id, data: { status: "cancelled" } })}
+                      onClick={() => {
+                        const msg = isPaid
+                          ? `Cancel this booking request? Your payment of ₦${Number(session.amount).toLocaleString()} will be automatically refunded to your wallet.`
+                          : "Cancel this booking request?";
+                        if (window.confirm(msg)) {
+                          cancelMutation.mutate({ id: session.id, data: { status: "cancelled" } });
+                        }
+                      }}
                       className="p-2.5 rounded-xl text-red-400 border border-red-500/20 hover:bg-red-500/10 transition-colors text-xs font-semibold"
                       title="Cancel session"
                     >

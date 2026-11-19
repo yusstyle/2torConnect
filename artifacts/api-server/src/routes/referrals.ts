@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
-import { usersTable, referralsTable, transactionsTable } from "@workspace/db";
+import { usersTable, referralsTable } from "@workspace/db";
 import { eq, and } from "drizzle-orm";
 import { pushNotification } from "./notifications";
 
@@ -56,24 +56,14 @@ router.post("/claim", async (req, res) => {
 
     await db.insert(referralsTable).values({ referrerId: referrer.id, referredId: newUserId });
 
-    await db.insert(transactionsTable).values({
-      userId: referrer.id,
-      type: "bonus",
-      amount: "500",
-      description: `Referral bonus — new user joined with your code`,
-      status: "completed",
-    });
-
-    await db.insert(transactionsTable).values({
-      userId: newUserId,
-      type: "bonus",
-      amount: "200",
-      description: `Welcome bonus — joined via referral code ${code}`,
-      status: "completed",
-    });
-
-    await pushNotification(referrer.id, "referral", "Referral Bonus Credited!", "Someone joined using your referral code. ₦500 has been added to your wallet.", "/student/wallet");
-    return res.json({ success: true, message: "Referral applied! ₦200 welcome bonus added to your wallet." });
+    await pushNotification(
+      referrer.id,
+      "referral",
+      "Referral Connected",
+      "Someone joined using your referral code.",
+      "/student/wallet"
+    );
+    return res.json({ success: true, message: "Referral code applied successfully!" });
   } catch (err) {
     return res.status(500).json({ error: "Failed to claim referral" });
   }

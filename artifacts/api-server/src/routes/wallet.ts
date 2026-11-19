@@ -544,56 +544,19 @@ router.post("/withdraw", authMiddleware, async (req: any, res) => {
 });
 
 // ---------------------------------------------------------------------------
-// 9. Instant Direct Bank Transfer Confirmation (Supplementary)
+// 9. Direct manual bank transfers are disabled. Wallet credit must come only
+// from a verified Paystack payment to prevent unverified testing balances.
 // ---------------------------------------------------------------------------
-router.get("/virtual-account", authMiddleware, async (req: any, res): Promise<any> => {
-  try {
-    const userId = Number(req.authUser.id);
-    const userName = req.authUser.name || req.authUser.email?.split("@")[0] || "Student";
-    const paddedId = String(userId).padStart(7, "0");
-    const accountNumber = `990${paddedId}`;
-
-    return res.json({
-      accountNumber,
-      accountName: `2torConnect / ${userName}`,
-      bankName: "Paystack Direct Transfer",
-      supportedApps: ["OPay", "PalmPay", "Kuda", "GTBank", "Zenith Bank", "Access Bank", "UBA", "First Bank"],
-      minAmount: 100,
-      instructions: "Transfer any amount from your bank app, USSD, or card. Your wallet balance updates immediately.",
-    });
-  } catch (err: any) {
-    return res.status(500).json({ error: "Failed to generate virtual account" });
-  }
+router.post("/direct-transfer-confirm", authMiddleware, async (_req: any, res) => {
+  return res.status(410).json({
+    error: "Manual wallet transfers are disabled. Please fund your wallet through Paystack.",
+  });
 });
 
-router.post("/direct-transfer-confirm", authMiddleware, async (req: any, res): Promise<any> => {
-  try {
-    const { amount, senderName, bankName } = req.body;
-    const parsed = Number(amount);
-    if (!amount || parsed < 100 || isNaN(parsed)) {
-      return res.status(400).json({ error: "Minimum transfer amount is ₦100" });
-    }
-
-    const ref = `TRF-${req.authUser.id}-${Date.now()}`;
-    await db.insert(transactionsTable).values({
-      userId: req.authUser.id,
-      type: "bonus",
-      amount: parsed.toFixed(2),
-      description: `Bank Transfer Top-up (${bankName || "Bank Transfer"} by ${senderName || "Student"})`,
-      reference: ref,
-      status: "completed",
-    });
-
-    const balanceInfo = await computeBalance(req.authUser.id, req.authUser.role);
-    return res.json({
-      success: true,
-      message: `₦${parsed.toLocaleString()} credited successfully to your wallet!`,
-      reference: ref,
-      ...balanceInfo,
-    });
-  } catch (err: any) {
-    return res.status(500).json({ error: err?.message || "Failed to confirm bank transfer" });
-  }
+router.get("/virtual-account", authMiddleware, async (_req: any, res): Promise<any> => {
+  return res.status(410).json({
+    error: "Virtual account funding is disabled. Please fund your wallet through Paystack.",
+  });
 });
 
 export default router;

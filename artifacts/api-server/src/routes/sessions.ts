@@ -10,6 +10,7 @@ import {
 } from "../lib/email";
 import { pushNotification } from "./notifications";
 import { initializePaystackPayment } from "../lib/paystack";
+import { computeBalance } from "./wallet";
 
 const router: IRouter = Router();
 
@@ -70,15 +71,98 @@ router.post("/", requireAuth, async (req: any, res) => {
       return;
     }
 
+    const duration = body.durationMinutes ?? 60;
+    const hourly = Number(tutorProfile.hourlyRate);
+    const calculatedAmount = Math.round(hourly * (duration / 60));
+
+    // Option A: Pay upfront using Wallet Balance
+    if (body.payWithWallet) {
+      const { balance } = await computeBalance(studentId, "student");
+      if (balance < calculatedAmount) {
+        res.status(400).json({
+          error: "Insufficient wallet balance",
+          message: `Your wallet balance (₦${balance.toLocaleString()}) is less than the session fee (₦${calculatedAmount.toLocaleString()}). Please top up your wallet or pay via Card/Paystack.`,
+        });
+        return;
+      }
+
+      const [session] = await db.insert(sessionsTable).values({
+        tutorId: body.tutorId,
+        studentId,
+        subject: body.subject,
+        scheduledAt: new Date(body.scheduledAt),
+        durationMinutes: duration,
+        amount: String(calculatedAmount),
+        notes: body.notes ?? null,
+        status: "pending",
+        isPaid: 1,
+      }).returning();
+
+      // Deduct from student's wallet via completed payment transaction
+      await db.insert(transactionsTable).values({
+        userId: studentId,
+        sessionId: session.id,
+        type: "payment",
+        amount: String(calculatedAmount),
+        description: `Upfront payment for session #${session.id} — ${session.subject} (Wallet Balance)`,
+        status: "completed",
+      });
+
+      // Notify tutor of paid booking request awaiting acceptance
+      try {
+        const [tutorUser] = await db.select().from(usersTable).where(eq(usersTable.id, session.tutorId)).limit(1);
+        const [studentUser] = await db.select().from(usersTable).where(eq(usersTable.id, session.studentId)).limit(1);
+        const [studentProfile] = await db.select().from(studentsTable).where(eq(studentsTable.userId, session.studentId)).limit(1);
+
+        if (tutorUser && studentUser) {
+          sendSessionBookingNotificationToTutor({
+            tutorName: tutorUser.name,
+            tutorEmail: tutorUser.email,
+            studentName: studentUser.name,
+            studentEmail: studentUser.email,
+            studentUniversity: studentProfile?.university || null,
+            subject: session.subject,
+            scheduledAt: session.scheduledAt,
+            durationMinutes: session.durationMinutes,
+            amount: session.amount,
+            notes: session.notes,
+            sessionId: session.id,
+          }).catch(() => {});
+
+          pushNotification(
+            tutorUser.id,
+            "session_request",
+            `💰 Paid Booking: ${session.subject}`,
+            `${studentUser.name} paid ₦${calculatedAmount.toLocaleString()} upfront. Review and accept!`,
+            "/tutor/sessions"
+          ).catch(() => {});
+
+          pushNotification(
+            studentUser.id,
+            "session_request",
+            `Booking Sent & Paid: ${session.subject}`,
+            `₦${calculatedAmount.toLocaleString()} paid upfront from wallet. Waiting for ${tutorUser.name} to accept.`,
+            "/student/sessions"
+          ).catch(() => {});
+        }
+      } catch {}
+
+      const enriched = await enrichSession(session);
+      res.status(201).json({ ...enriched, paidWithWallet: true });
+      return;
+    }
+
+    // Option B: Booking created, student will proceed to Paystack checkout
     const [session] = await db.insert(sessionsTable).values({
       tutorId: body.tutorId,
       studentId,
       subject: body.subject,
       scheduledAt: new Date(body.scheduledAt),
-      durationMinutes: body.durationMinutes ?? 60,
-      amount: String(tutorProfile.hourlyRate),
+      durationMinutes: duration,
+      amount: String(calculatedAmount),
       notes: body.notes ?? null,
       status: "pending",
+      isPaid: 0,
     }).returning();
     const enriched = await enrichSession(session);
 
@@ -193,6 +277,47 @@ router.patch("/:id", requireAuth, async (req: any, res) => {
           status: "completed",
         });
       }
+    }
+
+    // Auto-refund student wallet when tutor declines a paid booking request
+    if (body.status === "cancelled" && session.isPaid === 1 && session.status === "pending") {
+      const sessionAmount = Number(session.amount ?? "0");
+      if (sessionAmount > 0) {
+        // Check that no refund was already issued for this session
+        const [existingRefund] = await db.select({ id: transactionsTable.id }).from(transactionsTable).where(and(
+          eq(transactionsTable.userId, session.studentId),
+          eq(transactionsTable.sessionId, session.id),
+          eq(transactionsTable.type, "refund"),
+          eq(transactionsTable.status, "completed")
+        )).limit(1);
+        if (!existingRefund) {
+          await db.insert(transactionsTable).values({
+            userId: session.studentId,
+            sessionId: session.id,
+            type: "refund",
+            amount: sessionAmount.toFixed(2),
+            description: `Refund for declined session #${session.id} — ${session.subject}`,
+            status: "completed",
+          });
+        }
+      }
+      try {
+        const [studentUser] = await db.select().from(usersTable).where(eq(usersTable.id, session.studentId)).limit(1);
+        const [tutorUser] = await db.select().from(usersTable).where(eq(usersTable.id, session.tutorId)).limit(1);
+        if (studentUser) {
+          const isTutorAction = req.user?.id === session.tutorId;
+          const msg = isTutorAction
+            ? `${tutorUser?.name ?? "The tutor"} declined your session for ${session.subject}. ₦${sessionAmount.toLocaleString()} has been refunded to your wallet.`
+            : `You cancelled your session request for ${session.subject}. ₦${sessionAmount.toLocaleString()} has been refunded to your wallet.`;
+          pushNotification(
+            studentUser.id,
+            "session_cancelled",
+            `Booking Cancelled & Refunded`,
+            msg,
+            "/student/sessions"
+          ).catch(() => {});
+        }
+      } catch {}
     }
 
     // If session status was updated to confirmed, notify the student via email & in-app

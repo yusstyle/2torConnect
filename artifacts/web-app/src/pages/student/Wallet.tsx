@@ -10,39 +10,21 @@ import {
   X,
   Loader2,
   CreditCard,
-  CheckCircle,
   AlertCircle,
-  Building2,
-  Copy,
-  Check,
   ShieldCheck,
   Zap,
+  CheckCircle,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { getApiUrl } from "@/lib/api";
 
 function FundModal({ onClose, onFundSuccess }: { onClose: () => void; onFundSuccess?: () => void }) {
-  const [tab, setTab] = useState<"card" | "transfer">("card");
   const [amount, setAmount] = useState("5000");
-  const [transferAmount, setTransferAmount] = useState("2000");
-  const [senderName, setSenderName] = useState("");
   const [loading, setLoading] = useState(false);
-  const [copied, setCopied] = useState(false);
   const { toast } = useToast();
-  const { user, token } = useAuthStore();
+  const { token } = useAuthStore();
 
   const PRESETS = [1000, 2000, 5000, 10000, 20000, 50000];
-
-  const studentId = user?.id || 1;
-  const virtualAccountNo = `990${String(studentId).padStart(7, "0")}`;
-  const virtualAccountName = `2torConnect / ${user?.name || "Student"}`;
-
-  const copyAccount = () => {
-    navigator.clipboard.writeText(virtualAccountNo);
-    setCopied(true);
-    toast({ title: "Account Number Copied!", description: `${virtualAccountNo} copied to clipboard.` });
-    setTimeout(() => setCopied(false), 2500);
-  };
 
   const handlePaystackFund = async () => {
     const parsed = Number(amount);
@@ -76,31 +58,6 @@ function FundModal({ onClose, onFundSuccess }: { onClose: () => void; onFundSucc
     }
   };
 
-  const handleConfirmTransfer = async () => {
-    const parsed = Number(transferAmount);
-    if (!parsed || parsed < 100) {
-      toast({ variant: "destructive", title: "Minimum transfer is ₦100" });
-      return;
-    }
-    setLoading(true);
-    try {
-      const res = await fetch(`${getApiUrl()}/wallet/direct-transfer-confirm`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ amount: parsed, senderName: senderName || user?.name || "Student", bankName: "Bank Transfer / OPay" }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed to confirm transfer");
-      toast({ title: "Payment Confirmed! 🚀", description: data.message });
-      if (onFundSuccess) onFundSuccess();
-      onClose();
-    } catch (e: any) {
-      toast({ variant: "destructive", title: "Confirmation error", description: e.message });
-    } finally {
-      setLoading(false);
-    }
-  };
-
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md">
       <div className="w-full max-w-md glass-panel rounded-3xl p-6 space-y-5 border border-white/10 max-h-[90vh] overflow-y-auto">
@@ -119,179 +76,93 @@ function FundModal({ onClose, onFundSuccess }: { onClose: () => void; onFundSucc
           </button>
         </div>
 
-        {/* Tab switch */}
-        <div className="grid grid-cols-2 gap-2 p-1 rounded-2xl bg-white/5 border border-white/10 text-xs font-semibold">
-          <button
-            onClick={() => setTab("card")}
-            className={`py-2.5 rounded-xl transition-all flex items-center justify-center gap-1.5 ${
-              tab === "card"
-                ? "bg-gradient-to-r from-emerald-500/20 to-teal-500/20 text-emerald-400 border border-emerald-500/40 shadow-sm"
-                : "text-muted-foreground hover:text-white"
-            }`}
-          >
-            <CreditCard className="w-3.5 h-3.5" /> Card / Paystack
-          </button>
-          <button
-            onClick={() => setTab("transfer")}
-            className={`py-2.5 rounded-xl transition-all flex items-center justify-center gap-1.5 ${
-              tab === "transfer"
-                ? "bg-gradient-to-r from-emerald-500/20 to-teal-500/20 text-emerald-400 border border-emerald-500/40 shadow-sm"
-                : "text-muted-foreground hover:text-white"
-            }`}
-          >
-            <Building2 className="w-3.5 h-3.5" /> Bank Transfer
-          </button>
+        {/* Accepted payment methods badge bar */}
+        <div className="p-3 rounded-2xl bg-white/5 border border-white/10 space-y-2">
+          <span className="text-[11px] font-semibold text-white/70 block">Accepted Payment Methods:</span>
+          <div className="flex flex-wrap gap-1.5">
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-blue-600/30 text-blue-300 border border-blue-500/40">
+              VISA
+            </span>
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-red-600/30 text-red-300 border border-red-500/40">
+              Mastercard
+            </span>
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-600/30 text-emerald-300 border border-emerald-500/40">
+              Verve
+            </span>
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-cyan-600/30 text-cyan-300 border border-cyan-500/40">
+              Bank Transfer
+            </span>
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-amber-600/30 text-amber-300 border border-amber-500/40">
+              USSD
+            </span>
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-purple-600/30 text-purple-300 border border-purple-500/40">
+              OPay & Kuda
+            </span>
+          </div>
         </div>
 
-        {tab === "card" ? (
-          <div className="space-y-4">
-            {/* Accepted payment methods badge bar */}
-            <div className="p-3 rounded-2xl bg-white/5 border border-white/10 space-y-2">
-              <span className="text-[11px] font-semibold text-white/70 block">Accepted Payment Methods:</span>
-              <div className="flex flex-wrap gap-1.5">
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-blue-600/30 text-blue-300 border border-blue-500/40">
-                  VISA
-                </span>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-red-600/30 text-red-300 border border-red-500/40">
-                  Mastercard
-                </span>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-600/30 text-emerald-300 border border-emerald-500/40">
-                  Verve
-                </span>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-cyan-600/30 text-cyan-300 border border-cyan-500/40">
-                  Bank Transfer
-                </span>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-amber-600/30 text-amber-300 border border-amber-500/40">
-                  USSD
-                </span>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-purple-600/30 text-purple-300 border border-purple-500/40">
-                  OPay & Kuda
-                </span>
-              </div>
-            </div>
-
-            {/* Quick Presets */}
-            <div>
-              <label className="text-xs text-muted-foreground mb-1.5 block">Select Amount</label>
-              <div className="grid grid-cols-3 gap-2">
-                {PRESETS.map((p) => (
-                  <button
-                    key={p}
-                    onClick={() => setAmount(String(p))}
-                    className={`py-2 rounded-xl text-xs font-bold transition-all border ${
-                      amount === String(p)
-                        ? "bg-emerald-500/20 border-emerald-500 text-emerald-400 shadow-sm"
-                        : "bg-white/5 border-white/10 text-muted-foreground hover:bg-white/10 hover:text-white"
-                    }`}
-                  >
-                    ₦{p.toLocaleString()}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Custom Amount */}
-            <div>
-              <label className="text-xs text-muted-foreground mb-1.5 block">Or Enter Custom Amount (₦)</label>
-              <div className="relative">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-white/50 font-bold text-lg">₦</span>
-                <input
-                  type="number"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                  placeholder="e.g. 15000"
-                  className="w-full pl-9 pr-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder:text-muted-foreground focus:outline-none focus:border-emerald-500 text-lg font-bold"
-                />
-              </div>
-            </div>
-
-            {/* Security note */}
-            <div className="bg-emerald-950/30 border border-emerald-500/30 rounded-2xl p-3 text-xs text-emerald-300/90 flex items-start gap-2.5">
-              <ShieldCheck className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
-              <div>
-                <p className="font-bold text-emerald-300">Secured by Paystack</p>
-                <p className="text-[11px] text-emerald-400/80 leading-relaxed">
-                  256-bit bank grade encryption. Supports all Nigerian & international Visa and Mastercard debit/credit cards.
-                </p>
-              </div>
-            </div>
-
-            <div className="flex gap-3 pt-1">
+        {/* Quick Presets */}
+        <div>
+          <label className="text-xs text-muted-foreground mb-1.5 block">Select Amount</label>
+          <div className="grid grid-cols-3 gap-2">
+            {PRESETS.map((p) => (
               <button
-                onClick={onClose}
-                className="flex-1 px-4 py-2.5 rounded-xl bg-white/5 text-white hover:bg-white/10 transition-colors text-xs font-semibold"
+                key={p}
+                onClick={() => setAmount(String(p))}
+                className={`py-2 rounded-xl text-xs font-bold transition-all border ${
+                  amount === String(p)
+                    ? "bg-emerald-500/20 border-emerald-500 text-emerald-400 shadow-sm"
+                    : "bg-white/5 border-white/10 text-muted-foreground hover:bg-white/10 hover:text-white"
+                }`}
               >
-                Cancel
+                ₦{p.toLocaleString()}
               </button>
-              <button
-                onClick={handlePaystackFund}
-                disabled={loading || !amount || Number(amount) < 100}
-                className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 text-black font-extrabold text-xs hover:opacity-90 transition-all disabled:opacity-50 shadow-lg shadow-emerald-500/20 active:scale-95"
-              >
-                {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4 fill-black" />}
-                {loading ? "Connecting Paystack…" : `Pay ₦${Number(amount || 0).toLocaleString()} with Paystack`}
-              </button>
-            </div>
+            ))}
           </div>
-        ) : (
-          <div className="space-y-4">
-            {/* Virtual Account Card */}
-            <div className="p-4 rounded-2xl bg-gradient-to-br from-emerald-950/40 via-background to-black border border-emerald-500/30 space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-400">
-                  Dedicated Direct Transfer
-                </span>
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                  Instant Credit
-                </span>
-              </div>
+        </div>
 
-              <div className="space-y-1">
-                <p className="text-xs text-muted-foreground">Bank Name</p>
-                <p className="text-sm font-bold text-white">Paystack Direct / Bank Transfer</p>
-              </div>
-
-              <div className="flex items-center justify-between p-3 rounded-xl bg-black/50 border border-white/10">
-                <div>
-                  <p className="text-[10px] text-muted-foreground uppercase font-mono">Student Account Number</p>
-                  <p className="text-xl font-extrabold text-accent font-mono tracking-widest">{virtualAccountNo}</p>
-                </div>
-                <button
-                  onClick={copyAccount}
-                  className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-accent/20 hover:bg-accent/30 text-accent text-xs font-bold transition-all border border-accent/30"
-                >
-                  {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-                  {copied ? "Copied" : "Copy"}
-                </button>
-              </div>
-
-              <div className="space-y-1">
-                <p className="text-xs text-muted-foreground">Account Name</p>
-                <p className="text-xs font-semibold text-white/90">{virtualAccountName}</p>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-xs text-muted-foreground block">Amount Transferred (₦)</label>
-              <input
-                type="number"
-                value={transferAmount}
-                onChange={(e) => setTransferAmount(e.target.value)}
-                placeholder="e.g. 5000"
-                className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white font-bold text-base focus:outline-none focus:border-accent"
-              />
-            </div>
-
-            <button
-              onClick={handleConfirmTransfer}
-              disabled={loading || !transferAmount}
-              className="w-full py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 text-black font-bold text-xs hover:opacity-90 transition-all flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20 disabled:opacity-50"
-            >
-              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
-              {loading ? "Verifying Transfer..." : "I Have Paid / Confirm Transfer"}
-            </button>
+        {/* Custom Amount */}
+        <div>
+          <label className="text-xs text-muted-foreground mb-1.5 block">Or Enter Custom Amount (₦)</label>
+          <div className="relative">
+            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-white/50 font-bold text-lg">₦</span>
+            <input
+              type="number"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              placeholder="e.g. 15000"
+              className="w-full pl-9 pr-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder:text-muted-foreground focus:outline-none focus:border-emerald-500 text-lg font-bold"
+            />
           </div>
-        )}
+        </div>
+
+        {/* Security note */}
+        <div className="bg-emerald-950/30 border border-emerald-500/30 rounded-2xl p-3 text-xs text-emerald-300/90 flex items-start gap-2.5">
+          <ShieldCheck className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
+          <div>
+            <p className="font-bold text-emerald-300">Secured by Paystack</p>
+            <p className="text-[11px] text-emerald-400/80 leading-relaxed">
+              256-bit bank grade encryption. Supports all Nigerian & international Visa and Mastercard debit/credit cards.
+            </p>
+          </div>
+        </div>
+
+        <div className="flex gap-3 pt-1">
+          <button
+            onClick={onClose}
+            className="flex-1 px-4 py-2.5 rounded-xl bg-white/5 text-white hover:bg-white/10 transition-colors text-xs font-semibold"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handlePaystackFund}
+            disabled={loading || !amount || Number(amount) < 100}
+            className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 text-black font-extrabold text-xs hover:opacity-90 transition-all disabled:opacity-50 shadow-lg shadow-emerald-500/20 active:scale-95"
+          >
+            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4 fill-black" />}
+            {loading ? "Connecting Paystack…" : `Pay ₦${Number(amount || 0).toLocaleString()} with Paystack`}
+          </button>
+        </div>
       </div>
     </div>
   );

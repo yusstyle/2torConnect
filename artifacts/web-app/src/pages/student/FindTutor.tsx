@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { useAuthStore } from "@/lib/auth";
-import { Search, Star, BookOpen, MessageSquare, Loader2, Filter, X, ChevronDown } from "lucide-react";
+import { Search, Star, BookOpen, MessageSquare, Loader2, Filter, X, ChevronDown, CreditCard, Wallet, ShieldCheck, CheckCircle2 } from "lucide-react";
 import { VerifiedBadge } from "@/components/VerifiedBadge";
 import { TutorVoiceIntroPlayer } from "@/components/TutorVoiceIntro";
 import { useToast } from "@/hooks/use-toast";
@@ -435,25 +435,99 @@ function ReviewModal({ tutorId, onClose }: { tutorId: number; onClose: () => voi
 function BookingModal({ tutor, onClose }: { tutor: Tutor; onClose: () => void }) {
   const { user, token } = useAuthStore();
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
   const [subject, setSubject] = useState(tutor.subjects?.[0] ?? "");
   const [date, setDate] = useState("");
   const [time, setTime] = useState("");
+  const [durationMinutes, setDurationMinutes] = useState(60);
   const [notes, setNotes] = useState("");
-
+  const [paymentMethod, setPaymentMethod] = useState<"paystack" | "wallet">("paystack");
+  const [walletBalance, setWalletBalance] = useState<number | null>(null);
   const [booking, setBooking] = useState(false);
+
+  const hourlyRate = Number(tutor.hourlyRate || 0);
+  const totalAmount = Math.round(hourlyRate * (durationMinutes / 60));
+
+  useEffect(() => {
+    if (!token) return;
+    fetch(`${API}/wallet/balance`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((r) => r.json())
+      .then((d) => {
+        if (typeof d.balance === "number") {
+          setWalletBalance(d.balance);
+          if (d.balance >= totalAmount && totalAmount > 0) {
+            setPaymentMethod("wallet");
+          }
+        }
+      })
+      .catch(() => {});
+  }, [token, totalAmount]);
+
+  const hasWalletFunds = walletBalance !== null && walletBalance >= totalAmount;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user || !token) return;
+    if (totalAmount <= 0) {
+      toast({ variant: "destructive", title: "Cannot Book", description: "This tutor has not set a valid session rate." });
+      return;
+    }
+
     setBooking(true);
     try {
       const headers = { "Content-Type": "application/json", Authorization: `Bearer ${token}` };
-      const created = await fetch(`${API}/sessions`, { method: "POST", headers, body: JSON.stringify({ tutorId: tutor.userId, subject, scheduledAt: new Date(`${date}T${time}`).toISOString(), durationMinutes: 60, notes }) });
+      const scheduledAt = new Date(`${date}T${time}`).toISOString();
+
+      // Path A: Pay with 2torConnect Wallet Balance
+      if (paymentMethod === "wallet") {
+        if (!hasWalletFunds) {
+          throw new Error(`Insufficient wallet balance. You have ₦${(walletBalance ?? 0).toLocaleString()} but need ₦${totalAmount.toLocaleString()}.`);
+        }
+        const created = await fetch(`${API}/sessions`, {
+          method: "POST",
+          headers,
+          body: JSON.stringify({
+            tutorId: tutor.userId,
+            subject,
+            scheduledAt,
+            durationMinutes,
+            notes,
+            payWithWallet: true,
+          }),
+        });
+        const data = await created.json();
+        if (!created.ok) throw new Error(data.message || data.error || "Could not book session.");
+
+        toast({
+          title: "Session Paid & Request Sent! 📬",
+          description: `₦${totalAmount.toLocaleString()} paid from your wallet. ${tutor.name} has been notified to review and accept!`,
+        });
+        onClose();
+        setLocation("/student/sessions");
+        return;
+      }
+
+      // Path B: Pay directly with Card / Paystack
+      const created = await fetch(`${API}/sessions`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          tutorId: tutor.userId,
+          subject,
+          scheduledAt,
+          durationMinutes,
+          notes,
+        }),
+      });
       const session = await created.json();
       if (!created.ok) throw new Error(session.message || session.error || "Could not create booking.");
+
       const checkout = await fetch(`${API}/sessions/${session.id}/paystack-initiate`, { method: "POST", headers });
       const payment = await checkout.json();
       if (!checkout.ok || !payment.checkoutUrl) throw new Error(payment.error || "Could not start secure payment.");
+
       window.location.href = payment.checkoutUrl;
     } catch (err: any) {
       toast({ variant: "destructive", title: "Booking payment failed", description: err.message || "Could not book session." });
@@ -462,51 +536,156 @@ function BookingModal({ tutor, onClose }: { tutor: Tutor; onClose: () => void })
   };
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3.5 sm:p-4 bg-background/80 backdrop-blur-sm" onClick={onClose}>
-      <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="glass-panel w-full max-w-md rounded-3xl p-5 sm:p-6 relative max-h-[90dvh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-        <div className="flex items-center justify-between mb-5">
+      <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="glass-panel w-full max-w-lg rounded-3xl p-5 sm:p-6 relative max-h-[90dvh] overflow-y-auto space-y-4" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between pb-3 border-b border-white/10">
           <div>
-            <h2 className="text-xl font-bold text-white">Book Session</h2>
-            <p className="text-muted-foreground text-sm">with {tutor.name}</p>
+            <div className="flex items-center gap-2">
+              <h2 className="text-xl font-bold text-white">Book & Pay Upfront</h2>
+              <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                Guaranteed
+              </span>
+            </div>
+            <p className="text-muted-foreground text-xs mt-0.5">with {tutor.name} • ₦{hourlyRate.toLocaleString()}/hr</p>
           </div>
-          <button onClick={onClose}><X className="w-5 h-5 text-muted-foreground hover:text-white" /></button>
+          <button onClick={onClose} className="p-1 rounded-full text-muted-foreground hover:text-white hover:bg-white/10 transition-colors">
+            <X className="w-5 h-5" />
+          </button>
         </div>
+
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="rounded-xl border border-accent/20 bg-accent/5 px-4 py-3 text-sm text-white/80">Tutor rate: <strong className="text-accent">NGN {Number(tutor.hourlyRate || 0).toLocaleString()}</strong> for this 60 minute class. Pay now to send your booking request.</div>
           <div>
-            <label className="block text-sm font-medium text-white/80 mb-2">Subject</label>
-            <input required value={subject} onChange={e => setSubject(e.target.value)} list="subjects-list" className="w-full bg-black/40 border border-white/10 rounded-xl py-3 px-4 text-white focus:border-accent focus:outline-none" placeholder="e.g. Calculus 101" />
+            <label className="block text-xs font-semibold text-white/80 mb-1.5">Subject / Course</label>
+            <input required value={subject} onChange={e => setSubject(e.target.value)} list="subjects-list" className="w-full bg-black/40 border border-white/10 rounded-xl py-2.5 px-3.5 text-white focus:border-accent focus:outline-none text-sm" placeholder="e.g. MTH 101 Calculus" />
             {(tutor.subjects?.length ?? 0) > 0 && (
               <datalist id="subjects-list">{tutor.subjects?.map(s => <option key={s} value={s} />)}</datalist>
             )}
           </div>
-          <div className="grid grid-cols-2 gap-4">
+
+          <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-sm font-medium text-white/80 mb-2">Date</label>
-              <input type="date" required value={date} onChange={e => setDate(e.target.value)} className="w-full bg-black/40 border border-white/10 rounded-xl py-3 px-4 text-white focus:border-accent focus:outline-none" />
+              <label className="block text-xs font-semibold text-white/80 mb-1.5">Date</label>
+              <input type="date" required value={date} onChange={e => setDate(e.target.value)} className="w-full bg-black/40 border border-white/10 rounded-xl py-2.5 px-3.5 text-white focus:border-accent focus:outline-none text-sm" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-white/80 mb-2">Time</label>
-              <input type="time" required value={time} onChange={e => setTime(e.target.value)} className="w-full bg-black/40 border border-white/10 rounded-xl py-3 px-4 text-white focus:border-accent focus:outline-none" />
+              <label className="block text-xs font-semibold text-white/80 mb-1.5">Start Time</label>
+              <input type="time" required value={time} onChange={e => setTime(e.target.value)} className="w-full bg-black/40 border border-white/10 rounded-xl py-2.5 px-3.5 text-white focus:border-accent focus:outline-none text-sm" />
             </div>
           </div>
+
+          {/* Duration Selector */}
           <div>
-            <label className="block text-sm font-medium text-white/80 mb-1.5">
-              Message to Tutor / What do you need help with?
+            <label className="block text-xs font-semibold text-white/80 mb-1.5">Duration</label>
+            <div className="grid grid-cols-3 gap-2">
+              {[
+                { label: "60 mins", mins: 60 },
+                { label: "90 mins", mins: 90 },
+                { label: "2 hours", mins: 120 },
+              ].map(opt => (
+                <button
+                  key={opt.mins}
+                  type="button"
+                  onClick={() => setDurationMinutes(opt.mins)}
+                  className={`py-2 px-3 rounded-xl text-xs font-bold border transition-all ${
+                    durationMinutes === opt.mins
+                      ? "bg-accent/20 border-accent text-accent shadow-sm"
+                      : "bg-black/30 border-white/10 text-white/70 hover:bg-white/5"
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-white/80 mb-1.5">
+              Message to Tutor / Topics to cover
             </label>
             <textarea
               value={notes}
               onChange={e => setNotes(e.target.value)}
-              className="w-full bg-black/40 border border-white/10 rounded-xl py-3 px-4 text-white focus:border-accent focus:outline-none min-h-24 resize-none text-sm placeholder:text-muted-foreground"
-              placeholder="e.g. Hi! I need help preparing for my calculus exam, specifically integration by parts and differential equations..."
+              className="w-full bg-black/40 border border-white/10 rounded-xl py-2.5 px-3.5 text-white focus:border-accent focus:outline-none min-h-20 resize-none text-xs placeholder:text-muted-foreground"
+              placeholder="e.g. Hi! I need help preparing for my calculus midterms, specifically limits and chain rule..."
             />
-            <p className="text-[11px] text-muted-foreground mt-1.5 flex items-center gap-1.5">
-              <span>✉️</span> The tutor will receive this message by email after your payment succeeds.
-            </p>
           </div>
-          <div className="flex gap-3 mt-2">
-            <button type="button" onClick={onClose} className="flex-1 py-3 rounded-xl border border-white/10 text-white font-medium hover:bg-white/5 transition-colors">Cancel</button>
-            <button type="submit" disabled={booking || Number(tutor.hourlyRate || 0) <= 0} className="flex-1 py-3 rounded-xl bg-accent text-background font-bold hover:opacity-90 flex justify-center items-center gap-2 disabled:opacity-50">
-              {booking ? <Loader2 className="w-5 h-5 animate-spin" /> : `Pay NGN ${Number(tutor.hourlyRate || 0).toLocaleString()} & Book`}
+
+          {/* Pricing & Fee Summary */}
+          <div className="rounded-2xl border border-emerald-500/30 bg-emerald-950/20 p-3.5 space-y-2">
+            <div className="flex justify-between items-center">
+              <span className="text-xs text-muted-foreground">Session Fee ({durationMinutes} mins)</span>
+              <span className="text-lg font-black text-emerald-400">
+                ₦{totalAmount.toLocaleString()}
+              </span>
+            </div>
+
+            {/* Payment Method Selector */}
+            <div className="pt-2 border-t border-emerald-500/20 space-y-2">
+              <label className="block text-[11px] font-semibold text-white/80">Choose Payment Method:</label>
+              <div className="grid grid-cols-2 gap-2">
+                {/* Paystack Card/Transfer */}
+                <button
+                  type="button"
+                  onClick={() => setPaymentMethod("paystack")}
+                  className={`p-2.5 rounded-xl border text-left flex flex-col justify-between transition-all ${
+                    paymentMethod === "paystack"
+                      ? "bg-white/10 border-accent text-white ring-1 ring-accent"
+                      : "bg-black/30 border-white/10 text-white/70 hover:bg-white/5"
+                  }`}
+                >
+                  <div className="flex items-center gap-1.5">
+                    <CreditCard className="w-3.5 h-3.5 text-emerald-400" />
+                    <span className="text-xs font-bold text-white">Card / Transfer</span>
+                  </div>
+                  <span className="text-[10px] text-muted-foreground mt-1">Visa, Mastercard, Verve</span>
+                </button>
+
+                {/* Wallet Balance */}
+                <button
+                  type="button"
+                  onClick={() => setPaymentMethod("wallet")}
+                  className={`p-2.5 rounded-xl border text-left flex flex-col justify-between transition-all ${
+                    paymentMethod === "wallet"
+                      ? "bg-white/10 border-accent text-white ring-1 ring-accent"
+                      : "bg-black/30 border-white/10 text-white/70 hover:bg-white/5"
+                  }`}
+                >
+                  <div className="flex items-center gap-1.5">
+                    <Wallet className="w-3.5 h-3.5 text-accent" />
+                    <span className="text-xs font-bold text-white">My Wallet</span>
+                  </div>
+                  <span className={`text-[10px] mt-1 ${hasWalletFunds ? "text-emerald-400 font-semibold" : "text-amber-400"}`}>
+                    Bal: ₦{(walletBalance ?? 0).toLocaleString()}
+                  </span>
+                </button>
+              </div>
+            </div>
+
+            {/* Refund Protection Note */}
+            <div className="flex items-start gap-1.5 text-[11px] text-muted-foreground pt-1">
+              <ShieldCheck className="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5" />
+              <span>
+                <strong>100% Refund Guarantee:</strong> If the tutor cannot accept your request, ₦{totalAmount.toLocaleString()} will be automatically refunded back to your wallet.
+              </span>
+            </div>
+          </div>
+
+          <div className="flex gap-3 pt-1">
+            <button type="button" onClick={onClose} className="flex-1 py-2.5 rounded-xl border border-white/10 text-white text-xs font-medium hover:bg-white/5 transition-colors">
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={booking || totalAmount <= 0}
+              className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 text-black font-extrabold text-xs hover:opacity-90 flex justify-center items-center gap-1.5 disabled:opacity-50 transition-all shadow-lg shadow-emerald-500/20"
+            >
+              {booking ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <>
+                  <CheckCircle2 className="w-4 h-4" />
+                  {paymentMethod === "wallet" ? `Pay ₦${totalAmount.toLocaleString()} & Book` : `Pay ₦${totalAmount.toLocaleString()} via Paystack`}
+                </>
+              )}
             </button>
           </div>
         </form>
