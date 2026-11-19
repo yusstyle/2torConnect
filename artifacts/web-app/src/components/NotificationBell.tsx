@@ -4,6 +4,7 @@ import { Bell, X, CheckCheck, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLocation } from "wouter";
+import { useToast } from "@/hooks/use-toast";
 
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 const API = `${BASE}/api`;
@@ -11,6 +12,12 @@ const API = `${BASE}/api`;
 interface Notif {
   id: number; type: string; title: string; message: string; link?: string;
   isRead: boolean; createdAt: string;
+}
+
+function decodeVapidKey(key: string): Uint8Array {
+  const padded = key + "=".repeat((4 - key.length % 4) % 4);
+  const decoded = window.atob(padded.replace(/-/g, "+").replace(/_/g, "/"));
+  return Uint8Array.from(decoded, (char) => char.charCodeAt(0));
 }
 
 const TYPE_COLORS: Record<string, string> = {
@@ -24,10 +31,15 @@ const TYPE_COLORS: Record<string, string> = {
 
 export default function NotificationBell() {
   const { token } = useAuthStore();
+  const { toast } = useToast();
   const [, setLocation] = useLocation();
   const [open, setOpen] = useState(false);
   const [notifs, setNotifs] = useState<Notif[]>([]);
   const [loading, setLoading] = useState(false);
+  const [pushAvailable, setPushAvailable] = useState(false);
+  const [pushPublicKey, setPushPublicKey] = useState("");
+  const [pushEnabled, setPushEnabled] = useState(false);
+  const [pushLoading, setPushLoading] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
 
   const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}`, "Content-Type": "application/json" } : {};
@@ -47,6 +59,71 @@ export default function NotificationBell() {
     const id = setInterval(fetchNotifs, 15000); // poll every 15s
     return () => clearInterval(id);
   }, [token]);
+
+  useEffect(() => {
+    let active = true;
+    const syncSubscription = async () => {
+      const supported = "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
+      if (!token || !supported) { setPushAvailable(false); setPushEnabled(false); return; }
+      try {
+        const configResponse = await fetch(`${API}/notifications/push-config`);
+        const config = await configResponse.json();
+        if (!active) return;
+        setPushAvailable(Boolean(config.enabled && config.publicKey));
+        setPushPublicKey(config.publicKey || "");
+        if (!config.enabled || !config.publicKey) { setPushEnabled(false); return; }
+        const registration = await navigator.serviceWorker.ready;
+        const subscription = await registration.pushManager.getSubscription();
+        if (!active) return;
+        setPushEnabled(Boolean(subscription));
+        if (subscription) {
+          await fetch(`${API}/notifications/push-subscriptions`, {
+            method: "POST", headers,
+            body: JSON.stringify(subscription),
+          });
+        }
+      } catch { if (active) setPushAvailable(false); }
+    };
+    syncSubscription();
+    return () => { active = false; };
+  }, [token]);
+
+  const togglePush = async () => {
+    if (!token) return;
+    setPushLoading(true);
+    try {
+      if (!pushEnabled && Notification.permission !== "granted") {
+        const permission = await Notification.requestPermission();
+        if (permission !== "granted") throw new Error("Allow notifications for 2torConnect in your browser settings to enable alerts.");
+      }
+      const configResponse = await fetch(`${API}/notifications/push-config`);
+      const config = await configResponse.json();
+      if (!config.enabled || !config.publicKey) throw new Error("Desktop alerts are not configured yet.");
+      const registration = await navigator.serviceWorker.ready;
+      const existing = await registration.pushManager.getSubscription();
+      if (existing && pushEnabled) {
+        await fetch(`${API}/notifications/push-subscriptions`, { method: "DELETE", headers, body: JSON.stringify({ endpoint: existing.endpoint }) });
+        await existing.unsubscribe();
+        setPushEnabled(false);
+        toast({ title: "Desktop alerts turned off" });
+      } else {
+        const subscription = existing || await registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: decodeVapidKey(pushPublicKey || config.publicKey) as BufferSource,
+        });
+        const response = await fetch(`${API}/notifications/push-subscriptions`, { method: "POST", headers, body: JSON.stringify(subscription) });
+        if (!response.ok) {
+          const result = await response.json();
+          throw new Error(result.error || "Could not enable desktop alerts.");
+        }
+        setPushAvailable(true);
+        setPushEnabled(true);
+        toast({ title: "Desktop alerts enabled", description: "New messages and 2torConnect notifications can now alert you when the site is closed." });
+      }
+    } catch (err: any) {
+      toast({ variant: "destructive", title: "Notification setup failed", description: err.message || "Could not set up desktop alerts." });
+    } finally { setPushLoading(false); }
+  };
 
   // Close on outside click
   useEffect(() => {
@@ -116,6 +193,12 @@ export default function NotificationBell() {
             </div>
 
             <div className="max-h-80 overflow-y-auto">
+              <div className="px-4 py-2 border-b border-white/5">
+                <button onClick={togglePush} disabled={pushLoading || !pushAvailable} className="w-full text-left text-xs text-accent hover:text-white disabled:text-muted-foreground disabled:cursor-not-allowed">
+                  {pushLoading ? "Setting up alerts…" : pushEnabled ? "Turn off desktop alerts" : pushAvailable ? "Enable desktop alerts" : "Desktop alerts unavailable"}
+                </button>
+                {!pushAvailable && <p className="text-[10px] text-muted-foreground mt-1">Background alerts need browser permission and server push setup.</p>}
+              </div>
               {notifs.length === 0 ? (
                 <div className="py-10 text-center">
                   <Bell className="w-8 h-8 mx-auto text-muted-foreground/40 mb-2" />

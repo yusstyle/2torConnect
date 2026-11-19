@@ -11,6 +11,7 @@ export * from "./social";
 export * from "./otp";
 export * from "./sponsorship";
 export * from "./notifications";
+export * from "./push-subscriptions";
 export * from "./reviews";
 export * from "./assignments";
 export * from "./referrals";

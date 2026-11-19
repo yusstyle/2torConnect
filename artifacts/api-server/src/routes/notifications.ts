@@ -1,9 +1,37 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
-import { notificationsTable } from "@workspace/db";
+import { notificationsTable, pushSubscriptionsTable } from "@workspace/db";
 import { eq, and, desc } from "drizzle-orm";
+import { requireAuth } from "../lib/auth-middleware";
+import { getVapidPublicKey, isWebPushConfigured, sendWebPushNotification } from "../lib/web-push";
 
 const router = Router();
+
+router.get("/push-config", (_req, res) => {
+  return res.json({ enabled: isWebPushConfigured(), publicKey: getVapidPublicKey() });
+});
+
+router.post("/push-subscriptions", requireAuth, async (req: any, res) => {
+  const { endpoint, keys } = req.body ?? {};
+  if (!isWebPushConfigured()) return res.status(503).json({ error: "Background notifications are not configured yet" });
+  if (typeof endpoint !== "string" || !endpoint.startsWith("https://") || typeof keys?.p256dh !== "string" || typeof keys?.auth !== "string") {
+    return res.status(400).json({ error: "Invalid push subscription" });
+  }
+  try {
+    await db.insert(pushSubscriptionsTable).values({ userId: req.user.id, endpoint, p256dh: keys.p256dh, auth: keys.auth })
+      .onConflictDoUpdate({ target: pushSubscriptionsTable.endpoint, set: { userId: req.user.id, p256dh: keys.p256dh, auth: keys.auth } });
+    return res.json({ success: true });
+  } catch {
+    return res.status(500).json({ error: "Could not save notification subscription" });
+  }
+});
+
+router.delete("/push-subscriptions", requireAuth, async (req: any, res) => {
+  const endpoint = req.body?.endpoint;
+  if (typeof endpoint !== "string") return res.status(400).json({ error: "Subscription endpoint is required" });
+  await db.delete(pushSubscriptionsTable).where(and(eq(pushSubscriptionsTable.userId, req.user.id), eq(pushSubscriptionsTable.endpoint, endpoint)));
+  return res.json({ success: true });
+});
 
 router.get("/", async (req, res) => {
   try {
@@ -68,5 +96,6 @@ export default router;
 export async function pushNotification(userId: number, type: string, title: string, message: string, link?: string) {
   try {
     await db.insert(notificationsTable).values({ userId, type, title, message, link });
+    void sendWebPushNotification(userId, title, message, link).catch(() => {});
   } catch {}
 }

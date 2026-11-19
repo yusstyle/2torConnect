@@ -21,6 +21,14 @@ export async function ensureDbSchema() {
       try {
         await db.execute(sql`ALTER TABLE session_participants ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'accepted'`);
         await db.execute(sql`ALTER TABLE otp_codes ADD COLUMN IF NOT EXISTS purpose TEXT NOT NULL DEFAULT 'login'`);
+        await db.execute(sql`CREATE TABLE IF NOT EXISTS push_subscriptions (
+          id SERIAL PRIMARY KEY,
+          user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          endpoint TEXT NOT NULL UNIQUE,
+          p256dh TEXT NOT NULL,
+          auth TEXT NOT NULL,
+          created_at TIMESTAMP NOT NULL DEFAULT NOW()
+        )`);
         schemaEnsured = true;
       } catch (err) {
         logger.error({ err }, "Failed to ensure session_participants status column");

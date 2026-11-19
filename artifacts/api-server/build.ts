@@ -36,6 +36,7 @@ const allowlist = [
   "pino-http",
   "stripe",
   "uuid",
+  "web-push",
   "ws",
   "xlsx",
   "zod",

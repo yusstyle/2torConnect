@@ -25,7 +25,8 @@
     "nodemailer": "^8.0.7",
     "openai": "^6.37.0",
     "pino": "^9",
-    "pino-http": "^10"
+    "pino-http": "^10",
+    "web-push": "^4.0.0"
   },
   "devDependencies": {
     "@types/bcryptjs": "^3.0.0",
@@ -33,6 +34,7 @@
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
     "@types/node": "catalog:",
+    "@types/web-push": "^3.6.4",
     "cross-env": "^10.1.0",
     "dotenv": "^16.4.1",
     "esbuild": "^0.27.3",

@@ -4,6 +4,7 @@ import { messagesTable, usersTable } from "@workspace/db";
 import { eq, or, and, sql } from "drizzle-orm";
 import { SendMessageBody } from "@workspace/api-zod";
 import { verifyToken } from "../lib/jwt";
+import { pushNotification } from "./notifications";
 
 const router: IRouter = Router();
 
@@ -112,6 +113,7 @@ router.post("/", async (req, res) => {
       content: body.content,
     }).returning();
     const [user] = await db.select({ name: usersTable.name }).from(usersTable).where(eq(usersTable.id, currentUserId)).limit(1);
+    void pushNotification(body.receiverId, "message", `New message from ${user?.name ?? "2torConnect"}`, "Open 2torConnect to view your message.", `/messages?userId=${currentUserId}`);
     res.status(201).json({ ...message, senderName: user?.name });
   } catch (err) {
     req.log.error({ err }, "send message error");

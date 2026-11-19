@@ -19,6 +19,7 @@ export default defineConfig({
       registerType: "autoUpdate",
       manifest: false,
       workbox: {
+        importScripts: ["/push-sw.js"],
         navigateFallback: "/index.html",
         runtimeCaching: [
           {
